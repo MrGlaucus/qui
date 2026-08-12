@@ -15,7 +15,6 @@ import (
 
 const (
 	dailyReportCheckInterval = 30 * time.Second
-	dailyReportSeparator     = "————————————"
 	baselineGracePeriod      = 2 * time.Minute
 )
 
@@ -25,6 +24,29 @@ const (
 // the baseline collection in DailyTrafficRecorder.
 type dailyTrafficReportStore interface {
 	ListByDate(ctx context.Context, date string) ([]*models.InstanceDailyTraffic, error)
+}
+
+// forceSyncTrafficInstances triggers a fresh qBittorrent maindata sync for every
+// active instance with daily traffic collection enabled. This guarantees the
+// baseline snapshot (and hourly cumulative totals) are written on time even
+// when no SSE subscriber is keeping the sync loop alive.
+func (s *Service) forceSyncTrafficInstances(ctx context.Context) {
+	if s == nil || s.forceSync == nil || s.instanceStore == nil {
+		return
+	}
+	instances, err := s.instanceStore.List(ctx)
+	if err != nil {
+		s.logger.Error().Err(err).Msg("traffic report: failed to list instances for forced sync")
+		return
+	}
+	for _, inst := range instances {
+		if inst == nil || !inst.IsActive || !inst.DailyTrafficEnabled {
+			continue
+		}
+		if err := s.forceSync(ctx, inst.ID); err != nil {
+			s.logger.Warn().Err(err).Int("instanceID", inst.ID).Msg("traffic report: forced sync failed")
+		}
+	}
 }
 
 // StartDailyTrafficReport launches the midnight daily traffic report scheduler.
@@ -129,6 +151,11 @@ func (s *Service) StartHourlyTrafficReport(ctx context.Context, store dailyTraff
 				if now.Hour() == 0 && s.dailyTrafficReportEnabled(ctx) {
 					continue
 				}
+				// Only kick the sync when the hourly report is actually wanted,
+				// so we don't hammer qBittorrent every hour for nothing.
+				if s.hourlyTrafficReportEnabled(ctx) {
+					s.forceSyncTrafficInstances(ctx)
+				}
 				s.reportHourlyTraffic(ctx, store, now)
 			}
 		}
@@ -173,6 +200,7 @@ func (s *Service) StartBaselineReport(ctx context.Context, store dailyTrafficRep
 
 	lastBaselineDate := time.Now().Format("2006-01-02")
 	var graceEnd time.Time
+	syncedForDay := false
 
 	go func() {
 		ticker := time.NewTicker(dailyReportCheckInterval)
@@ -196,7 +224,13 @@ func (s *Service) StartBaselineReport(ctx context.Context, store dailyTrafficRep
 				}
 				baseline := baselineRows(rows)
 				if len(baseline) == 0 {
-					continue // capture has not written yet; keep waiting
+					// Baseline not captured yet — kick the sync once so the
+					// baseline is written on time even with no SSE subscriber.
+					if !syncedForDay {
+						syncedForDay = true
+						s.forceSyncTrafficInstances(ctx)
+					}
+					continue
 				}
 
 				// First detection: start the grace period so the remaining
@@ -212,6 +246,7 @@ func (s *Service) StartBaselineReport(ctx context.Context, store dailyTrafficRep
 				s.reportBaseline(ctx, today, baseline)
 				lastBaselineDate = today
 				graceEnd = time.Time{}
+				syncedForDay = false
 			}
 		}
 	}()
@@ -235,16 +270,26 @@ func (s *Service) reportBaseline(ctx context.Context, date string, rows []*model
 // the daily traffic report event selected (an empty event list means all
 // events). Used by the hourly scheduler to skip the midnight boundary.
 func (s *Service) dailyTrafficReportEnabled(ctx context.Context) bool {
+	return s.trafficReportEnabled(ctx, EventDailyTrafficReport)
+}
+
+// hourlyTrafficReportEnabled reports whether any enabled notification target
+// has the hourly traffic report event selected.
+func (s *Service) hourlyTrafficReportEnabled(ctx context.Context) bool {
+	return s.trafficReportEnabled(ctx, EventHourlyTrafficReport)
+}
+
+func (s *Service) trafficReportEnabled(ctx context.Context, eventType EventType) bool {
 	if s == nil || s.store == nil {
 		return false
 	}
 	targets, err := s.store.ListEnabled(ctx)
 	if err != nil {
-		s.logger.Error().Err(err).Msg("hourly traffic report: failed to list targets")
+		s.logger.Error().Err(err).Msg("traffic report: failed to list targets")
 		return false
 	}
 	for _, target := range targets {
-		if allowsEvent(target.EventTypes, EventDailyTrafficReport) {
+		if allowsEvent(target.EventTypes, eventType) {
 			return true
 		}
 	}
@@ -286,14 +331,14 @@ func (s *Service) sortTrafficRowsBySortOrder(ctx context.Context, rows []*models
 // reportDate is the completed calendar day being reported (format 2006-01-02);
 // settleAt is the settlement moment (the run after midnight).
 func buildDailyTrafficReport(reportDate string, settleAt time.Time, rows []*models.InstanceDailyTraffic, instanceName func(int) string) (string, string) {
-	title := fmt.Sprintf("实例数据统计（每日结算 %s）", settleAt.Format("2006-01-02 15:04:05"))
+	title := fmt.Sprintf("📅 每日流量报告（%s）", reportDate)
 	return title, buildTrafficReportMessage(reportDate, rows, instanceName)
 }
 
 // buildHourlyTrafficReport formats the on-the-hour report for the current
 // calendar day's cumulative traffic.
 func buildHourlyTrafficReport(reportDate string, settleAt time.Time, rows []*models.InstanceDailyTraffic, instanceName func(int) string) (string, string) {
-	title := fmt.Sprintf("实例数据统计（每小时结算 %s）", settleAt.Format("2006-01-02 15:04:05"))
+	title := fmt.Sprintf("🕐 整点流量报告（%s）", settleAt.Format("2006-01-02 15:04:05"))
 	return title, buildTrafficReportMessage(reportDate, rows, instanceName)
 }
 
@@ -310,12 +355,10 @@ func buildTrafficReportMessage(reportDate string, rows []*models.InstanceDailyTr
 	}
 
 	var sb strings.Builder
-	sb.WriteString(dailyReportSeparator)
-	sb.WriteString("\n")
-	sb.WriteString(fmt.Sprintf("【汇总】（%s）\n", reportDate))
-	sb.WriteString(fmt.Sprintf("今日上传：%s\n", formatBytes(totalUploaded)))
-	sb.WriteString(fmt.Sprintf("今日下载：%s\n", formatBytes(totalDownloaded)))
-	sb.WriteString(fmt.Sprintf("今日流量：%s", formatBytes(totalUploaded+totalDownloaded)))
+	sb.WriteString("📊 汇总\n")
+	sb.WriteString(fmt.Sprintf("⬆️ 今日上传：%s\n", formatBytes(totalUploaded)))
+	sb.WriteString(fmt.Sprintf("⬇️ 今日下载：%s\n", formatBytes(totalDownloaded)))
+	sb.WriteString(fmt.Sprintf("📈 今日流量：%s", formatBytes(totalUploaded+totalDownloaded)))
 
 	for _, row := range rows {
 		if row == nil {
@@ -327,13 +370,11 @@ func buildTrafficReportMessage(reportDate string, rows []*models.InstanceDailyTr
 				name = resolved
 			}
 		}
-		sb.WriteString("\n")
-		sb.WriteString(dailyReportSeparator)
-		sb.WriteString("\n")
-		sb.WriteString(fmt.Sprintf("【%s】（%s）\n", name, reportDate))
-		sb.WriteString(fmt.Sprintf("今日上传：%s\n", formatBytes(row.Uploaded)))
-		sb.WriteString(fmt.Sprintf("今日下载：%s\n", formatBytes(row.Downloaded)))
-		sb.WriteString(fmt.Sprintf("今日流量：%s", formatBytes(row.Uploaded+row.Downloaded)))
+		sb.WriteString("\n\n")
+		sb.WriteString(fmt.Sprintf("🏷️ %s\n", name))
+		sb.WriteString(fmt.Sprintf("⬆️ 今日上传：%s\n", formatBytes(row.Uploaded)))
+		sb.WriteString(fmt.Sprintf("⬇️ 今日下载：%s\n", formatBytes(row.Downloaded)))
+		sb.WriteString(fmt.Sprintf("📈 今日流量：%s", formatBytes(row.Uploaded+row.Downloaded)))
 	}
 
 	return sb.String()
@@ -371,7 +412,7 @@ func buildBaselineReport(date string, rows []*models.InstanceDailyTraffic, insta
 			}
 		}
 		uploaded, downloaded := baselineBytes(row)
-		sb.WriteString(fmt.Sprintf("✅ %s\n", name))
+		sb.WriteString(fmt.Sprintf("🏷️ %s\n", name))
 		sb.WriteString(fmt.Sprintf("🎯 基准: ↑ %s / ↓ %s\n", formatBytes(uploaded), formatBytes(downloaded)))
 		sb.WriteString(fmt.Sprintf("🧭 来源: %s\n", baselineSource(row)))
 		sb.WriteString(fmt.Sprintf("⏱️ 时间: %s", baselineTime(row)))

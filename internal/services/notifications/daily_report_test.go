@@ -4,7 +4,6 @@
 package notifications
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -46,20 +45,19 @@ func TestBuildDailyTrafficReport(t *testing.T) {
 
 	title, message := buildDailyTrafficReport("2026-08-08", settleAt, rows, resolve)
 
-	require.Equal(t, "实例数据统计（每日结算 2026-08-09 00:00:05）", title)
-	require.Contains(t, message, "【汇总】（2026-08-08）")
-	require.Contains(t, message, "今日上传：5.04 TB")
-	require.Contains(t, message, "今日下载：1.90 TB")
-	require.Contains(t, message, "今日流量：6.94 TB")
-	require.Contains(t, message, "【OVH-KS1B-DE-1】（2026-08-08）")
-	require.Contains(t, message, "今日上传：4.95 TB")
-	require.Contains(t, message, "今日下载：1.86 TB")
-	require.Contains(t, message, "今日流量：6.81 TB")
-	require.Contains(t, message, "【HostDZire-US】（2026-08-08）")
-	require.Contains(t, message, "今日上传：85.00 GB")
-	require.Contains(t, message, "今日下载：41.00 GB")
-	require.Contains(t, message, "今日流量：126.00 GB")
-	require.Equal(t, strings.Count(message, dailyReportSeparator), 3)
+	require.Equal(t, "📅 每日流量报告（2026-08-08）", title)
+	require.Contains(t, message, "📊 汇总")
+	require.Contains(t, message, "⬆️ 今日上传：5.04 TB")
+	require.Contains(t, message, "⬇️ 今日下载：1.90 TB")
+	require.Contains(t, message, "📈 今日流量：6.94 TB")
+	require.Contains(t, message, "🏷️ OVH-KS1B-DE-1")
+	require.Contains(t, message, "⬆️ 今日上传：4.95 TB")
+	require.Contains(t, message, "⬇️ 今日下载：1.86 TB")
+	require.Contains(t, message, "📈 今日流量：6.81 TB")
+	require.Contains(t, message, "🏷️ HostDZire-US")
+	require.Contains(t, message, "⬆️ 今日上传：85.00 GB")
+	require.Contains(t, message, "⬇️ 今日下载：41.00 GB")
+	require.Contains(t, message, "📈 今日流量：126.00 GB")
 }
 
 func TestBuildDailyTrafficReportResolvesInstanceNames(t *testing.T) {
@@ -67,8 +65,8 @@ func TestBuildDailyTrafficReportResolvesInstanceNames(t *testing.T) {
 		{InstanceID: 7, Uploaded: 100, Downloaded: 200},
 	}
 	title, message := buildDailyTrafficReport("2026-08-08", time.Now(), rows, func(int) string { return "" })
-	require.Contains(t, title, "实例数据统计")
-	require.Contains(t, message, "【实例】（2026-08-08）")
+	require.Contains(t, title, "每日流量报告")
+	require.Contains(t, message, "🏷️ 实例")
 }
 
 func TestFormatEventDailyTrafficReportPassesThrough(t *testing.T) {
@@ -95,11 +93,11 @@ func TestBuildHourlyTrafficReport(t *testing.T) {
 
 	title, message := buildHourlyTrafficReport("2026-08-09", settleAt, rows, resolve)
 
-	require.Equal(t, "实例数据统计（每小时结算 2026-08-09 14:00:00）", title)
-	require.Contains(t, message, "【汇总】（2026-08-09）")
-	require.Contains(t, message, "今日上传：5.04 TB")
-	require.Contains(t, message, "【HostDZire-US】（2026-08-09）")
-	require.Contains(t, message, "今日流量：126.00 GB")
+	require.Equal(t, "🕐 整点流量报告（2026-08-09 14:00:00）", title)
+	require.Contains(t, message, "📊 汇总")
+	require.Contains(t, message, "⬆️ 今日上传：5.04 TB")
+	require.Contains(t, message, "🏷️ HostDZire-US")
+	require.Contains(t, message, "📈 今日流量：126.00 GB")
 }
 
 func TestBuildBaselineReport(t *testing.T) {
@@ -126,11 +124,11 @@ func TestBuildBaselineReport(t *testing.T) {
 	title, message := buildBaselineReport("2026-08-11", rows, resolve)
 
 	require.Equal(t, "🌙 基准采集结果 2026-08-11", title)
-	require.Contains(t, message, "✅ OVH-KS1B-DE-1")
+	require.Contains(t, message, "🏷️ OVH-KS1B-DE-1")
 	require.Contains(t, message, "🎯 基准: ↑ 68.94 TB / ↓ 29.50 TB")
 	require.Contains(t, message, "🧭 来源: session")
 	require.Contains(t, message, "⏱️ 时间: 2026-08-11 00:00:00")
-	require.Contains(t, message, "✅ HostDZire-US")
+	require.Contains(t, message, "🏷️ HostDZire-US")
 	require.Contains(t, message, "🎯 基准: ↑ 14.86 TB / ↓ 4.12 TB")
 	require.Contains(t, message, "🧭 来源: alltime")
 }

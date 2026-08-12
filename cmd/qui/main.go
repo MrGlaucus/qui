@@ -628,6 +628,13 @@ func (app *Application) runServer() {
 	notificationCtx, notificationCancel := context.WithCancel(context.Background())
 	defer notificationCancel()
 	if notificationService != nil {
+		notificationService.SetForceSync(func(ctx context.Context, instanceID int) error {
+			qbtSyncManager, err := syncManager.GetQBittorrentSyncManager(ctx, instanceID)
+			if err != nil {
+				return err
+			}
+			return qbtSyncManager.Sync(ctx)
+		})
 		notificationService.Start(notificationCtx)
 		notificationService.StartDailyTrafficReport(notificationCtx, dailyTrafficStore)
 		notificationService.StartHourlyTrafficReport(notificationCtx, dailyTrafficStore)

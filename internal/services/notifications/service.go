@@ -80,6 +80,18 @@ type Service struct {
 	logger        zerolog.Logger
 	queue         chan Event
 	startOnce     sync.Once
+	forceSync     func(ctx context.Context, instanceID int) error
+}
+
+// SetForceSync registers a callback that triggers a qBittorrent maindata sync
+// for an instance. Used by the traffic report schedulers so midnight baseline
+// capture and hourly reports get fresh data even when no SSE subscriber is
+// keeping the sync loop alive.
+func (s *Service) SetForceSync(fn func(ctx context.Context, instanceID int) error) {
+	if s == nil {
+		return
+	}
+	s.forceSync = fn
 }
 
 func NewService(store *models.NotificationTargetStore, instanceStore *models.InstanceStore, logger zerolog.Logger) *Service {
