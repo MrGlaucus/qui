@@ -500,7 +500,7 @@ export const TaskReportDialog = memo(function TaskReportDialog({
 
   const captureDialog = (
     <AlertDialog open={showCaptureDialog} onOpenChange={setShowCaptureDialog}>
-      <AlertDialogContent>
+      <AlertDialogContent className="z-[70]">
         <AlertDialogHeader>
           <AlertDialogTitle>{t("reportDialog.captureTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
@@ -513,7 +513,7 @@ export const TaskReportDialog = memo(function TaskReportDialog({
             {t("reportDialog.copy")}
           </AlertDialogAction>
           <AlertDialogAction onClick={handleDownloadFromCapture}>
-            {t("reportDialog.download")}
+            {t("reportDialog.downloadImage")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
