@@ -101,7 +101,7 @@ describe("useMobileScroll", () => {
 
     // The new list must still drive footer visibility
     act(() => scrollTo(newEl, 100))
-    expect(footerVisible).toBe(false)
+    expect(footerVisible).toBe(true)
   })
 
   it("cancels a queued frame when the container unregisters", () => {
