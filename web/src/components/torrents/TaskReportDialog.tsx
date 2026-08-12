@@ -424,9 +424,24 @@ export const TaskReportDialog = memo(function TaskReportDialog({
     setCopying(true)
     try {
       const { toPng } = await import("html-to-image")
+
+      // Match what the user actually sees: pick the effective background by
+      // walking up from the report element until a non-transparent color shows.
+      let backgroundColor = "#ffffff"
+      let el: HTMLElement | null = contentRef.current
+      while (el) {
+        const bg = getComputedStyle(el).backgroundColor
+        if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") {
+          backgroundColor = bg
+          break
+        }
+        el = el.parentElement
+      }
+
       const dataUrl = await toPng(contentRef.current, {
-        pixelRatio: 2,
+        pixelRatio: isMobile ? 1 : 2,
         cacheBust: true,
+        backgroundColor,
       })
       const blob = await (await fetch(dataUrl)).blob()
       setCaptureDataUrl(dataUrl)
@@ -437,7 +452,7 @@ export const TaskReportDialog = memo(function TaskReportDialog({
     } finally {
       setCopying(false)
     }
-  }, [t])
+  }, [isMobile, t])
 
   const handleCopyFromCapture = useCallback(async () => {
     if (!capturedBlob) return
