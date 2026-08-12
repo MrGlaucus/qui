@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && node -e \"const fs=require('fs'); fs.mkdirSync('dist',{recursive:true}); fs.closeSync(fs.openSync('dist/.gitkeep','a'));\"",
+    "build:docker": "vite build && node -e \"const fs=require('fs'); fs.mkdirSync('dist',{recursive:true}); fs.closeSync(fs.openSync('dist/.gitkeep','a'));\"",
     "preview": "vite preview",
     "check:i18n": "node scripts/check-i18n-keys.mjs && node scripts/check-i18n-implementation.mjs && node scripts/find-hardcoded-i18n-literals.mjs && node scripts/find-raw-backend-values.mjs && node scripts/check-zh-cn-coverage.mjs && node scripts/check-fr-coverage.mjs && node scripts/check-de-coverage.mjs && node scripts/check-it-coverage.mjs && node scripts/check-cs-coverage.mjs && node scripts/check-ko-coverage.mjs && node scripts/check-uk-coverage.mjs && node scripts/check-pt-br-coverage.mjs",
     "check:i18n:hardcoded": "node scripts/find-hardcoded-i18n-literals.mjs",
@@ -60,7 +61,9 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "culori": "^4.0.2",
+    "echarts": "^6.1.0",
     "flag-icons": "^7.5.0",
+    "html-to-image": "^1.11.13",
     "i18next": "^26.3.6",
     "lucide-react": "^1.27.0",
     "motion": "^12.42.2",

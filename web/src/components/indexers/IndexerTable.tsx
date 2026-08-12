@@ -317,6 +317,8 @@ export function IndexerTable({
                   </Button>
                 </TableHead>
                 <TableHead className="hidden sm:table-cell text-center">{t("indexers.table.timeout")}</TableHead>
+                <TableHead className="hidden lg:table-cell text-center">{t("indexers.table.uploadLimit")}</TableHead>
+                <TableHead className="hidden lg:table-cell text-center">{t("indexers.table.downloadLimit")}</TableHead>
                 <TableHead className="text-center">{t("indexers.table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
@@ -456,6 +458,8 @@ export function IndexerTable({
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-center">{indexer.priority}</TableCell>
                     <TableCell className="hidden sm:table-cell text-center">{indexer.timeout_seconds}s</TableCell>
+                    <TableCell className="hidden lg:table-cell text-center">{indexer.upload_limit_bytes > 0 ? `${Math.round(indexer.upload_limit_bytes / (indexer.upload_limit_unit === "KB" ? 1024 : indexer.upload_limit_unit === "GB" ? 1073741824 : 1048576))}${indexer.upload_limit_unit || "MB"}/s` : t("indexers.table.unlimited")}</TableCell>
+                    <TableCell className="hidden lg:table-cell text-center">{indexer.download_limit_bytes > 0 ? `${Math.round(indexer.download_limit_bytes / (indexer.download_limit_unit === "KB" ? 1024 : indexer.download_limit_unit === "GB" ? 1073741824 : 1048576))}${indexer.download_limit_unit || "MB"}/s` : t("indexers.table.unlimited")}</TableCell>
                     <TableCell className="text-center">
                       <div className="flex justify-center gap-1">
                         <Button

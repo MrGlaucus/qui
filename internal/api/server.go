@@ -72,6 +72,8 @@ type Server struct {
 	streamManager                    *sse.StreamManager
 	filesManager                     *filesmanager.Service
 	crossSeedService                 *crossseed.Service
+	crossSeedLogStore                *models.CrossSeedLogStore
+	dailyTrafficStore                *models.InstanceDailyTrafficStore
 	jackettService                   *jackett.Service
 	torznabIndexerStore              *models.TorznabIndexerStore
 	automationStore                  *models.AutomationStore
@@ -113,6 +115,8 @@ type Dependencies struct {
 	BackupService                    *backups.Service
 	FilesManager                     *filesmanager.Service
 	CrossSeedService                 *crossseed.Service
+	CrossSeedLogStore                *models.CrossSeedLogStore
+	DailyTrafficStore                *models.InstanceDailyTrafficStore
 	JackettService                   *jackett.Service
 	TorznabIndexerStore              *models.TorznabIndexerStore
 	AutomationStore                  *models.AutomationStore
@@ -141,6 +145,22 @@ func NewServer(deps *Dependencies) *Server {
 	}
 	if deps.ActivityHub != nil {
 		streamManager.SetActivityHub(deps.ActivityHub)
+	}
+	if deps.DailyTrafficStore != nil {
+		streamManager.SetTodayTrafficProvider(func(ctx context.Context, instanceID int) (*qbittorrent.TodayTraffic, error) {
+			row, err := deps.DailyTrafficStore.GetByInstanceAndDate(ctx, instanceID, time.Now().Format("2006-01-02"))
+			if err != nil {
+				return nil, err
+			}
+			if row == nil {
+				return nil, nil
+			}
+			return &qbittorrent.TodayTraffic{
+				Date:       row.Date,
+				Downloaded: row.Downloaded,
+				Uploaded:   row.Uploaded,
+			}, nil
+		})
 	}
 
 	s := Server{
@@ -177,6 +197,8 @@ func NewServer(deps *Dependencies) *Server {
 		streamManager:                    streamManager,
 		filesManager:                     deps.FilesManager,
 		crossSeedService:                 deps.CrossSeedService,
+		crossSeedLogStore:                deps.CrossSeedLogStore,
+		dailyTrafficStore:                deps.DailyTrafficStore,
 		reannounceService:                deps.ReannounceService,
 		jackettService:                   deps.JackettService,
 		torznabIndexerStore:              deps.TorznabIndexerStore,
@@ -339,7 +361,8 @@ func (s *Server) Handler() (*chi.Mux, error) {
 		return nil, err
 	}
 	instancesHandler := handlers.NewInstancesHandler(s.instanceStore, s.instanceReannounce, s.reannounceCache, s.clientPool, s.syncManager, s.reannounceService)
-	torrentsHandler := handlers.NewTorrentsHandler(s.syncManager, s.jackettService, s.instanceStore)
+	trafficHandler := handlers.NewTrafficHandler(s.dailyTrafficStore)
+	torrentsHandler := handlers.NewTorrentsHandler(s.syncManager, s.jackettService, s.instanceStore, s.crossSeedLogStore)
 	preferencesHandler := handlers.NewPreferencesHandler(s.syncManager)
 	clientAPIKeysHandler := handlers.NewClientAPIKeysHandler(s.clientAPIKeyStore, s.instanceStore, s.config.Config.BaseURL)
 	externalProgramsHandler := handlers.NewExternalProgramsHandler(s.externalProgramStore, s.externalProgramService, s.clientPool, s.automationStore)
@@ -516,6 +539,10 @@ func (s *Server) Handler() (*chi.Mux, error) {
 
 			r.Get("/stream", s.streamManager.Serve)
 
+			// GeoIP lookup for peer ISP information
+			geoIPHandler := handlers.NewGeoIPHandler()
+			r.Post("/peers/geoip", geoIPHandler.HandleBatchLookup)
+
 			// Instance management
 			r.Route("/instances", func(r chi.Router) {
 				r.Get("/", instancesHandler.ListInstances)
@@ -528,6 +555,7 @@ func (s *Server) Handler() (*chi.Mux, error) {
 					r.Delete("/", instancesHandler.DeleteInstance)
 					r.Post("/test", instancesHandler.TestConnection)
 					r.Get("/mediainfo", torrentsHandler.GetContentPathMediaInfo)
+					r.Get("/traffic/daily", trafficHandler.GetDailyTraffic)
 
 					// Torrent operations
 					r.Route("/torrents", func(r chi.Router) {
@@ -587,24 +615,25 @@ func (s *Server) Handler() (*chi.Mux, error) {
 					// Trackers
 					r.Get("/trackers", torrentsHandler.GetActiveTrackers)
 
-					// Automations
-					r.Route("/automations", func(r chi.Router) {
-						r.Get("/", automationsHandler.List)
-						r.Post("/", automationsHandler.Create)
-						r.Put("/order", automationsHandler.Reorder)
-						r.Post("/apply", automationsHandler.ApplyNow)
-						r.Post("/dry-run", automationsHandler.DryRunNow)
-						r.Post("/preview", automationsHandler.PreviewDeleteRule)
-						r.Post("/validate-regex", automationsHandler.ValidateRegex)
-						r.Get("/activity", automationsHandler.ListActivity)
-						r.Get("/activity/{activityId}", automationsHandler.GetActivityRun)
-						r.Delete("/activity", automationsHandler.DeleteActivity)
+				// Automations
+				r.Route("/automations", func(r chi.Router) {
+					r.Get("/", automationsHandler.List)
+					r.Post("/", automationsHandler.Create)
+					r.Put("/order", automationsHandler.Reorder)
+					r.Post("/apply", automationsHandler.ApplyNow)
+					r.Post("/dry-run", automationsHandler.DryRunNow)
+					r.Post("/preview", automationsHandler.PreviewDeleteRule)
+					r.Post("/validate-regex", automationsHandler.ValidateRegex)
+					r.Get("/activity", automationsHandler.ListActivity)
+					r.Get("/activity/{activityId}", automationsHandler.GetActivityRun)
+					r.Delete("/activity", automationsHandler.DeleteActivity)
+					r.Post("/copy-to/{targetId}", automationsHandler.CopyToInstance)
 
-						r.Route("/{ruleID}", func(r chi.Router) {
-							r.Put("/", automationsHandler.Update)
-							r.Delete("/", automationsHandler.Delete)
-						})
+					r.Route("/{ruleID}", func(r chi.Router) {
+						r.Put("/", automationsHandler.Update)
+						r.Delete("/", automationsHandler.Delete)
 					})
+				})
 
 					// RSS management
 					r.Route("/rss", func(r chi.Router) {

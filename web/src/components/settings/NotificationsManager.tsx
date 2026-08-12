@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { api } from "@/lib/api"
+import { notificationEventZh } from "@/lib/notification-event-zh"
 import type { NotificationEventDefinition, NotificationTarget, NotificationTargetRequest } from "@/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Bell, Edit, Loader2, Plus, Send, Trash2 } from "lucide-react"
@@ -123,12 +124,22 @@ interface NotificationTargetFormProps {
 }
 
 function NotificationTargetForm({ initial, eventDefinitions, onSubmit, onCancel, isPending }: NotificationTargetFormProps) {
-  const { t } = useTranslation("settings")
+  const { t, i18n } = useTranslation("settings")
   const [name, setName] = useState(initial?.name ?? "")
   const [url, setUrl] = useState(initial?.url ?? "")
   const [enabled, setEnabled] = useState(initial?.enabled ?? true)
   const [eventTypes, setEventTypes] = useState<string[]>(initial?.eventTypes ?? [])
   const [initialized, setInitialized] = useState(false)
+
+  const isZh = i18n.language?.toLowerCase().startsWith("zh") ?? false
+  const localizedDefinitions = useMemo(
+    () =>
+      eventDefinitions.map((event) => {
+        const zh = isZh ? notificationEventZh[event.type] : undefined
+        return zh ? { ...event, label: zh.label, description: zh.description } : event
+      }),
+    [eventDefinitions, isZh]
+  )
 
   useEffect(() => {
     if (initialized) return
@@ -203,7 +214,7 @@ function NotificationTargetForm({ initial, eventDefinitions, onSubmit, onCancel,
       }
     }
 
-    for (const event of eventDefinitions) {
+    for (const event of localizedDefinitions) {
       if (event.type.startsWith("torrent_")) {
         addToGroup("torrent", event)
       } else if (
@@ -219,16 +230,18 @@ function NotificationTargetForm({ initial, eventDefinitions, onSubmit, onCancel,
         addToGroup("crossSeed", event)
       } else if (event.type.startsWith("automations_")) {
         addToGroup("automations", event)
+      } else if (event.type === "daily_traffic_report" || event.type === "hourly_traffic_report" || event.type === "baseline_report") {
+        addToGroup("traffic", event)
       } else {
         addToGroup("other", event)
       }
     }
 
-    const ordered = ["torrent", "maintenance", "crossSeed", "automations", "other"]
+    const ordered = ["torrent", "maintenance", "crossSeed", "automations", "traffic", "other"]
     return ordered
       .map((id) => ({ label: t(`notifications.groups.${id}`), events: groups.get(id) ?? [] }))
       .filter((group) => group.events.length > 0)
-  }, [eventDefinitions, t])
+  }, [localizedDefinitions, t])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -383,7 +396,7 @@ function NotificationTargetForm({ initial, eventDefinitions, onSubmit, onCancel,
 }
 
 export function NotificationsManager() {
-  const { t } = useTranslation("settings")
+  const { t, i18n } = useTranslation("settings")
   const queryClient = useQueryClient()
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [editTarget, setEditTarget] = useState<NotificationTarget | null>(null)
@@ -408,13 +421,15 @@ export function NotificationsManager() {
       .replace(/[_-]+/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase())
 
+  const isZh = i18n.language?.toLowerCase().startsWith("zh") ?? false
   const eventLabelMap = useMemo(() => {
     const map = new Map<string, string>()
     for (const event of eventDefinitions) {
-      map.set(event.type, event.label)
+      const zh = isZh ? notificationEventZh[event.type] : undefined
+      map.set(event.type, zh?.label ?? event.label)
     }
     return map
-  }, [eventDefinitions])
+  }, [eventDefinitions, isZh])
 
   const createMutation = useMutation({
     mutationFn: (data: NotificationTargetRequest) => api.createNotificationTarget(data),
@@ -495,6 +510,9 @@ export function NotificationsManager() {
       if (eventType.startsWith("automations_")) {
         return "automations"
       }
+      if (eventType === "daily_traffic_report" || eventType === "hourly_traffic_report" || eventType === "baseline_report") {
+        return "traffic"
+      }
       return "other"
     }
 
@@ -505,7 +523,7 @@ export function NotificationsManager() {
       }
     }
 
-    const ordered = ["torrent", "maintenance", "crossSeed", "automations", "other"]
+    const ordered = ["torrent", "maintenance", "crossSeed", "automations", "traffic", "other"]
     return ordered
       .map((id) => ({ label: t(`notifications.groups.${id}`), events: groups.get(id) ?? [] }))
       .filter((group) => group.events.length > 0)

@@ -51,6 +51,7 @@
     "freeSpace": "Espaço Livre",
     "showMore": "Mostrar mais",
     "showLess": "Mostrar menos",
+    "openInstance": "Abrir instância em uma nova aba",
     "uptime": "Tempo Ativo",
     "peerConnections": "Conexões (Peers)",
     "queuedIOJobs": "Tarefas de E/S na Fila",
@@ -82,7 +83,9 @@
       "enable": "Ativar",
       "disable": "Desativar",
       "cancel": "Cancelar"
-    }
+    },
+    "todayDownloaded": "Baixado hoje",
+    "todayUploaded": "Enviado hoje"
   },
   "mobileOverview": {
     "title": "Visão Geral",
@@ -91,7 +94,9 @@
     "torrents": "Torrents",
     "activeCount": "{{count}} ativos",
     "download": "Download",
-    "upload": "Upload"
+    "upload": "Upload",
+    "todayDownload": "Baixado hoje",
+    "todayUpload": "Enviado hoje"
   },
   "globalStats": {
     "instances": "Instâncias",
@@ -101,7 +106,10 @@
     "totalDownload": "Download Total",
     "downloadingActive": "{{count}} ativos - {{size}} restando",
     "totalUpload": "Upload Total",
-    "seedingActive": "{{count}} ativos - {{size}} semeando"
+    "seedingActive": "{{count}} ativos - {{size}} semeando",
+    "todayTraffic": "Tráfego de hoje",
+    "todayDownload": "Download",
+    "todayUpload": "Upload"
   },
   "serverStats": {
     "title": "Estatísticas do Servidor",
@@ -222,5 +230,23 @@
     "allDisabled": "Todas as instâncias estão desativadas",
     "enableInstance": "Ative uma instância em Configurações → Instâncias para ver as estatísticas do painel.",
     "manageInstances": "Gerenciar Instâncias"
+  },
+  "dailyTraffic": {
+    "loading": "Carregando tráfego...",
+    "empty": "Nenhum tráfego registrado ainda.",
+    "date": "Data",
+    "downloaded": "Baixado",
+    "uploaded": "Enviado",
+    "download": "Download",
+    "upload": "Upload",
+    "peakDl": "Pico DL",
+    "peakUl": "Pico UL",
+    "baseline": "Valor de referência",
+    "baselineAt": "Referência às",
+    "source": "Fonte",
+    "sourceSession": "Sessão",
+    "sourceAlltime": "Total",
+    "sourceRestart": "Reinício",
+    "sourceReinstall": "Reinstalação"
   }
 }

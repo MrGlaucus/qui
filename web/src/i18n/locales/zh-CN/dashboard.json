@@ -51,6 +51,7 @@
     "freeSpace": "可用空间",
     "showMore": "展开更多",
     "showLess": "收起",
+    "openInstance": "在新标签页中打开实例",
     "uptime": "运行时间",
     "peerConnections": "节点连接数",
     "queuedIOJobs": "I/O 队列任务",
@@ -82,7 +83,9 @@
       "enable": "启用",
       "disable": "禁用",
       "cancel": "取消"
-    }
+    },
+    "todayDownloaded": "今日下载",
+    "todayUploaded": "今日上传"
   },
   "mobileOverview": {
     "title": "概览",
@@ -91,7 +94,9 @@
     "torrents": "种子",
     "activeCount": "{{count}} 个活跃",
     "download": "下载",
-    "upload": "上传"
+    "upload": "上传",
+    "todayDownload": "今日下载",
+    "todayUpload": "今日上传"
   },
   "globalStats": {
     "instances": "实例",
@@ -101,7 +106,10 @@
     "totalDownload": "总下载",
     "downloadingActive": "{{count}} 个活跃 - 剩余 {{size}}",
     "totalUpload": "总上传",
-    "seedingActive": "{{count}} 个活跃 - {{size}} 做种中"
+    "seedingActive": "{{count}} 个活跃 - {{size}} 做种中",
+    "todayTraffic": "今日流量",
+    "todayDownload": "下载",
+    "todayUpload": "上传"
   },
   "serverStats": {
     "title": "服务器统计",
@@ -222,5 +230,23 @@
     "allDisabled": "所有实例均已禁用",
     "enableInstance": "在设置 > 实例中启用实例以查看仪表盘统计数据。",
     "manageInstances": "管理实例"
+  },
+  "dailyTraffic": {
+    "loading": "正在加载流量统计...",
+    "empty": "暂无流量记录。",
+    "date": "日期",
+    "downloaded": "下载量",
+    "uploaded": "上传量",
+    "download": "下载",
+    "upload": "上传",
+    "peakDl": "峰值下载",
+    "peakUl": "峰值上传",
+    "baseline": "基准值",
+    "baselineAt": "基准采集时间",
+    "source": "数据来源",
+    "sourceSession": "会话",
+    "sourceAlltime": "累计",
+    "sourceRestart": "重启",
+    "sourceReinstall": "重装"
   }
 }

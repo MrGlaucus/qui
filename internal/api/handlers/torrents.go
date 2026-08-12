@@ -51,13 +51,22 @@ type torrentContentResolver interface {
 }
 
 type TorrentsHandler struct {
-	syncManager    *qbittorrent.SyncManager
-	jackettService *jackett.Service
-	instanceStore  *models.InstanceStore
+	syncManager       *qbittorrent.SyncManager
+	jackettService    *jackett.Service
+	instanceStore     *models.InstanceStore
+	crossSeedLogStore *models.CrossSeedLogStore
 	// Testing interfaces - when set, these are used instead of the concrete types
 	torrentAdder      torrentAdder
 	torrentDownloader torrentDownloader
 	contentResolver   torrentContentResolver
+}
+
+// TorrentPropertiesResponse wraps qBittorrent properties with additional QUI metadata.
+type TorrentPropertiesResponse struct {
+	*qbt.TorrentProperties
+	PeakDlSpeed int64 `json:"peak_dl_speed,omitempty"`
+	PeakUpSpeed int64 `json:"peak_up_speed,omitempty"`
+	PublishDate int64 `json:"publish_date,omitempty"`
 }
 
 // truncateExpr truncates long filter expressions for cleaner logging
@@ -95,11 +104,12 @@ type SortedPeersResponse struct {
 	SortedPeers []SortedPeer `json:"sorted_peers,omitempty"`
 }
 
-func NewTorrentsHandler(syncManager *qbittorrent.SyncManager, jackettService *jackett.Service, instanceStore *models.InstanceStore) *TorrentsHandler {
+func NewTorrentsHandler(syncManager *qbittorrent.SyncManager, jackettService *jackett.Service, instanceStore *models.InstanceStore, crossSeedLogStore *models.CrossSeedLogStore) *TorrentsHandler {
 	return &TorrentsHandler{
-		syncManager:    syncManager,
-		jackettService: jackettService,
-		instanceStore:  instanceStore,
+		syncManager:       syncManager,
+		jackettService:    jackettService,
+		instanceStore:     instanceStore,
+		crossSeedLogStore: crossSeedLogStore,
 	}
 }
 
@@ -1980,7 +1990,16 @@ func (h *TorrentsHandler) GetTorrentProperties(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, properties)
+	resp := &TorrentPropertiesResponse{TorrentProperties: properties}
+	resp.PeakDlSpeed, resp.PeakUpSpeed = h.syncManager.GetPeakSpeeds(instanceID, hash)
+	if h.crossSeedLogStore != nil {
+		entry, found, err := h.crossSeedLogStore.Get(r.Context(), hash)
+		if err == nil && found && entry != nil && !entry.PublishDate.IsZero() {
+			resp.PublishDate = entry.PublishDate.Unix()
+		}
+	}
+
+	RespondJSON(w, http.StatusOK, resp)
 }
 
 // GetTorrentTrackers returns trackers for a specific torrent

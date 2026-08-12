@@ -51,6 +51,7 @@
     "freeSpace": "Volné místo",
     "showMore": "Zobrazit více",
     "showLess": "Zobrazit méně",
+    "openInstance": "Otevřít instanci v nové kartě",
     "uptime": "Doba provozu",
     "peerConnections": "Peer připojení",
     "queuedIOJobs": "Vyrovnávací paměť",
@@ -82,7 +83,9 @@
       "cached": "Zobrazuje se uložený snímek přehledu během obnovování",
       "fallback": "Obnovování statistik přehledu",
       "error": "Problém se streamem; používá se záložní obnovování"
-    }
+    },
+    "todayDownloaded": "Staženo dnes",
+    "todayUploaded": "Nahráno dnes"
   },
   "mobileOverview": {
     "title": "Přehled",
@@ -91,7 +94,9 @@
     "torrents": "Torrenty",
     "activeCount": "{{count}} aktivních",
     "download": "Stahování",
-    "upload": "Uploadování"
+    "upload": "Uploadování",
+    "todayDownload": "Dnes staženo",
+    "todayUpload": "Dnes nahráno"
   },
   "globalStats": {
     "instances": "Instance",
@@ -101,7 +106,10 @@
     "totalDownload": "Celkem stahování",
     "downloadingActive": "{{count}} aktivních - {{size}} zbývající",
     "totalUpload": "Celkem uploadování",
-    "seedingActive": "{{count}} aktivních - {{size}} sdílení"
+    "seedingActive": "{{count}} aktivních - {{size}} sdílení",
+    "todayTraffic": "Dnešní provoz",
+    "todayDownload": "Stahování",
+    "todayUpload": "Nahrávání"
   },
   "serverStats": {
     "title": "Statistiky serveru",
@@ -146,7 +154,7 @@
       "size": "Velikost",
       "seeded": "Sdíleno X krát"
     },
-    "seededTooltip": "Nahráno \u00f7 Velikost obsahu \u2014 kolikrát jste sdíleli svůj obsah",
+    "seededTooltip": "Nahráno ÷ Velikost obsahu — kolikrát jste sdíleli svůj obsah",
     "mergedFrom": "Spojeno s: {{domains}}",
     "original": "Původní: {{domain}}",
     "mergeTooltip": "Spojit vybrané trackery do této skupiny",
@@ -220,7 +228,25 @@
     "noInstances": "Žádné instance jsou nastaveny",
     "getStarted": "Začněte přidáním své první instance qBittorrent",
     "allDisabled": "Všechny instance jsou zakázány",
-    "enableInstance": "Povolit instanci z Nastavení \u2192 Instance pro zobrazení statistik dashboardu.",
+    "enableInstance": "Povolit instanci z Nastavení → Instance pro zobrazení statistik dashboardu.",
     "manageInstances": "Spravovat instance"
+  },
+  "dailyTraffic": {
+    "loading": "Načítám provoz...",
+    "empty": "Zatím bez zaznamenaného provozu.",
+    "date": "Datum",
+    "downloaded": "Staženo",
+    "uploaded": "Nahráno",
+    "download": "Stahování",
+    "upload": "Uploadování",
+    "peakDl": "Peak DL",
+    "peakUl": "Peak UL",
+    "baseline": "Výchozí hodnota",
+    "baselineAt": "Výchozí hodnota v",
+    "source": "Zdroj",
+    "sourceSession": "Relace",
+    "sourceAlltime": "Celkem",
+    "sourceRestart": "Restart",
+    "sourceReinstall": "Přeinstalace"
   }
 }

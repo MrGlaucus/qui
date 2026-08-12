@@ -1172,3 +1172,74 @@ func validateConditionRegex(cond *models.RuleCondition, path string, errs *[]Reg
 		validateConditionRegex(child, fmt.Sprintf("%s/conditions/%d", path, i), errs)
 	}
 }
+
+// CopyToInstance copies all automation rules from the current instance to the
+// target instance, overwriting rules with the same name and creating new ones
+// otherwise. Returns a count of created and updated rules.
+//
+// POST /api/instances/{instanceID}/automations/copy-to/{targetId}
+func (h *AutomationHandler) CopyToInstance(w http.ResponseWriter, r *http.Request) {
+	sourceID, err := parseInstanceID(w, r)
+	if err != nil {
+		return
+	}
+
+	targetIDStr := chi.URLParam(r, "targetId")
+	targetID, err := strconv.Atoi(targetIDStr)
+	if err != nil || targetID <= 0 {
+		RespondError(w, http.StatusBadRequest, "Invalid target instance id")
+		return
+	}
+	if sourceID == targetID {
+		RespondError(w, http.StatusBadRequest, "Source and target instance must differ")
+		return
+	}
+
+	sourceRules, err := h.store.ListByInstance(r.Context(), sourceID)
+	if err != nil {
+		log.Error().Err(err).Int("sourceID", sourceID).Msg("automations: failed to list source rules for copy")
+		RespondError(w, http.StatusInternalServerError, "Failed to load source automations")
+		return
+	}
+
+	targetRules, err := h.store.ListByInstance(r.Context(), targetID)
+	if err != nil {
+		log.Error().Err(err).Int("targetID", targetID).Msg("automations: failed to list target rules for copy")
+		RespondError(w, http.StatusInternalServerError, "Failed to load target automations")
+		return
+	}
+
+	nameToTargetID := make(map[string]int, len(targetRules))
+	for _, tr := range targetRules {
+		nameToTargetID[tr.Name] = tr.ID
+	}
+
+	var created, updated int
+	for _, src := range sourceRules {
+		if targetRuleID, exists := nameToTargetID[src.Name]; exists {
+			// Overwrite: clone source fields onto the target rule ID.
+			clone := *src
+			clone.ID = targetRuleID
+			clone.InstanceID = targetID
+			clone.SortOrder = 0 // auto-assigned by store
+			if _, err := h.store.Update(r.Context(), &clone); err != nil {
+				log.Error().Err(err).Str("name", src.Name).Int("targetID", targetID).Msg("automations: failed to overwrite rule during copy")
+				continue
+			}
+			updated++
+		} else {
+			// Create new rule on the target instance.
+			clone := *src
+			clone.ID = 0
+			clone.InstanceID = targetID
+			clone.SortOrder = 0
+			if _, err := h.store.Create(r.Context(), &clone); err != nil {
+				log.Error().Err(err).Str("name", src.Name).Int("targetID", targetID).Msg("automations: failed to create rule during copy")
+				continue
+			}
+			created++
+		}
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]int{"created": created, "updated": updated})
+}

@@ -773,7 +773,7 @@ export const createColumns = (
       header: t?.("tableColumns.ratio") ?? "Ratio",
       cell: ({ row }) => {
         const ratio = incognitoMode ? getLinuxRatio(row.original.hash) : row.original.ratio
-        const displayRatio = ratio === -1 ? "∞" : ratio.toFixed(2)
+        const displayRatio = ratio === -1 ? "∞" : (ratio ?? 0).toFixed(2)
         const colorVar = getRatioColor(ratio)
 
         return (
@@ -805,7 +805,7 @@ export const createColumns = (
       cell: ({ row }) => {
         return (
           <div className="overflow-hidden whitespace-nowrap text-sm">
-            {row.original.popularity.toFixed(2)}
+            {(row.original.popularity ?? 0).toFixed(2)}
           </div>
         )
       },
@@ -1090,7 +1090,7 @@ export const createColumns = (
       cell: ({ row }) => {
         const ratioLimit = row.original.ratio_limit
         const instanceRatioLimit = instancePreferences?.max_ratio
-        const displayRatioLimit = ratioLimit === -2 ? (instanceRatioLimit === -1 ? "∞" : instanceRatioLimit?.toFixed(2) || "∞") :ratioLimit === -1 ? "∞" :ratioLimit.toFixed(2)
+        const displayRatioLimit = ratioLimit === -2 ? (instanceRatioLimit === -1 ? "∞" : instanceRatioLimit?.toFixed(2) || "∞") :ratioLimit === -1 ? "∞" :(ratioLimit ?? 0).toFixed(2)
 
         return (
           <span
@@ -1137,7 +1137,7 @@ export const createColumns = (
       header: t?.("tableColumns.availability") ?? "Availability",
       cell: ({ row }) => {
         const availability = row.original.availability
-        return <span className="text-sm overflow-hidden whitespace-nowrap">{availability.toFixed(3)}</span>
+        return <span className="text-sm overflow-hidden whitespace-nowrap">{(availability ?? 0).toFixed(3)}</span>
       },
       size: calculateMinWidth("Availability"),
     },

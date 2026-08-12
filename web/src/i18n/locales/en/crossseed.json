@@ -41,7 +41,8 @@
     "scan": "Scan",
     "dirScan": "Dir Scan",
     "rules": "Rules",
-    "blocklist": "Blocklist"
+    "blocklist": "Blocklist",
+    "log": "Log"
   },
   "automation": {
     "title": "RSS Automation",
@@ -516,6 +517,26 @@
       "removedFromBlocklist": "Removed from blocklist",
       "selectAnInstance": "Select an instance",
       "invalidInfohash": "Infohash must be 40 or 64 hex characters"
+    }
+  },
+  "log": {
+    "title": "Cross-Seed Log",
+    "instance": "Instance",
+    "infoHash": "InfoHash",
+    "torrentName": "Torrent Name",
+    "indexer": "Indexer",
+    "createdAt": "Cross-Seeded At",
+    "publishDate": "Published At",
+    "cleanup": {
+      "button": "Clean",
+      "cancel": "Cancel",
+      "day1": "1 day ago",
+      "week1": "1 week ago",
+      "month1": "1 month ago",
+      "confirmTitle": "Clean cross-seed log?",
+      "confirmDescription": "Are you sure you want to delete entries older than {{age}}?",
+      "success": "Cleaned {{count}} entries",
+      "error": "Failed to clean log"
     }
   },
   "dirScan": {

@@ -40,7 +40,8 @@
       "disable": "Вимкнути TMM",
       "enable": "Увімкнути TMM"
     },
-    "delete": "Видалити"
+    "delete": "Видалити",
+    "report": "Report"
   },
   "contextMenu": {
     "viewDetails": "Переглянути деталі",
@@ -1013,7 +1014,9 @@
       "trackerDown": "Трекер вимкнено",
       "crossSeeds": "Крос-сіди",
       "trackerError": "Помилка трекера"
-    }
+    },
+    "instances": "Екземпляри",
+    "noInstances": "Немає доступних екземплярів"
   },
   "statusBar": {
     "selected": "Вибрано {{count}}",
@@ -1093,6 +1096,7 @@
       "crossSeed": "Крос-сід"
     },
     "closePanel": "Закрити панель деталей",
+    "openReport": "Звіт про завдання",
     "unknownError": "Невідома помилка",
     "toast": {
       "copied": "{{type}} скопійовано в буфер обміну",
@@ -1315,10 +1319,12 @@
     "uploaded": "Вивантажено",
     "relevance": "Актуальність",
     "copyIpAddress": "Скопіюйте адресу IP",
+    "copyIsp": "Скопіювати ISP",
     "banPeer": "Заблокувати піра",
     "noPeersConnected": "Немає підключених пірів",
     "toast": {
-      "ipCopied": "Адресу IP скопійовано в буфер обміну"
+      "ipCopied": "Адресу IP скопійовано в буфер обміну",
+      "ispCopied": "ISP скопійовано в буфер обміну"
     }
   },
   "routes": {
@@ -1689,5 +1695,42 @@
     "high": "Високий",
     "maximum": "Максимальний",
     "mixed": "Змішаний"
+  },
+  "reportDialog": {
+    "title": "Task Report",
+    "category": "Category",
+    "tags": "Tags",
+    "tracker": "Tracker",
+    "size": "Size",
+    "downloaded": "Downloaded",
+    "uploaded": "Uploaded",
+    "ratio": "Ratio",
+    "addedOn": "Added on",
+    "completedOn": "Completed on",
+    "seedingTime": "Seeding time",
+    "speed": "Speed",
+    "speedType": "",
+    "download": "Download",
+    "upload": "Upload",
+    "current": "Current",
+    "average": "Average",
+    "peak": "Peak",
+    "connections": "Connections",
+    "seeds": "Seeds",
+    "peers": "Peers",
+    "countryDistribution": "Peer Distribution by Country",
+    "ispDistribution": "Peer ISP Distribution",
+    "copyImage": "Copy as image",
+    "copyImageSuccess": "Report copied to clipboard as image",
+    "copyImageFailed": "Failed to copy report as image",
+    "pause": "Pause",
+    "resume": "Resume",
+    "close": "Close",
+    "uncategorized": "Uncategorized",
+    "noTags": "No Tags",
+    "country": "Country",
+    "isp": "ISP",
+    "count": "Count",
+    "pct": "%"
   }
 }

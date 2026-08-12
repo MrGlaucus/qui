@@ -210,6 +210,16 @@ type InstanceMeta struct {
 	ConnectionStatus string `json:"connectionStatus,omitempty"`
 }
 
+// TodayTraffic carries the current UI-timezone day totals for an instance, used
+// by the Dashboard card's live "today downloaded/uploaded" fields. It is
+// populated from the instance_daily_traffic row for the server-local day; the
+// omitted field means no row exists yet (e.g. no sync sample has landed today).
+type TodayTraffic struct {
+	Date       string `json:"date"`
+	Downloaded int64  `json:"downloaded"`
+	Uploaded   int64  `json:"uploaded"`
+}
+
 // InstanceError represents a recent error for an instance (mirrors models.InstanceError for SSE).
 type InstanceError struct {
 	ID           int    `json:"id"`
@@ -234,12 +244,13 @@ type TorrentResponse struct {
 	Total                 int                        `json:"total"`
 	ActiveTaskCount       int                        `json:"activeTaskCount"`
 	Stats                 *TorrentStats              `json:"stats,omitempty"`
-	Counts                *TorrentCounts             `json:"counts,omitempty"`      // Include counts for sidebar
-	Categories            map[string]qbt.Category    `json:"categories,omitempty"`  // Include categories for sidebar
-	Tags                  []string                   `json:"tags,omitempty"`        // Include tags for sidebar
-	ServerState           *qbt.ServerState           `json:"serverState,omitempty"` // Include server state for Dashboard
-	AppInfo               *AppInfo                   `json:"appInfo,omitempty"`     // Include qBittorrent application info
-	AppPreferences        *qbt.AppPreferences        `json:"preferences,omitempty"` // Include or clear qBittorrent application preferences
+	Counts                *TorrentCounts             `json:"counts,omitempty"`       // Include counts for sidebar
+	Categories            map[string]qbt.Category    `json:"categories,omitempty"`   // Include categories for sidebar
+	Tags                  []string                   `json:"tags,omitempty"`         // Include tags for sidebar
+	ServerState           *qbt.ServerState           `json:"serverState,omitempty"`  // Include server state for Dashboard
+	TodayTraffic          *TodayTraffic              `json:"todayTraffic,omitempty"` // Real-time day totals for Dashboard
+	AppInfo               *AppInfo                   `json:"appInfo,omitempty"`      // Include qBittorrent application info
+	AppPreferences        *qbt.AppPreferences        `json:"preferences,omitempty"`  // Include or clear qBittorrent application preferences
 	appPreferencesPresent bool
 	UseSubcategories      bool           `json:"useSubcategories"`    // Whether subcategories are enabled
 	HasMore               bool           `json:"hasMore"`             // Whether more pages are available
@@ -401,6 +412,15 @@ type SyncManager struct {
 
 	syncEventSinkMu sync.RWMutex
 	syncEventSink   SyncEventSink
+
+	// Per-torrent peak speed tracking (in-memory, resets on restart)
+	peakMu    sync.RWMutex
+	peakCache map[int]map[string]*peakEntry
+}
+
+type peakEntry struct {
+	PeakDlSpeed int64
+	PeakUpSpeed int64
 }
 
 // ResumeWhenCompleteOptions configure resume monitoring behavior.
@@ -447,6 +467,7 @@ func NewSyncManager(clientPool *ClientPool, trackerCustomizationStore TrackerCus
 		trackerHealthRefresh:      60 * time.Second,
 		validatedTrackerMapping:   make(map[int]*ValidatedTrackerMapping),
 		trackerDisplayNameCache:   ttlcache.New(ttlcache.Options[string, map[string]string]{}.SetDefaultTTL(60 * time.Second)),
+		peakCache:                 make(map[int]map[string]*peakEntry),
 	}
 
 	// Set up bidirectional reference for background task notifications
@@ -2002,6 +2023,24 @@ func (sm *SyncManager) GetCrossInstanceTorrentsWithFilters(ctx context.Context, 
 	}
 	hasScopedInstanceSelection := len(selectedInstanceIDs) > 0
 
+	// Instance filter dimensions (unified view). Include semantics: when
+	// IncludeInstances is non-empty, only torrents from those instances are
+	// aggregated; ExcludeInstances removes those instances from the result.
+	includeInstanceIDs := make(map[int]struct{}, len(filters.Instances))
+	for _, instanceID := range filters.Instances {
+		if instanceID > 0 {
+			includeInstanceIDs[instanceID] = struct{}{}
+		}
+	}
+	hasIncludeInstanceFilter := len(includeInstanceIDs) > 0
+	excludeInstanceIDs := make(map[int]struct{}, len(filters.ExcludeInstances))
+	for _, instanceID := range filters.ExcludeInstances {
+		if instanceID > 0 {
+			excludeInstanceIDs[instanceID] = struct{}{}
+		}
+	}
+	hasExcludeInstanceFilter := len(excludeInstanceIDs) > 0
+
 	// Sort instances by ID for deterministic processing order
 	slices.SortFunc(instances, func(a, b *models.Instance) int {
 		return a.ID - b.ID
@@ -2025,6 +2064,16 @@ func (sm *SyncManager) GetCrossInstanceTorrentsWithFilters(ctx context.Context, 
 		}
 		if hasScopedInstanceSelection {
 			if _, selected := selectedInstanceIDs[instance.ID]; !selected {
+				continue
+			}
+		}
+		if hasIncludeInstanceFilter {
+			if _, selected := includeInstanceIDs[instance.ID]; !selected {
+				continue
+			}
+		}
+		if hasExcludeInstanceFilter {
+			if _, excluded := excludeInstanceIDs[instance.ID]; excluded {
 				continue
 			}
 		}
@@ -2077,6 +2126,18 @@ func (sm *SyncManager) GetCrossInstanceTorrentsWithFilters(ctx context.Context, 
 		mergeTorrentCategories(aggregatedCategories, instanceResponse.Categories)
 		mergeTorrentTags(aggregatedTagSet, instanceResponse.Tags)
 		useSubcategories = useSubcategories || instanceResponse.UseSubcategories
+
+		// Track per-instance counts for the unified view sidebar. The instance
+		// filter itself is excluded so each row still shows how many torrents
+		// that instance holds under the other active filters.
+		if aggregatedCounts != nil {
+			if aggregatedCounts.Instances == nil {
+				aggregatedCounts.Instances = make(map[string]int)
+			}
+			if instanceResponse.Counts != nil {
+				aggregatedCounts.Instances[strconv.Itoa(instance.ID)] = instanceResponse.Counts.Total
+			}
+		}
 
 		totalCount += len(instanceResponse.Torrents)
 	}
@@ -2800,6 +2861,68 @@ func (sm *SyncManager) GetTorrentProperties(ctx context.Context, instanceID int,
 	return &props, nil
 }
 
+// PeakSpeedEntry holds the peak download and upload speeds for a single torrent.
+type PeakSpeedEntry struct {
+	PeakDlSpeed int64
+	PeakUpSpeed int64
+}
+
+// UpdatePeakSpeeds updates in-memory peak speeds from a sync maindata snapshot.
+// Cleans up entries for removed torrents. Safe for concurrent calls.
+func (sm *SyncManager) UpdatePeakSpeeds(instanceID int, torrents map[string]qbt.Torrent) {
+	sm.peakMu.Lock()
+	defer sm.peakMu.Unlock()
+
+	instancePeaks := sm.peakCache[instanceID]
+	if instancePeaks == nil {
+		instancePeaks = make(map[string]*peakEntry)
+		sm.peakCache[instanceID] = instancePeaks
+	}
+
+	for hash, t := range torrents {
+		entry := instancePeaks[hash]
+		if entry == nil {
+			entry = &peakEntry{
+				PeakDlSpeed: t.DlSpeed,
+				PeakUpSpeed: t.UpSpeed,
+			}
+			instancePeaks[hash] = entry
+			continue
+		}
+		if t.DlSpeed > entry.PeakDlSpeed {
+			entry.PeakDlSpeed = t.DlSpeed
+		}
+		if t.UpSpeed > entry.PeakUpSpeed {
+			entry.PeakUpSpeed = t.UpSpeed
+		}
+	}
+
+	// Cleanup: remove hashes no longer in the torrent set
+	for hash := range instancePeaks {
+		if _, exists := torrents[hash]; !exists {
+			delete(instancePeaks, hash)
+		}
+	}
+}
+
+// GetPeakSpeeds returns the peak download and upload speeds for a torrent.
+func (sm *SyncManager) GetPeakSpeeds(instanceID int, hash string) (dlPeak, upPeak int64) {
+	sm.peakMu.RLock()
+	defer sm.peakMu.RUnlock()
+
+	instancePeaks := sm.peakCache[instanceID]
+	if instancePeaks == nil {
+		return 0, 0
+	}
+
+	entry := instancePeaks[hash]
+	if entry == nil {
+		return 0, 0
+	}
+
+	return entry.PeakDlSpeed, entry.PeakUpSpeed
+}
+
 // GetTorrentTrackers gets trackers for a specific torrent
 func (sm *SyncManager) GetTorrentTrackers(ctx context.Context, instanceID int, hash string) ([]qbt.TorrentTracker, error) {
 	// Get client and sync manager
@@ -3480,7 +3603,11 @@ type TorrentCounts struct {
 	TagSizes         map[string]int64                `json:"tagSizes,omitempty"`
 	Trackers         map[string]int                  `json:"trackers"`
 	TrackerTransfers map[string]TrackerTransferStats `json:"trackerTransfers,omitempty"`
-	Total            int                             `json:"total"`
+	// Instances holds per-instance torrent counts for the unified view,
+	// keyed by stringified instance ID. Only populated for cross-instance
+	// responses.
+	Instances map[string]int `json:"instances,omitempty"`
+	Total     int            `json:"total"`
 }
 
 // ExtractDomainFromURL extracts the domain from a BitTorrent tracker URL with caching.
@@ -6294,7 +6421,18 @@ func (sm *SyncManager) SetCategory(ctx context.Context, instanceID int, hashes [
 	}
 
 	if err := client.SetCategoryCtx(ctx, hashes, category); err != nil {
-		return err
+		// qBittorrent rejects setting a category that does not exist yet. The
+		// set-category dialog lets users type a brand new category name, so
+		// create it first (with the default save path) and retry.
+		if !errors.Is(err, qbt.ErrCategoryDoesNotExist) {
+			return err
+		}
+		if err := client.CreateCategoryCtx(ctx, category, ""); err != nil {
+			return err
+		}
+		if err := client.SetCategoryCtx(ctx, hashes, category); err != nil {
+			return err
+		}
 	}
 
 	// Apply optimistic update to cache

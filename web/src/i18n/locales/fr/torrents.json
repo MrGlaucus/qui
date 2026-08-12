@@ -40,7 +40,8 @@
       "disable": "Désactiver TMM",
       "enable": "Activer TMM"
     },
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "report": "Report"
   },
   "contextMenu": {
     "viewDetails": "Voir les détails",
@@ -913,7 +914,9 @@
       "trackerDown": "Tracker injoignable",
       "crossSeeds": "Cross Seeds",
       "trackerError": "Erreur Tracker"
-    }
+    },
+    "instances": "Instances",
+    "noInstances": "Aucune instance disponible"
   },
   "statusBar": {
     "selected": "{{count}} sélectionné(s)",
@@ -991,6 +994,7 @@
       "crossSeed": "Cross-Seed"
     },
     "closePanel": "Fermer le panneau de détails",
+    "openReport": "Rapport de tâche",
     "unknownError": "Erreur inconnue",
     "toast": {
       "copied": "{{type}} copié dans le presse-papiers",
@@ -1197,10 +1201,12 @@
     "uploaded": "Envoyé",
     "relevance": "Pertinence",
     "copyIpAddress": "Copier l'adresse IP",
+    "copyIsp": "Copier l'ISP",
     "banPeer": "Bannir le pair",
     "noPeersConnected": "Aucun pair connecté",
     "toast": {
-      "ipCopied": "Adresse IP copiée dans le presse-papiers"
+      "ipCopied": "Adresse IP copiée dans le presse-papiers",
+      "ispCopied": "ISP copié dans le presse-papiers"
     }
   },
   "routes": {
@@ -1563,5 +1569,42 @@
     "failedToUpdatePriorities": "Échec de la mise à jour des priorités des fichiers",
     "failedToRenameFile": "Échec du renommage du fichier",
     "failedToRenameFolder": "Échec du renommage du dossier"
+  },
+  "reportDialog": {
+    "title": "Task Report",
+    "category": "Category",
+    "tags": "Tags",
+    "tracker": "Tracker",
+    "size": "Size",
+    "downloaded": "Downloaded",
+    "uploaded": "Uploaded",
+    "ratio": "Ratio",
+    "addedOn": "Added on",
+    "completedOn": "Completed on",
+    "seedingTime": "Seeding time",
+    "speed": "Speed",
+    "speedType": "",
+    "download": "Download",
+    "upload": "Upload",
+    "current": "Current",
+    "average": "Average",
+    "peak": "Peak",
+    "connections": "Connections",
+    "seeds": "Seeds",
+    "peers": "Peers",
+    "countryDistribution": "Peer Distribution by Country",
+    "ispDistribution": "Peer ISP Distribution",
+    "copyImage": "Copy as image",
+    "copyImageSuccess": "Report copied to clipboard as image",
+    "copyImageFailed": "Failed to copy report as image",
+    "pause": "Pause",
+    "resume": "Resume",
+    "close": "Close",
+    "uncategorized": "Uncategorized",
+    "noTags": "No Tags",
+    "country": "Country",
+    "isp": "ISP",
+    "count": "Count",
+    "pct": "%"
   }
 }

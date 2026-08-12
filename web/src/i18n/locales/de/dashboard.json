@@ -51,6 +51,7 @@
     "freeSpace": "Freier Speicher",
     "showMore": "Mehr anzeigen",
     "showLess": "Weniger anzeigen",
+    "openInstance": "Instanz in neuem Tab öffnen",
     "uptime": "Uptime",
     "peerConnections": "Peer-Verbindungen",
     "queuedIOJobs": "Wartende I/O-Jobs",
@@ -82,7 +83,9 @@
       "enable": "Aktivieren",
       "disable": "Deaktivieren",
       "cancel": "Abbrechen"
-    }
+    },
+    "todayDownloaded": "Heute heruntergeladen",
+    "todayUploaded": "Heute hochgeladen"
   },
   "mobileOverview": {
     "title": "Übersicht",
@@ -91,7 +94,9 @@
     "torrents": "Torrents",
     "activeCount": "{{count}} aktiv",
     "download": "Download",
-    "upload": "Upload"
+    "upload": "Upload",
+    "todayDownload": "Heute heruntergeladen",
+    "todayUpload": "Heute hochgeladen"
   },
   "globalStats": {
     "instances": "Instanzen",
@@ -101,7 +106,10 @@
     "totalDownload": "Download gesamt",
     "downloadingActive": "{{count}} aktiv - {{size}} verbleibend",
     "totalUpload": "Upload gesamt",
-    "seedingActive": "{{count}} aktiv - {{size}} Seeding"
+    "seedingActive": "{{count}} aktiv - {{size}} Seeding",
+    "todayTraffic": "Heutiger Traffic",
+    "todayDownload": "Download",
+    "todayUpload": "Upload"
   },
   "serverStats": {
     "title": "Server-Statistiken",
@@ -222,5 +230,23 @@
     "allDisabled": "Alle Instanzen sind deaktiviert",
     "enableInstance": "Aktiviere eine Instanz unter Einstellungen → Instanzen, um Dashboard-Statistiken zu sehen.",
     "manageInstances": "Instanzen verwalten"
+  },
+  "dailyTraffic": {
+    "loading": "Lade Verkehrsdaten...",
+    "empty": "Noch keine Verkehrsdaten erfasst.",
+    "date": "Datum",
+    "downloaded": "Heruntergeladen",
+    "uploaded": "Hochgeladen",
+    "download": "Download",
+    "upload": "Upload",
+    "peakDl": "DL-Spitze",
+    "peakUl": "UL-Spitze",
+    "baseline": "Basiswert",
+    "baselineAt": "Basiswert um",
+    "source": "Quelle",
+    "sourceSession": "Sitzung",
+    "sourceAlltime": "Gesamt",
+    "sourceRestart": "Neustart",
+    "sourceReinstall": "Neuinstallation"
   }
 }

@@ -11,7 +11,8 @@
       "enableInstance": "Abilita istanza",
       "moveUp": "Sposta su",
       "moveDown": "Sposta giù",
-      "instanceSettings": "Impostazioni istanza"
+      "instanceSettings": "Impostazioni istanza",
+      "openInstance": "Apri istanza in una nuova scheda"
     },
     "actions": {
       "edit": "Modifica",
@@ -75,7 +76,9 @@
       "basicAuthUsername": "Nome utente Basic Auth",
       "basicAuthPassword": "Password Basic Auth",
       "authType": "Tipo di autenticazione",
-      "authTypeDescription": "Seleziona come qui deve autenticarsi con qBittorrent."
+      "authTypeDescription": "Seleziona come qui deve autenticarsi con qBittorrent.",
+      "dailyTrafficEnabled": "Monitoraggio traffico giornaliero",
+      "dailyTrafficEnabledDescription": "Registra i totali giornalieri di upload/download e le velocità di picco per questa istanza. Disattiva per interrompere la raccolta."
     },
     "placeholders": {
       "instanceName": "es. Server principale o qBittorrent di casa",
@@ -239,7 +242,9 @@
         "username": "Nome utente",
         "password": "Password",
         "qbittorrentAuth": "Autenticazione qBittorrent",
-        "qbittorrentAuthDescription": "Seleziona come qui deve autenticarsi su qBittorrent."
+        "qbittorrentAuthDescription": "Seleziona come qui deve autenticarsi su qBittorrent.",
+        "dailyTrafficEnabled": "Monitoraggio traffico giornaliero",
+        "dailyTrafficEnabledDescription": "Registra i totali giornalieri di upload/download e le velocità di picco per questa istanza. Disattiva per interrompere la raccolta."
       },
       "placeholders": {
         "instanceName": "es. Server principale",

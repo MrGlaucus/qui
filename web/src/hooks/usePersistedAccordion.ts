@@ -5,8 +5,9 @@
 
 import { useState, useEffect } from "react"
 
-const DEFAULT_ITEMS = ["views", "status", "categories", "tags", "trackers"]
+const DEFAULT_ITEMS = ["views", "instances", "status", "categories", "tags", "trackers"]
 const VIEWS_SEEDED_KEY = "qui-accordion-views-seeded"
+const INSTANCES_SEEDED_KEY = "qui-accordion-instances-seeded"
 
 export function usePersistedAccordion() {
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
@@ -19,11 +20,23 @@ export function usePersistedAccordion() {
       }
       const items: string[] = parsed
 
-      // Existing users have a stored array predating "views", so the new section
-      // would ship collapsed. Expand it once; after that their own toggling wins.
-      // The seed marker is written in the effect below, so this stays pure.
-      if (localStorage.getItem(VIEWS_SEEDED_KEY)) return items
-      return items.includes("views") ? items : ["views", ...items]
+      // Existing users have a stored array predating "views"/"instances", so the
+      // new sections would ship collapsed. Expand each once; after that their own
+      // toggling wins. The seed markers are written in the effect below, so this
+      // stays pure.
+      let seeded = items
+      if (!localStorage.getItem(VIEWS_SEEDED_KEY) && !seeded.includes("views")) {
+        seeded = ["views", ...seeded]
+      }
+      if (!localStorage.getItem(INSTANCES_SEEDED_KEY) && !seeded.includes("instances")) {
+        const viewsIdx = seeded.indexOf("views")
+        if (viewsIdx >= 0) {
+          seeded = [...seeded.slice(0, viewsIdx + 1), "instances", ...seeded.slice(viewsIdx + 1)]
+        } else {
+          seeded = ["instances", ...seeded]
+        }
+      }
+      return seeded
     } catch {
       return DEFAULT_ITEMS
     }
@@ -34,6 +47,7 @@ export function usePersistedAccordion() {
     try {
       localStorage.setItem("qui-accordion", JSON.stringify(expandedItems))
       localStorage.setItem(VIEWS_SEEDED_KEY, "1")
+      localStorage.setItem(INSTANCES_SEEDED_KEY, "1")
     } catch (error) {
       console.error("Failed to save accordion state to localStorage:", error)
     }

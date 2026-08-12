@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
 import { MobileScrollProvider, useMobileScroll } from "@/contexts/MobileScrollContext"
+import { IspDataProvider } from "@/contexts/IspDataContext"
 import { TorrentSelectionProvider } from "@/contexts/TorrentSelectionContext"
 import { ThemeValidator } from "@/components/themes/ThemeValidator"
 import { CustomThemesLoader } from "@/components/themes/CustomThemesLoader"
@@ -81,9 +82,11 @@ export function AppLayout() {
       <ThemeValidator />
       <CustomThemesLoader />
       <TorrentSelectionProvider>
-        <MobileScrollProvider>
-          <AppLayoutContent />
-        </MobileScrollProvider>
+        <IspDataProvider>
+          <MobileScrollProvider>
+            <AppLayoutContent />
+          </MobileScrollProvider>
+        </IspDataProvider>
       </TorrentSelectionProvider>
     </LayoutRouteProvider>
   )

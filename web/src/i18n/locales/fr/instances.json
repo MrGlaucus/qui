@@ -11,7 +11,8 @@
       "enableInstance": "Activer l'instance",
       "moveUp": "Monter",
       "moveDown": "Descendre",
-      "instanceSettings": "Paramètres de l'instance"
+      "instanceSettings": "Paramètres de l'instance",
+      "openInstance": "Ouvrir l'instance dans un nouvel onglet"
     },
     "actions": {
       "edit": "Edit",
@@ -75,7 +76,9 @@
       "basicAuthUsername": "Nom d'utilisateur Basic Auth",
       "basicAuthPassword": "Mot de passe Basic Auth",
       "authType": "Type d'authentification",
-      "authTypeDescription": "Sélectionnez comment qui doit s'authentifier auprès de qBittorrent."
+      "authTypeDescription": "Sélectionnez comment qui doit s'authentifier auprès de qBittorrent.",
+      "dailyTrafficEnabled": "Suivi du trafic quotidien",
+      "dailyTrafficEnabledDescription": "Enregistre les totaux quotidiens d'envoi/réception et les vitesses maximales pour cette instance. Désactiver arrête la collecte."
     },
     "placeholders": {
       "instanceName": "ex., Serveur principal ou qBittorrent Maison",
@@ -239,7 +242,9 @@
         "username": "Nom d'utilisateur",
         "password": "Mot de passe",
         "qbittorrentAuth": "Authentification qBittorrent",
-        "qbittorrentAuthDescription": "Sélectionnez comment qui doit s'authentifier auprès de qBittorrent."
+        "qbittorrentAuthDescription": "Sélectionnez comment qui doit s'authentifier auprès de qBittorrent.",
+        "dailyTrafficEnabled": "Suivi du trafic quotidien",
+        "dailyTrafficEnabledDescription": "Enregistre les totaux quotidiens d'envoi/réception et les vitesses maximales pour cette instance. Désactiver arrête la collecte."
       },
       "placeholders": {
         "instanceName": "ex: Serveur Principal",

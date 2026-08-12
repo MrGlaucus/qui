@@ -7,6 +7,8 @@ Repo rules for AI agents working on qui.
 - Stay inside requested scope. Do not implement review-suggested/extra changes without explicit user approval.
 - Treat other agent/Codex/CodeRabbit feedback as input to discuss, not automatic action.
 - qui is single-user self-hosted software. Prefer readable, maintainable code over paranoid guards for impossible states.
+- **NEVER run `git commit`, `git push`, or any git write operation unless the user explicitly tells you to.** Automatic Docker builds are triggered on push to `develop`, so no code should reach the remote without the user's direct command.
+- "Fix something and push" is NOT permission. The user must say a clear command like "提交并推送" or "commit and push". Even if the user asked for changes to be made, always ask before staging/committing/pushing.
 
 ## Repo Map
 

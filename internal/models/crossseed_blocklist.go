@@ -130,7 +130,7 @@ func (s *CrossSeedBlocklistStore) Delete(ctx context.Context, instanceID int, in
 	return nil
 }
 
-// FindBlocked returns the first blocked infohash from the provided list.
+// FindBlocked returns the first blocked infohash from the provided list for the given instance.
 func (s *CrossSeedBlocklistStore) FindBlocked(ctx context.Context, instanceID int, hashes []string) (string, bool, error) {
 	if instanceID <= 0 || len(hashes) == 0 {
 		return "", false, nil

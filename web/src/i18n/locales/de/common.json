@@ -39,6 +39,7 @@
     "createTorrent": "Torrent erstellen",
     "torrentCreationTasks": "Torrent-Erstellungsaufgaben",
     "instanceSettings": "Instanz-Einstellungen",
+    "openInstance": "Instanz in neuem Tab öffnen",
     "addToInstance": "Zur Instanz hinzufügen",
     "createForInstance": "Für Instanz erstellen",
     "tasksForInstance": "Aufgaben für Instanz",

@@ -19,6 +19,8 @@ export function makeFilters(overrides: Partial<TorrentFilters> = {}): TorrentFil
     excludeTags: [],
     trackers: [],
     excludeTrackers: [],
+    instances: [],
+    excludeInstances: [],
     ...overrides,
   }
 }

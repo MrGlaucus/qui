@@ -1,0 +1,1 @@
+ALTER TABLE cross_seed_log ADD COLUMN source_indexer TEXT NOT NULL DEFAULT '';

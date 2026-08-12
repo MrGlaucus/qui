@@ -40,9 +40,11 @@ import {
   Edit,
   Eye,
   EyeOff,
+  ExternalLink,
   HardDrive,
   MoreVertical,
   Power,
+  Copy,
   RefreshCw,
   Trash2,
   XCircle
@@ -54,6 +56,7 @@ import { toast } from "sonner"
 interface InstanceCardProps {
   instance: InstanceResponse
   onEdit: () => void
+  onClone: () => void
   onMoveUp?: () => void
   onMoveDown?: () => void
   disableMoveUp?: boolean
@@ -63,6 +66,7 @@ interface InstanceCardProps {
 export function InstanceCard({
   instance,
   onEdit,
+  onClone,
   onMoveUp,
   onMoveDown,
   disableMoveUp = false,
@@ -248,6 +252,10 @@ export function InstanceCard({
                   <Edit className="mr-2 h-4 w-4" />
                   {t("card.actions.edit")}
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={onClone}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  {t("card.actions.clone")}
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleTest} disabled={isTesting || !instance.isActive}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   {t("card.actions.testConnection")}
@@ -272,6 +280,19 @@ export function InstanceCard({
           >
             {displayUrl}
           </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-4 w-4 hover:bg-muted/50"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              window.open(instance.host, "_blank", "noopener,noreferrer")
+            }}
+            aria-label={t("card.tooltips.openInstance")}
+          >
+            <ExternalLink className="h-3 w-3" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

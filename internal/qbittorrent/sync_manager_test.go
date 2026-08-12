@@ -17,6 +17,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/autobrr/autobrr/pkg/ttlcache"
 	qbt "github.com/autobrr/go-qbittorrent"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -2389,4 +2390,123 @@ func TestDebouncedSyncFetchesFreshDataAfterCollapsingOntoInFlightSync(t *testing
 func TestTrackerHealthRefreshLevel(t *testing.T) {
 	require.Equal(t, zerolog.DebugLevel, trackerHealthRefreshLevel(trackerHealthRefreshSlow-time.Millisecond))
 	require.Equal(t, zerolog.WarnLevel, trackerHealthRefreshLevel(trackerHealthRefreshSlow))
+}
+
+// Setting a brand-new category must not fail: qBittorrent rejects
+// torrents/setCategory with a 409 for categories that don't exist yet, so
+// SetCategory creates the category first and retries.
+func TestSyncManagerSetCategoryCreatesMissingCategoryAndRetries(t *testing.T) {
+	var setCategoryCalls, createCategoryCalls atomic.Int32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v2/auth/login":
+			http.SetCookie(w, &http.Cookie{Name: "SID", Value: "test-session"})
+			_, _ = w.Write([]byte("Ok."))
+		case "/api/v2/sync/maindata":
+			// A full-update maindata containing the target torrent so
+			// validateTorrentsExist can find it (the hash is derived from the
+			// map key by go-qbt's normalizeHashes).
+			_, _ = w.Write([]byte(`{"rid":1,"full_update":true,"torrents":{"HASH":{}}}`))
+		case "/api/v2/torrents/setCategory":
+			if setCategoryCalls.Add(1) == 1 {
+				// First attempt: category doesn't exist yet.
+				w.WriteHeader(http.StatusConflict)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+		case "/api/v2/torrents/createCategory":
+			createCategoryCalls.Add(1)
+			w.WriteHeader(http.StatusOK)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	pool := setupTestPool(t)
+	defer pool.Close()
+
+	ctx := context.Background()
+	inst, err := pool.instanceStore.Create(ctx, "test", srv.URL, "user", "pass", nil, nil, false, nil)
+	require.NoError(t, err)
+
+	// Pre-seed a healthy client so GetClient returns it without a health check.
+	client := &Client{
+		Client:      qbt.NewClient(qbt.Config{Host: srv.URL, Timeout: 60}),
+		instanceID:  inst.ID,
+		syncManager: qbt.NewClient(qbt.Config{Host: srv.URL, Timeout: 60}).NewSyncManager(qbt.DefaultSyncOptions()),
+		optimisticUpdates: ttlcache.New(ttlcache.Options[string, *OptimisticTorrentUpdate]{}.
+			SetDefaultTTL(30 * time.Second)),
+	}
+	client.updateHealthStatus(true)
+
+	pool.mu.Lock()
+	pool.clients[inst.ID] = client
+	pool.mu.Unlock()
+
+	sm := NewSyncManager(pool, nil)
+	// Don't let the post-modification debounced sync fire during the test.
+	sm.syncDebounceDelay = time.Hour
+
+	err = sm.SetCategory(ctx, inst.ID, []string{"HASH"}, "KEEP")
+	require.NoError(t, err, "setting a brand-new category must succeed")
+
+	assert.Equal(t, int32(1), createCategoryCalls.Load(), "expected createCategory to be called exactly once")
+	assert.Equal(t, int32(2), setCategoryCalls.Load(), "expected setCategory to be called once for the 409 and once for the retry")
+}
+
+// When createCategory itself fails, SetCategory must surface that error rather
+// than silently reporting success.
+func TestSyncManagerSetCategoryCreateCategoryFailure(t *testing.T) {
+	var setCategoryCalls, createCategoryCalls atomic.Int32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v2/auth/login":
+			http.SetCookie(w, &http.Cookie{Name: "SID", Value: "test-session"})
+			_, _ = w.Write([]byte("Ok."))
+		case "/api/v2/sync/maindata":
+			_, _ = w.Write([]byte(`{"rid":1,"full_update":true,"torrents":{"HASH":{}}}`))
+		case "/api/v2/torrents/setCategory":
+			setCategoryCalls.Add(1)
+			w.WriteHeader(http.StatusConflict)
+		case "/api/v2/torrents/createCategory":
+			createCategoryCalls.Add(1)
+			// Category name is invalid.
+			w.WriteHeader(http.StatusConflict)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	pool := setupTestPool(t)
+	defer pool.Close()
+
+	ctx := context.Background()
+	inst, err := pool.instanceStore.Create(ctx, "test", srv.URL, "user", "pass", nil, nil, false, nil)
+	require.NoError(t, err)
+
+	client := &Client{
+		Client:      qbt.NewClient(qbt.Config{Host: srv.URL, Timeout: 60}),
+		instanceID:  inst.ID,
+		syncManager: qbt.NewClient(qbt.Config{Host: srv.URL, Timeout: 60}).NewSyncManager(qbt.DefaultSyncOptions()),
+		optimisticUpdates: ttlcache.New(ttlcache.Options[string, *OptimisticTorrentUpdate]{}.
+			SetDefaultTTL(30 * time.Second)),
+	}
+	client.updateHealthStatus(true)
+
+	pool.mu.Lock()
+	pool.clients[inst.ID] = client
+	pool.mu.Unlock()
+
+	sm := NewSyncManager(pool, nil)
+	sm.syncDebounceDelay = time.Hour
+
+	err = sm.SetCategory(ctx, inst.ID, []string{"HASH"}, "KEEP")
+	require.Error(t, err, "a failed createCategory must surface as an error")
+
+	assert.Equal(t, int32(1), createCategoryCalls.Load(), "expected createCategory to be attempted exactly once")
+	assert.Equal(t, int32(1), setCategoryCalls.Load(), "expected only the initial setCategory attempt")
 }

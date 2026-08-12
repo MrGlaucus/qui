@@ -314,6 +314,7 @@ func (h *InstancesHandler) buildInstanceResponse(ctx context.Context, instance *
 		HardlinkDirPreset:        instance.HardlinkDirPreset,
 		UseReflinks:              instance.UseReflinks,
 		FallbackToRegularMode:    instance.FallbackToRegularMode,
+		DailyTrafficEnabled:      instance.DailyTrafficEnabled,
 		Connected:                healthy,
 		HasDecryptionError:       hasDecryptionError,
 		ConnectionStatus:         connectionStatus,
@@ -357,6 +358,7 @@ func (h *InstancesHandler) buildQuickInstanceResponse(instance *models.Instance)
 		HardlinkDirPreset:        instance.HardlinkDirPreset,
 		UseReflinks:              instance.UseReflinks,
 		FallbackToRegularMode:    instance.FallbackToRegularMode,
+		DailyTrafficEnabled:      instance.DailyTrafficEnabled,
 		Connected:                false, // Will be updated asynchronously
 		HasDecryptionError:       false,
 		SortOrder:                instance.SortOrder,
@@ -438,6 +440,7 @@ type CreateInstanceRequest struct {
 	TLSSkipVerify            bool                               `json:"tlsSkipVerify,omitempty"`
 	HasLocalFilesystemAccess *bool                              `json:"hasLocalFilesystemAccess,omitempty"`
 	ReannounceSettings       *InstanceReannounceSettingsPayload `json:"reannounceSettings,omitempty"`
+	CloneInstanceID          int                                `json:"cloneInstanceId,omitempty"`
 }
 
 // UpdateInstanceRequest represents a request to update an instance
@@ -456,6 +459,7 @@ type UpdateInstanceRequest struct {
 	HardlinkDirPreset        *string                            `json:"hardlinkDirPreset,omitempty"`
 	UseReflinks              *bool                              `json:"useReflinks,omitempty"`
 	FallbackToRegularMode    *bool                              `json:"fallbackToRegularMode,omitempty"`
+	DailyTrafficEnabled      *bool                              `json:"dailyTrafficEnabled,omitempty"`
 	ReannounceSettings       *InstanceReannounceSettingsPayload `json:"reannounceSettings,omitempty"`
 }
 
@@ -478,6 +482,7 @@ type InstanceResponse struct {
 	HardlinkDirPreset        string                            `json:"hardlinkDirPreset"`
 	UseReflinks              bool                              `json:"useReflinks"`
 	FallbackToRegularMode    bool                              `json:"fallbackToRegularMode"`
+	DailyTrafficEnabled      bool                              `json:"dailyTrafficEnabled"`
 	Connected                bool                              `json:"connected"`
 	HasDecryptionError       bool                              `json:"hasDecryptionError"`
 	RecentErrors             []models.InstanceError            `json:"recentErrors,omitempty"`
@@ -657,6 +662,31 @@ func (h *InstancesHandler) CreateInstance(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// When cloning an instance, copy encrypted credentials for any empty fields
+	// so the user does not have to re-enter them.
+	if req.CloneInstanceID > 0 {
+		source, err := h.instanceStore.Get(r.Context(), req.CloneInstanceID)
+		if err != nil {
+			log.Error().Err(err).Int("sourceInstanceID", req.CloneInstanceID).Msg("Failed to fetch source instance for clone")
+		} else if source != nil {
+			if req.Password == "" {
+				req.Password = source.PasswordEncrypted
+			}
+			if req.APIKey == "" {
+				req.APIKey = source.APIKeyEncrypted
+			}
+			if (req.BasicPassword == nil || *req.BasicPassword == "") && source.BasicPasswordEncrypted != nil {
+				req.BasicPassword = source.BasicPasswordEncrypted
+			}
+			if req.Username == "" {
+				req.Username = source.Username
+			}
+			if (req.BasicUsername == nil || *req.BasicUsername == "") && source.BasicUsername != nil {
+				req.BasicUsername = source.BasicUsername
+			}
+		}
+	}
+
 	// Create instance
 	instance, err := h.instanceStore.Create(r.Context(), req.Name, req.Host, req.Username, req.Password, req.BasicUsername, req.BasicPassword, req.TLSSkipVerify, req.HasLocalFilesystemAccess, req.APIKey)
 	if err != nil {
@@ -784,6 +814,7 @@ func (h *InstancesHandler) UpdateInstance(w http.ResponseWriter, r *http.Request
 		HardlinkDirPreset:        req.HardlinkDirPreset,
 		UseReflinks:              req.UseReflinks,
 		FallbackToRegularMode:    req.FallbackToRegularMode,
+		DailyTrafficEnabled:      req.DailyTrafficEnabled,
 	}
 	instance, err := h.instanceStore.Update(r.Context(), instanceID, req.Name, req.Host, req.Username, req.Password, req.BasicUsername, req.BasicPassword, updateParams, req.APIKey)
 	if err != nil {

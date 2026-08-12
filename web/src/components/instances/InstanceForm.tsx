@@ -20,14 +20,23 @@ type InstanceAuthType = "none" | "usernamePassword" | "apiKey"
 
 interface InstanceFormProps {
   instance?: Instance
-  onSuccess: () => void
+  /** Pre-fills form fields when creating a new instance (for clone/duplicate) */
+  defaultValues?: InstanceFormData
+  /** Called on create/update success. When creating a new instance the
+   *  fresh instance ID is passed so callers can chain additional setup. */
+  onSuccess: (newInstanceId?: number) => void
   onCancel: () => void
   /** When provided, renders without internal buttons (for external DialogFooter) */
   formId?: string
 }
 
-function getInstanceAuthType(instance?: Instance): InstanceAuthType {
-  return instance?.hasApiKey ? "apiKey" : instance?.username ? "usernamePassword" : "none"
+function getInstanceAuthType(instance?: Instance, defaultValues?: InstanceFormData): InstanceAuthType {
+  if (instance?.hasApiKey) return "apiKey"
+  if (instance?.username) return "usernamePassword"
+  // When cloning, derive auth type from defaultValues
+  if (defaultValues?.apiKey && defaultValues.apiKey !== "<redacted>") return "apiKey"
+  if (defaultValues?.username) return "usernamePassword"
+  return "none"
 }
 
 function getInstanceFormDefaults(instance?: Instance): InstanceFormData {
@@ -41,6 +50,7 @@ function getInstanceFormDefaults(instance?: Instance): InstanceFormData {
     basicPassword: instance?.basicUsername ? "<redacted>" : "",
     tlsSkipVerify: instance?.tlsSkipVerify ?? false,
     hasLocalFilesystemAccess: instance?.hasLocalFilesystemAccess ?? false,
+    dailyTrafficEnabled: instance?.dailyTrafficEnabled ?? true,
     reannounceSettings: instance?.reannounceSettings ?? DEFAULT_REANNOUNCE_SETTINGS,
   }
 }
@@ -66,11 +76,11 @@ function getAuthValidationError(data: InstanceFormData, authType: InstanceAuthTy
   return undefined
 }
 
-export function InstanceForm({ instance, onSuccess, onCancel, formId }: InstanceFormProps) {
+export function InstanceForm({ instance, defaultValues, onSuccess, onCancel, formId }: InstanceFormProps) {
   const { t } = useTranslation("instances")
   const { createInstance, updateInstance, isCreating, isUpdating } = useInstances()
   const [showBasicAuth, setShowBasicAuth] = useState(!!instance?.basicUsername)
-  const [authType, setAuthType] = useState<InstanceAuthType>(() => getInstanceAuthType(instance))
+  const [authType, setAuthType] = useState<InstanceAuthType>(() => getInstanceAuthType(instance, defaultValues))
 
   const handleSubmit = (data: InstanceFormData) => {
     const authValidationError = getAuthValidationError(data, authType, instance)
@@ -153,11 +163,11 @@ export function InstanceForm({ instance, onSuccess, onCancel, formId }: Instance
       })
     } else {
       createInstance(submitData, {
-        onSuccess: () => {
+        onSuccess: (data: Instance) => {
           toast.success(t("form.toast.instanceCreatedTitle"), {
             description: t("form.toast.instanceCreatedDescription"),
           })
-          onSuccess()
+          onSuccess(data.id)
         },
         onError: (error) => {
           toast.error(t("form.toast.createFailedTitle"), {
@@ -169,7 +179,7 @@ export function InstanceForm({ instance, onSuccess, onCancel, formId }: Instance
   }
 
   const form = useForm({
-    defaultValues: getInstanceFormDefaults(instance),
+    defaultValues: defaultValues ?? getInstanceFormDefaults(instance),
     onSubmit: ({ value }) => {
       handleSubmit(value)
     },
@@ -289,6 +299,24 @@ export function InstanceForm({ instance, onSuccess, onCancel, formId }: Instance
           )}
         </form.Field>
 
+        <form.Field name="dailyTrafficEnabled">
+          {(field) => (
+            <div className="flex items-start justify-between gap-4 rounded-lg border bg-muted/40 p-4">
+              <div className="space-y-1">
+                <Label htmlFor="daily-traffic-enabled">{t("form.labels.dailyTrafficEnabled")}</Label>
+                <p className="text-sm text-muted-foreground max-w-prose">
+                  {t("form.labels.dailyTrafficEnabledDescription")}
+                </p>
+              </div>
+              <Switch
+                id="daily-traffic-enabled"
+                checked={field.state.value}
+                onCheckedChange={(checked) => field.handleChange(checked)}
+              />
+            </div>
+          )}
+        </form.Field>
+
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="auth-type">{t("form.labels.authType")}</Label>
@@ -339,7 +367,13 @@ export function InstanceForm({ instance, onSuccess, onCancel, formId }: Instance
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder={instance ? t("form.placeholders.passwordExisting") : t("form.placeholders.passwordNew")}
+                    placeholder={
+                      instance
+                        ? t("form.placeholders.passwordExisting")
+                        : defaultValues?.cloneInstanceId
+                          ? t("form.placeholders.passwordClone")
+                          : t("form.placeholders.passwordNew")
+                    }
                     data-1p-ignore
                     autoComplete="off"
                   />

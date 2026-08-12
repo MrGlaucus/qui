@@ -39,6 +39,7 @@
     "createTorrent": "Criar torrent",
     "torrentCreationTasks": "Tarefas de criação de torrent",
     "instanceSettings": "Configurações da instância",
+    "openInstance": "Abrir instância em uma nova aba",
     "addToInstance": "Adicionar à instância",
     "createForInstance": "Criar para a instância",
     "tasksForInstance": "Tarefas para a instância",

@@ -29,6 +29,7 @@ import {
   CATEGORY_UNCATEGORIZED_VALUE,
   getFieldType,
   getOperatorsForField,
+  getTranslatedLimitOptions,
   getTranslatedOperatorsForField,
   getTranslatedTorrentStates,
   getTranslatedHardlinkScopes,
@@ -738,6 +739,22 @@ export function LeafCondition({
               </SelectContent>
             </Select>
           </div>
+        ) : fieldType === "speed" && (condition.operator === "IS" || condition.operator === "IS_NOT") ? (
+          <Select
+            value={condition.value}
+            onValueChange={(v: string) => onChange({ ...condition, value: v })}
+          >
+            <SelectTrigger className="h-8 w-fit min-w-[100px]">
+              <SelectValue placeholder="..." />
+            </SelectTrigger>
+            <SelectContent>
+              {getTranslatedLimitOptions(t).map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         ) : fieldType === "speed" && speedDisplay ? (
           <div className="flex items-center gap-1">
             <Input

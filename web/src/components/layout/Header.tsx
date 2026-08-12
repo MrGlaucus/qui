@@ -62,7 +62,7 @@ import { useQueries, useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useSearch } from "@tanstack/react-router"
 import { navigateWithSearch } from "@/lib/router-search"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
-import { Archive, Check, ChevronsUpDown, Cog, Download, FileEdit, FileText, FunnelPlus, FunnelX, GitBranch, Globe, HardDrive, Heart, Home, Info, ListTodo, Loader2, LogOut, Menu, Plus, Rss, Search, SearchCode, Server, Settings, X, Zap } from "lucide-react"
+import { Archive, Check, ChevronsUpDown, Cog, Download, ExternalLink, FileEdit, FileText, FunnelPlus, FunnelX, GitBranch, Globe, HardDrive, Heart, Home, Info, ListTodo, Loader2, LogOut, Menu, Plus, Rss, Search, SearchCode, Server, Settings, X, Zap } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useTranslation } from "react-i18next"
@@ -246,6 +246,17 @@ export function Header({
 
   const isGlobSearch = !!searchValue && /[*?[\]]/.test(searchValue)
   const [filterSidebarCollapsed, setFilterSidebarCollapsed] = usePersistedFilterSidebarState(false)
+  const hasActiveFilter = filters ? (
+    filters.status.length > 0 ||
+    filters.excludeStatus.length > 0 ||
+    (filters.expandedCategories ?? filters.categories ?? []).length > 0 ||
+    (filters.expandedExcludeCategories ?? filters.excludeCategories ?? []).length > 0 ||
+    filters.tags.length > 0 ||
+    filters.excludeTags.length > 0 ||
+    filters.trackers.length > 0 ||
+    filters.excludeTrackers.length > 0 ||
+    (filters.expr?.length ?? 0) > 0
+  ) : false
   const [showSupport, setShowSupport] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const lastFilterToggleRef = useRef(0)
@@ -505,9 +516,9 @@ export function Header({
                   onClick={handleToggleFilters}
                 >
                   {filterSidebarCollapsed ? (
-                    <FunnelPlus className="h-4 w-4" />
+                    <FunnelPlus className={`h-4 w-4 ${hasActiveFilter ? "text-red-500" : ""}`} />
                   ) : (
-                    <FunnelX className="h-4 w-4" />
+                    <FunnelX className={`h-4 w-4 ${hasActiveFilter ? "text-red-500" : ""}`} />
                   )}
                 </Button>
               </TooltipTrigger>
@@ -626,6 +637,23 @@ export function Header({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>{t("header.instanceSettings")}</TooltipContent>
+                  </Tooltip>
+                )}
+                {/* Open instance in new tab */}
+                {isInstanceRoute && currentInstance?.host && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="hidden md:inline-flex"
+                        onClick={() => window.open(currentInstance.host, "_blank", "noopener,noreferrer")}
+                        aria-label={t("header.openInstance")}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{t("header.openInstance")}</TooltipContent>
                   </Tooltip>
                 )}
               </>

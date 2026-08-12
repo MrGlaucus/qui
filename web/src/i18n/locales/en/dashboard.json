@@ -49,8 +49,11 @@
     "totalSize": "Total Size",
     "totalSizeTooltip": "Total size of all torrents, including cross-seeds",
     "freeSpace": "Free Space",
+    "todayDownloaded": "Today Downloaded",
+    "todayUploaded": "Today Uploaded",
     "showMore": "Show more",
     "showLess": "Show less",
+    "openInstance": "Open instance in new tab",
     "uptime": "Uptime",
     "peerConnections": "Peer Connections",
     "queuedIOJobs": "Queued I/O Jobs",
@@ -84,6 +87,24 @@
       "cancel": "Cancel"
     }
   },
+  "dailyTraffic": {
+    "loading": "Loading traffic...",
+    "empty": "No traffic recorded yet.",
+    "date": "Date",
+    "downloaded": "Downloaded",
+    "uploaded": "Uploaded",
+    "download": "Download",
+    "upload": "Upload",
+    "peakDl": "Peak DL",
+    "peakUl": "Peak UL",
+    "baseline": "Baseline",
+    "baselineAt": "Baseline at",
+    "source": "Source",
+    "sourceSession": "Session",
+    "sourceAlltime": "Alltime",
+    "sourceRestart": "Restart",
+    "sourceReinstall": "Reinstall"
+  },
   "mobileOverview": {
     "title": "Overview",
     "instances": "Instances",
@@ -91,7 +112,9 @@
     "torrents": "Torrents",
     "activeCount": "{{count}} active",
     "download": "Download",
-    "upload": "Upload"
+    "upload": "Upload",
+    "todayDownload": "Today Download",
+    "todayUpload": "Today Upload"
   },
   "globalStats": {
     "instances": "Instances",
@@ -101,7 +124,10 @@
     "totalDownload": "Total Download",
     "downloadingActive": "{{count}} active - {{size}} remaining",
     "totalUpload": "Total Upload",
-    "seedingActive": "{{count}} active - {{size}} seeding"
+    "seedingActive": "{{count}} active - {{size}} seeding",
+    "todayTraffic": "Today Traffic",
+    "todayDownload": "Download",
+    "todayUpload": "Upload"
   },
   "serverStats": {
     "title": "Server Statistics",

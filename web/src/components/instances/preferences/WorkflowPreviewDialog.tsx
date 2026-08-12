@@ -151,7 +151,7 @@ function createDynamicColumns(
       triggerFields: ["AVAILABILITY"],
       render: (torrent) => (
         <span className="font-mono text-muted-foreground">
-          {torrent.availability.toFixed(2)}
+          {(torrent.availability ?? 0).toFixed(2)}
         </span>
       ),
     },
@@ -422,7 +422,7 @@ export function WorkflowPreviewDialog({
                           className="p-2 text-right font-mono whitespace-nowrap font-medium"
                           style={{ color: getRatioColor(torrent.ratio) }}
                         >
-                          {torrent.ratio === -1 ? "∞" : torrent.ratio.toFixed(2)}
+                          {torrent.ratio === -1 ? "∞" : (torrent.ratio ?? 0).toFixed(2)}
                         </td>
                         <td className="p-2 text-right font-mono text-muted-foreground whitespace-nowrap">
                           {formatDurationCompact(torrent.seedingTime)}

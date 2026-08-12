@@ -715,6 +715,7 @@ const (
 	FieldAddedOnAge      ConditionField = "ADDED_ON_AGE"
 	FieldCompletionOnAge ConditionField = "COMPLETION_ON_AGE"
 	FieldLastActivityAge ConditionField = "LAST_ACTIVITY_AGE"
+	FieldPublishedOnAge  ConditionField = "PUBLISHED_ON_AGE"
 
 	// Numeric fields (float64)
 	FieldRatio            ConditionField = "RATIO"
@@ -773,7 +774,7 @@ func (f ConditionField) IsNumeric() bool {
 	switch f {
 	case FieldSize, FieldTotalSize, FieldDownloaded, FieldUploaded, FieldAmountLeft, FieldFreeSpace,
 		FieldAddedOn, FieldCompletionOn, FieldLastActivity, FieldSeedingTime, FieldTimeActive,
-		FieldAddedOnAge, FieldCompletionOnAge, FieldLastActivityAge,
+		FieldAddedOnAge, FieldCompletionOnAge, FieldLastActivityAge, FieldPublishedOnAge,
 		FieldRatio, FieldProgress, FieldAvailability,
 		FieldDlSpeed, FieldUpSpeed,
 		FieldNumSeeds, FieldNumLeechs, FieldNumComplete, FieldNumIncomplete, FieldTrackersCount,
@@ -822,6 +823,8 @@ const (
 	OperatorLessThanOrEqual    ConditionOperator = "LESS_THAN_OR_EQUAL"
 	OperatorBetween            ConditionOperator = "BETWEEN"
 	OperatorMatches            ConditionOperator = "MATCHES" // regex
+	OperatorIs                 ConditionOperator = "IS"      // dropdown match
+	OperatorIsNot              ConditionOperator = "IS_NOT"  // inverted dropdown match
 
 	// Cross-category lookup operators (NAME field only)
 	OperatorExistsIn   ConditionOperator = "EXISTS_IN"   // exact name match in target category

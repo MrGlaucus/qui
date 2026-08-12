@@ -51,6 +51,7 @@
     "freeSpace": "Вільне місце",
     "showMore": "Показати більше",
     "showLess": "Показати менше",
+    "openInstance": "Відкрити екземпляр у новій вкладці",
     "uptime": "Час роботи",
     "peerConnections": "З'єднання з пірами",
     "queuedIOJobs": "Завдань I/O у черзі",
@@ -82,7 +83,9 @@
       "enable": "Увімкнути",
       "disable": "Вимкнути",
       "cancel": "Скасувати"
-    }
+    },
+    "todayDownloaded": "Завантажено сьогодні",
+    "todayUploaded": "Віддано сьогодні"
   },
   "mobileOverview": {
     "title": "Огляд",
@@ -91,7 +94,9 @@
     "torrents": "Торенти",
     "activeCount": "{{count}} активних",
     "download": "Завантаження",
-    "upload": "Вивантаження"
+    "upload": "Вивантаження",
+    "todayDownload": "Завантажено сьогодні",
+    "todayUpload": "Вивантажено сьогодні"
   },
   "globalStats": {
     "instances": "Екземпляри",
@@ -101,7 +106,10 @@
     "totalDownload": "Всього завантажено",
     "downloadingActive": "{{count}} активних — залишилось {{size}}",
     "totalUpload": "Всього вивантажено",
-    "seedingActive": "{{count}} активних — роздається {{size}}"
+    "seedingActive": "{{count}} активних — роздається {{size}}",
+    "todayTraffic": "Сьогоднішній трафік",
+    "todayDownload": "Завантаження",
+    "todayUpload": "Вивантаження"
   },
   "serverStats": {
     "title": "Статистика сервера",
@@ -222,5 +230,23 @@
     "allDisabled": "Всі екземпляри вимкнено",
     "enableInstance": "Увімкніть екземпляр у Налаштуваннях → Екземпляри для перегляду статистики панелі.",
     "manageInstances": "Керувати екземплярами"
+  },
+  "dailyTraffic": {
+    "loading": "Завантаження трафіку...",
+    "empty": "Трафік ще не записаний.",
+    "date": "Дата",
+    "downloaded": "Завантажено",
+    "uploaded": "Віддано",
+    "download": "Завантаження",
+    "upload": "Віддача",
+    "peakDl": "Пік DL",
+    "peakUl": "Пік UL",
+    "baseline": "Базове значення",
+    "baselineAt": "Час збору базового значення",
+    "source": "Джерело",
+    "sourceSession": "Сесія",
+    "sourceAlltime": "Загалом",
+    "sourceRestart": "Перезапуск",
+    "sourceReinstall": "Перевстановлення"
   }
 }

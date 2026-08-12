@@ -43,10 +43,6 @@ type Config struct {
 // DefaultRuleInterval is the cadence for rules that don't specify their own interval.
 const DefaultRuleInterval = 15 * time.Minute
 
-// freeSpaceDeleteCooldown prevents FREE_SPACE delete rules from running too frequently.
-// After a successful delete-with-files caused by a FREE_SPACE rule, the next run is
-// delayed to allow qBittorrent to refresh its disk free space reading.
-const freeSpaceDeleteCooldown = 5 * time.Minute
 
 // Log messages for delete actions (reduces duplication)
 const logMsgRemoveTorrentWithFiles = "automations: removing torrent with files"
@@ -136,30 +132,30 @@ func (s *automationSummary) message() string {
 	if s == nil {
 		return ""
 	}
-	lines := []string{fmt.Sprintf("Applied: %d", s.applied)}
+	lines := []string{fmt.Sprintf("已应用: %d", s.applied)}
 	if s.failed > 0 {
-		lines = append(lines, fmt.Sprintf("Failed: %d", s.failed))
+		lines = append(lines, fmt.Sprintf("失败: %d", s.failed))
 	}
 	if formatted := formatActionCounts(s.appliedByAction, 3); formatted != "" {
-		lines = append(lines, "Top actions: "+formatted)
+		lines = append(lines, "主要操作: "+formatted)
 	}
 	if formatted := formatActionCounts(s.failedByAction, 3); formatted != "" {
-		lines = append(lines, "Top failures: "+formatted)
+		lines = append(lines, "主要失败: "+formatted)
 	}
 	if formatted := formatRuleCounts(s.ruleTotalsByName(), 3); formatted != "" {
-		lines = append(lines, "Rules: "+formatted)
+		lines = append(lines, "规则: "+formatted)
 	}
 	if formatted := formatTagCounts(s.tagAddedByName, s.tagRemovedByName, 3); formatted != "" {
-		lines = append(lines, "Tags: "+formatted)
+		lines = append(lines, "标签: "+formatted)
 	}
 	if len(s.tagSamples) > 0 {
-		lines = append(lines, "Tag samples: "+strings.Join(s.tagSamples, "; "))
+		lines = append(lines, "标签样本: "+strings.Join(s.tagSamples, "; "))
 	}
 	if len(s.sampleTorrents) > 0 {
-		lines = append(lines, "Samples: "+strings.Join(s.sampleTorrents, "; "))
+		lines = append(lines, "样本: "+strings.Join(s.sampleTorrents, "; "))
 	}
 	if len(s.sampleErrors) > 0 {
-		lines = append(lines, "Errors: "+strings.Join(s.sampleErrors, "; "))
+		lines = append(lines, "错误: "+strings.Join(s.sampleErrors, "; "))
 	}
 	return strings.Join(lines, "\n")
 }
@@ -543,6 +539,7 @@ type Service struct {
 	notifier                  notifications.Notifier
 	externalProgramService    *externalprograms.Service // for executing external programs
 	crossMatcher              CrossMatcher
+	crossSeedLogStore         *models.CrossSeedLogStore
 	activityRuns              *activityRunStore
 	releaseParser             *releases.Parser
 
@@ -550,14 +547,13 @@ type Service struct {
 	// that havent disappeared from sync data yet
 	lastApplied           map[int]map[string]time.Time // instanceID -> hash -> timestamp
 	lastRuleRun           map[ruleKey]time.Time        // per-rule cadence tracking
-	lastFreeSpaceDeleteAt map[int]time.Time            // instanceID -> last FREE_SPACE delete timestamp
 	inFlightExports       map[string]struct{}          // "targetInstanceID:hash" -> in-progress export
 	mu                    sync.RWMutex
 
 	activityPublisher activity.Publisher
 }
 
-func NewService(cfg Config, instanceStore *models.InstanceStore, ruleStore *models.AutomationStore, activityStore *models.AutomationActivityStore, trackerCustomizationStore *models.TrackerCustomizationStore, syncManager *qbittorrent.SyncManager, notifier notifications.Notifier, externalProgramService *externalprograms.Service, crossMatcher CrossMatcher) *Service {
+func NewService(cfg Config, instanceStore *models.InstanceStore, ruleStore *models.AutomationStore, activityStore *models.AutomationActivityStore, trackerCustomizationStore *models.TrackerCustomizationStore, syncManager *qbittorrent.SyncManager, notifier notifications.Notifier, externalProgramService *externalprograms.Service, crossMatcher CrossMatcher, crossSeedLogStore *models.CrossSeedLogStore) *Service {
 	if cfg.ScanInterval <= 0 {
 		cfg.ScanInterval = DefaultConfig().ScanInterval
 	}
@@ -586,11 +582,12 @@ func NewService(cfg Config, instanceStore *models.InstanceStore, ruleStore *mode
 		notifier:                  notifier,
 		externalProgramService:    externalProgramService,
 		crossMatcher:              crossMatcher,
+		crossSeedLogStore:         crossSeedLogStore,
 		activityRuns:              newActivityRunStore(cfg.ActivityRunRetention, cfg.ActivityRunMax),
 		releaseParser:             releases.NewDefaultParser(),
 		lastApplied:               make(map[int]map[string]time.Time),
 		lastRuleRun:               make(map[ruleKey]time.Time),
-		lastFreeSpaceDeleteAt:     make(map[int]time.Time),
+
 		inFlightExports:           make(map[string]struct{}),
 		activityPublisher:         activity.NopPublisher{},
 	}
@@ -624,13 +621,6 @@ func (s *Service) cleanupStaleEntries() {
 	for key, ts := range s.lastRuleRun {
 		if ts.Before(ruleCutoff) {
 			delete(s.lastRuleRun, key)
-		}
-	}
-
-	// Clean up FREE_SPACE cooldown entries older than 10 minutes
-	for instanceID, ts := range s.lastFreeSpaceDeleteAt {
-		if ts.Before(cutoff) {
-			delete(s.lastFreeSpaceDeleteAt, instanceID)
 		}
 	}
 
@@ -888,6 +878,27 @@ func (s *Service) initPreviewEvalContext(ctx context.Context, instanceID int, to
 
 	// Build category index for EXISTS_IN/CONTAINS_IN operators
 	evalCtx.CategoryIndex, evalCtx.CategoryNames = BuildCategoryIndex(torrents)
+
+	// Populate published-at map for preview
+	if s != nil && s.crossSeedLogStore != nil {
+		pubMap := make(map[string]int64, len(torrents))
+		for i := range torrents {
+			entry, found, err := s.crossSeedLogStore.Get(ctx, torrents[i].Hash)
+			if err != nil || !found || entry.PublishDate.IsZero() {
+				if torrents[i].InfohashV1 != "" && torrents[i].InfohashV1 != torrents[i].Hash {
+					entry, found, err = s.crossSeedLogStore.Get(ctx, torrents[i].InfohashV1)
+				}
+				if (!found || err != nil || entry.PublishDate.IsZero()) && torrents[i].InfohashV2 != "" && torrents[i].InfohashV2 != torrents[i].Hash {
+					entry, found, err = s.crossSeedLogStore.Get(ctx, torrents[i].InfohashV2)
+				}
+				if err != nil || !found || entry.PublishDate.IsZero() {
+					continue
+				}
+			}
+			pubMap[torrents[i].Hash] = entry.PublishDate.Unix()
+		}
+		evalCtx.PublishedAtMap = pubMap
+	}
 
 	// Get health counts from background cache
 	if healthCounts := s.syncManager.GetTrackerHealthCounts(instanceID); healthCounts != nil {
@@ -2025,37 +2036,6 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 		return nil, nil
 	}
 
-	// Check FREE_SPACE delete cooldown for this instance
-	// This prevents overly aggressive deletion while qBittorrent updates its disk free space reading
-	s.mu.RLock()
-	lastFSDelete := s.lastFreeSpaceDeleteAt[instanceID]
-	s.mu.RUnlock()
-	inFreeSpaceCooldown := !lastFSDelete.IsZero() && now.Sub(lastFSDelete) < freeSpaceDeleteCooldown
-
-	// If in cooldown, filter out delete rules that use FREE_SPACE
-	if inFreeSpaceCooldown {
-		filtered := make([]*models.Automation, 0, len(eligibleRules))
-		for _, rule := range eligibleRules {
-			// Skip delete rules that use FREE_SPACE condition
-			if rule.Conditions != nil && rule.Conditions.Delete != nil && rule.Conditions.Delete.Enabled {
-				if ConditionUsesField(rule.Conditions.Delete.Condition, FieldFreeSpace) {
-					log.Debug().
-						Int("instanceID", instanceID).
-						Int("ruleID", rule.ID).
-						Str("ruleName", rule.Name).
-						Dur("cooldownRemaining", freeSpaceDeleteCooldown-now.Sub(lastFSDelete)).
-						Msg("automations: skipping FREE_SPACE delete rule due to cooldown")
-					continue
-				}
-			}
-			filtered = append(filtered, rule)
-		}
-		eligibleRules = filtered
-		if len(eligibleRules) == 0 {
-			return nil, nil
-		}
-	}
-
 	// Build set of rule IDs whose delete action uses FREE_SPACE condition
 	// Used to determine if we should start the cooldown after successful deletions
 	freeSpaceDeleteRuleIDs := make(map[int]struct{})
@@ -2094,6 +2074,27 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 	evalCtx := &EvalContext{
 		InstanceHasLocalAccess: instance.HasLocalFilesystemAccess,
 		ReleaseParser:          s.releaseParser,
+	}
+
+	// Build published-at map if rules use PUBLISHED_ON_AGE
+	if rulesUseCondition(eligibleRules, FieldPublishedOnAge) && s.crossSeedLogStore != nil {
+		pubMap := make(map[string]int64, len(torrents))
+		for i := range torrents {
+			entry, found, err := s.crossSeedLogStore.Get(ctx, torrents[i].Hash)
+			if err != nil || !found || entry.PublishDate.IsZero() {
+				if torrents[i].InfohashV1 != "" && torrents[i].InfohashV1 != torrents[i].Hash {
+					entry, found, err = s.crossSeedLogStore.Get(ctx, torrents[i].InfohashV1)
+				}
+				if (!found || err != nil || entry.PublishDate.IsZero()) && torrents[i].InfohashV2 != "" && torrents[i].InfohashV2 != torrents[i].Hash {
+					entry, found, err = s.crossSeedLogStore.Get(ctx, torrents[i].InfohashV2)
+				}
+				if err != nil || !found || entry.PublishDate.IsZero() {
+					continue
+				}
+			}
+			pubMap[torrents[i].Hash] = entry.PublishDate.Unix()
+		}
+		evalCtx.PublishedAtMap = pubMap
 	}
 
 	// Build category index for EXISTS_IN/CONTAINS_IN operators
@@ -3959,26 +3960,6 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 					log.Info().Int("instanceID", instanceID).Int("count", len(batch)).Msg("automations: removed torrents (files kept)")
 				} else {
 					log.Info().Int("instanceID", instanceID).Int("count", len(batch)).Msg("automations: removed torrents with files")
-
-					// Start FREE_SPACE cooldown if files were deleted by a FREE_SPACE rule
-					// This allows qBittorrent time to refresh its disk free space reading
-					if len(freeSpaceDeleteRuleIDs) > 0 {
-						for _, hash := range batch {
-							if pending, ok := pendingByHash[hash]; ok {
-								if _, isFSRule := freeSpaceDeleteRuleIDs[pending.ruleID]; isFSRule {
-									s.mu.Lock()
-									s.lastFreeSpaceDeleteAt[instanceID] = now
-									s.mu.Unlock()
-									log.Debug().
-										Int("instanceID", instanceID).
-										Int("ruleID", pending.ruleID).
-										Dur("cooldown", freeSpaceDeleteCooldown).
-										Msg("automations: started FREE_SPACE delete cooldown")
-									break // Only need to set once per batch
-								}
-							}
-						}
-					}
 				}
 
 				// Record successful deletion activity

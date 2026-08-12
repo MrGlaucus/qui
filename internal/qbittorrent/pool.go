@@ -133,23 +133,24 @@ func InstanceHealthBlockerMessage(err error) (string, bool) {
 
 // ClientPool manages multiple qBittorrent client connections
 type ClientPool struct {
-	clients           map[int]*Client
-	instanceStore     *models.InstanceStore
-	errorStore        *models.InstanceErrorStore
-	cache             *ttlcache.Cache[string, *TorrentResponse]
-	mu                sync.RWMutex
-	creationMu        sync.Mutex          // Serialize client creation operations
-	creationLocks     map[int]*sync.Mutex // Per-instance creation locks
-	closed            bool
-	healthTicker      *time.Ticker
-	stopHealth        chan struct{}
-	failureTracker    map[int]*failureInfo
-	decryptionTracker map[int]*decryptionErrorInfo
-	syncEventSink     SyncEventSink
-	syncEventSinkSeq  uint64
-	completionHandler TorrentCompletionHandler
-	addedHandler      TorrentAddedHandler
-	syncManager       *SyncManager // Reference for starting background tasks
+	clients              map[int]*Client
+	instanceStore        *models.InstanceStore
+	errorStore           *models.InstanceErrorStore
+	dailyTrafficRecorder *DailyTrafficRecorder
+	cache                *ttlcache.Cache[string, *TorrentResponse]
+	mu                   sync.RWMutex
+	creationMu           sync.Mutex          // Serialize client creation operations
+	creationLocks        map[int]*sync.Mutex // Per-instance creation locks
+	closed               bool
+	healthTicker         *time.Ticker
+	stopHealth           chan struct{}
+	failureTracker       map[int]*failureInfo
+	decryptionTracker    map[int]*decryptionErrorInfo
+	syncEventSink        SyncEventSink
+	syncEventSinkSeq     uint64
+	completionHandler    TorrentCompletionHandler
+	addedHandler         TorrentAddedHandler
+	syncManager          *SyncManager // Reference for starting background tasks
 }
 
 // NewClientPool creates a new client pool
@@ -190,6 +191,24 @@ func (cp *ClientPool) SetSyncEventSink(sink SyncEventSink) {
 	cp.mu.Unlock()
 
 	cp.applySyncManagerSinkIfCurrent(sm, sink, sinkSeq)
+}
+
+// SetDailyTrafficRecorder enables daily traffic collection for all managed
+// clients. Pass nil to disable. Per-instance opt-in is read from the instance
+// store, so newly created clients pick up the current toggle automatically.
+func (cp *ClientPool) SetDailyTrafficRecorder(recorder *DailyTrafficRecorder) {
+	cp.mu.Lock()
+	cp.dailyTrafficRecorder = recorder
+	clients := make([]*Client, 0, len(cp.clients))
+	for _, client := range cp.clients {
+		clients = append(clients, client)
+	}
+	cp.mu.Unlock()
+
+	for _, client := range clients {
+		enabled := recorder != nil
+		client.SetDailyTrafficRecorder(recorder, enabled)
+	}
 }
 
 // SetTorrentCompletionHandler registers a callback for new and existing clients when torrents complete.
@@ -435,6 +454,9 @@ func (cp *ClientPool) createClientWithTimeout(ctx context.Context, instanceID in
 	cp.mu.Lock()
 	if cp.syncEventSink != nil {
 		client.SetSyncEventSink(cp.syncEventSink)
+	}
+	if cp.dailyTrafficRecorder != nil {
+		client.SetDailyTrafficRecorder(cp.dailyTrafficRecorder, instance.DailyTrafficEnabled)
 	}
 	cp.clients[instanceID] = client
 	// Reset failure tracking on successful connection

@@ -52,12 +52,15 @@
     "addDialog": {
       "title": "Add Instance",
       "description": "Configure a new qBittorrent instance",
+      "cloneTitle": "Clone Instance",
+      "cloneDescription": "Duplicate an existing instance configuration",
       "cancel": "Cancel",
       "submit": "Add Instance",
       "adding": "Adding..."
     },
     "toasts": {
-      "reorderFailed": "Failed to reorder instances"
+      "reorderFailed": "Failed to reorder instances",
+      "copyAutomationsFailed": "Failed to copy automation rules"
     }
   },
   "integrations": {
@@ -251,6 +254,7 @@
       "maintenance": "Maintenance",
       "crossSeed": "Cross-seed",
       "automations": "Automations",
+      "traffic": "Traffic stats",
       "other": "Other",
       "unknown": "Unknown"
     },
@@ -737,6 +741,8 @@
         "timeout": "Timeout (seconds)",
         "enabled": "Enabled",
         "basicAuth": "Basic Auth",
+        "uploadLimit": "Upload Limit (0 = unlimited)",
+        "downloadLimit": "Download Limit (0 = unlimited)",
         "basicAuthDescription": "Use HTTP basic authentication for Torznab behind a reverse proxy.",
         "basicUsername": "Basic Username",
         "basicPassword": "Basic Password"
@@ -864,6 +870,9 @@
       "loading": "Loading...",
       "noIndexers": "No indexers configured. Add one to get started.",
       "noMatch": "No indexers match the current filters",
+      "uploadLimit": "Upload Limit",
+      "downloadLimit": "Download Limit",
+      "unlimited": "Unlimited",
       "noCapabilities": "No capabilities",
       "sync": "Sync",
       "collapse": "Collapse",

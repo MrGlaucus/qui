@@ -28,6 +28,7 @@ import type {
   CrossSeedAutomationSettingsPatch,
   CrossSeedAutomationStatus,
   CrossSeedBlocklistEntry,
+  CrossSeedLogEntry,
   CrossSeedInstanceResult,
   CrossSeedRun,
   CrossSeedSearchRun,
@@ -64,6 +65,7 @@ import type {
   InstanceCapabilities,
   InstanceCrossSeedCompletionSettings,
   InstanceFormData,
+  InstanceDailyTrafficResponse,
   InstanceReannounceActivity,
   InstanceReannounceCandidate,
   InstanceResponse,
@@ -650,6 +652,10 @@ class ApiClient {
 
   async getTransferInfo(id: number): Promise<TransferInfo> {
     return this.request<TransferInfo>(`/instances/${id}/transfer-info`)
+  }
+
+  async getDailyTraffic(id: number, days = 7): Promise<InstanceDailyTrafficResponse> {
+    return this.request<InstanceDailyTrafficResponse>(`/instances/${id}/traffic/daily?days=${days}`)
   }
 
   async getInstanceReannounceActivity(
@@ -1490,6 +1496,17 @@ class ApiClient {
     })
   }
 
+  async listCrossSeedLog(limit = 50, offset = 0): Promise<{ entries: CrossSeedLogEntry[]; total: number }> {
+    return this.request<{ entries: CrossSeedLogEntry[]; total: number }>(`/cross-seed/log?limit=${limit}&offset=${offset}`)
+  }
+
+  async cleanCrossSeedLog(ageHours: number): Promise<{ deleted: number }> {
+    return this.request<{ deleted: number }>("/cross-seed/log/cleanup", {
+      method: "POST",
+      body: JSON.stringify({ ageHours }),
+    })
+  }
+
   async getInstanceCompletionSettings(instanceId: number): Promise<InstanceCrossSeedCompletionSettings> {
     return this.request<InstanceCrossSeedCompletionSettings>(`/cross-seed/completion/${instanceId}`)
   }
@@ -1832,6 +1849,16 @@ class ApiClient {
       method: "PUT",
       body: JSON.stringify({ orderedIds }),
     })
+  }
+
+  async copyAutomationsToInstance(
+    sourceInstanceId: number,
+    targetInstanceId: number
+  ): Promise<{ created: number; updated: number }> {
+    return this.request<{ created: number; updated: number }>(
+      `/instances/${sourceInstanceId}/automations/copy-to/${targetInstanceId}`,
+      { method: "POST" }
+    )
   }
 
   async applyAutomations(instanceId: number): Promise<void> {
@@ -2747,6 +2774,14 @@ class ApiClient {
     return this.request<void>(`/instances/${instanceId}/rss/rules/reprocess`, {
       method: "POST",
     })
+  }
+
+  async lookupGeoIP(ips: string[]): Promise<Record<string, string | null>> {
+    const res = await this.request<{ results: Record<string, string | null> }>("/peers/geoip", {
+      method: "POST",
+      body: JSON.stringify({ ips }),
+    })
+    return res.results
   }
 }
 

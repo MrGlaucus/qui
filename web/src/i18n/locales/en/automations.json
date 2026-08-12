@@ -174,13 +174,15 @@
       "ADDED_ON_AGE": "Added Age (legacy)",
       "COMPLETION_ON_AGE": "Completed Age (legacy)",
       "LAST_ACTIVITY_AGE": "Inactive Time (legacy)",
+      "PUBLISHED_ON_AGE": "Published Age",
       "SYSTEM_HOUR": "System Hour",
       "SYSTEM_MINUTE": "System Minute",
       "SYSTEM_DAY_OF_WEEK": "System Day of Week",
       "SYSTEM_DAY": "System Day",
       "SYSTEM_MONTH": "System Month",
       "SYSTEM_YEAR": "System Year",
-      "RATIO": "Ratio",
+      "RATIO": "Ratio (Uploaded / Downloaded)",
+      "UPLOADED_OVER_SIZE": "Ratio (Uploaded / Size)",
       "RATIO_LIMIT": "Ratio Limit",
       "MAX_RATIO": "Max Ratio",
       "PROGRESS": "Progress",
@@ -241,6 +243,9 @@
       "between": "between",
       "existsIn": "exists in",
       "similarExistsIn": "similar exists in"
+    },
+    "limitOptions": {
+      "unlimited": "Unlimited"
     },
     "torrentStates": {
       "downloading": "Downloading",

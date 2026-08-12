@@ -64,6 +64,10 @@ type TorznabIndexer struct {
 	Enabled                bool                     `json:"enabled"`
 	Priority               int                      `json:"priority"`
 	TimeoutSeconds         int                      `json:"timeout_seconds"`
+	UploadLimitBytes       int64                    `json:"upload_limit_bytes"`
+	DownloadLimitBytes     int64                    `json:"download_limit_bytes"`
+	UploadLimitUnit        string                   `json:"upload_limit_unit"`
+	DownloadLimitUnit      string                   `json:"download_limit_unit"`
 	LimitDefault           int                      `json:"limit_default"`
 	LimitMax               int                      `json:"limit_max"`
 	Capabilities           []string                 `json:"capabilities"`
@@ -84,9 +88,13 @@ type TorznabIndexerUpdateParams struct {
 	APIKey         string
 	BasicUsername  *string
 	BasicPassword  *string
-	Enabled        *bool
-	Priority       *int
-	TimeoutSeconds *int
+	Enabled              *bool
+	Priority             *int
+	TimeoutSeconds       *int
+	UploadLimitBytes     *int64
+	DownloadLimitBytes   *int64
+	UploadLimitUnit      *string
+	DownloadLimitUnit    *string
 }
 
 // TorznabIndexerCapability represents a search capability
@@ -341,7 +349,7 @@ func (s *TorznabIndexerStore) CreateWithIndexerID(ctx context.Context, name, bas
 // Get retrieves a Torznab indexer by ID using the view
 func (s *TorznabIndexerStore) Get(ctx context.Context, id int) (*TorznabIndexer, error) {
 	query := `
-		SELECT id, name, base_url, indexer_id, basic_username, basic_password_encrypted, backend, api_key_encrypted, enabled, priority, timeout_seconds, limit_default, limit_max, last_test_at, last_test_status, last_test_error, created_at, updated_at
+		SELECT id, name, base_url, indexer_id, basic_username, basic_password_encrypted, backend, api_key_encrypted, enabled, priority, timeout_seconds, upload_limit_bytes, download_limit_bytes, upload_limit_unit, download_limit_unit, last_test_at, last_test_status, last_test_error, created_at, updated_at
 		FROM torznab_indexers_view
 		WHERE id = ?
 	`
@@ -362,17 +370,19 @@ func (s *TorznabIndexerStore) Get(ctx context.Context, id int) (*TorznabIndexer,
 		&backendStr,
 		&indexer.APIKeyEncrypted,
 		&enabled,
-		&indexer.Priority,
-		&indexer.TimeoutSeconds,
-		&indexer.LimitDefault,
-		&indexer.LimitMax,
-		&indexer.LastTestAt,
-		&indexer.LastTestStatus,
-		&indexer.LastTestError,
-		&indexer.CreatedAt,
-		&indexer.UpdatedAt,
-	)
-	indexer.Enabled = SQLiteIntToBool(enabled)
+			&indexer.Priority,
+			&indexer.TimeoutSeconds,
+			&indexer.UploadLimitBytes,
+			&indexer.DownloadLimitBytes,
+			&indexer.UploadLimitUnit,
+			&indexer.DownloadLimitUnit,
+			&indexer.LastTestAt,
+			&indexer.LastTestStatus,
+			&indexer.LastTestError,
+			&indexer.CreatedAt,
+			&indexer.UpdatedAt,
+		)
+		indexer.Enabled = SQLiteIntToBool(enabled)
 	if indexerID.Valid {
 		indexer.IndexerID = indexerID.String
 	}
@@ -421,7 +431,7 @@ func (s *TorznabIndexerStore) Get(ctx context.Context, id int) (*TorznabIndexer,
 // List retrieves all Torznab indexers using the view, ordered by priority (descending) and name
 func (s *TorznabIndexerStore) List(ctx context.Context) ([]*TorznabIndexer, error) {
 	query := `
-		SELECT id, name, base_url, indexer_id, basic_username, basic_password_encrypted, backend, api_key_encrypted, enabled, priority, timeout_seconds, limit_default, limit_max, last_test_at, last_test_status, last_test_error, created_at, updated_at
+		SELECT id, name, base_url, indexer_id, basic_username, basic_password_encrypted, backend, api_key_encrypted, enabled, priority, timeout_seconds, upload_limit_bytes, download_limit_bytes, upload_limit_unit, download_limit_unit, last_test_at, last_test_status, last_test_error, created_at, updated_at
 		FROM torznab_indexers_view
 		ORDER BY priority DESC, name ASC
 	`
@@ -452,8 +462,10 @@ func (s *TorznabIndexerStore) List(ctx context.Context) ([]*TorznabIndexer, erro
 			&enabled,
 			&indexer.Priority,
 			&indexer.TimeoutSeconds,
-			&indexer.LimitDefault,
-			&indexer.LimitMax,
+			&indexer.UploadLimitBytes,
+			&indexer.DownloadLimitBytes,
+			&indexer.UploadLimitUnit,
+			&indexer.DownloadLimitUnit,
 			&indexer.LastTestAt,
 			&indexer.LastTestStatus,
 			&indexer.LastTestError,
@@ -512,7 +524,7 @@ func (s *TorznabIndexerStore) List(ctx context.Context) ([]*TorznabIndexer, erro
 // ListEnabled retrieves all enabled Torznab indexers using the view, ordered by priority
 func (s *TorznabIndexerStore) ListEnabled(ctx context.Context) ([]*TorznabIndexer, error) {
 	query := `
-		SELECT id, name, base_url, indexer_id, basic_username, basic_password_encrypted, backend, api_key_encrypted, enabled, priority, timeout_seconds, limit_default, limit_max, last_test_at, last_test_status, last_test_error, created_at, updated_at
+		SELECT id, name, base_url, indexer_id, basic_username, basic_password_encrypted, backend, api_key_encrypted, enabled, priority, timeout_seconds, upload_limit_bytes, download_limit_bytes, upload_limit_unit, download_limit_unit, last_test_at, last_test_status, last_test_error, created_at, updated_at
 		FROM torznab_indexers_view
 		WHERE enabled = 1
 		ORDER BY priority DESC, name ASC
@@ -544,8 +556,10 @@ func (s *TorznabIndexerStore) ListEnabled(ctx context.Context) ([]*TorznabIndexe
 			&enabled,
 			&indexer.Priority,
 			&indexer.TimeoutSeconds,
-			&indexer.LimitDefault,
-			&indexer.LimitMax,
+			&indexer.UploadLimitBytes,
+			&indexer.DownloadLimitBytes,
+			&indexer.UploadLimitUnit,
+			&indexer.DownloadLimitUnit,
 			&indexer.LastTestAt,
 			&indexer.LastTestStatus,
 			&indexer.LastTestError,
@@ -643,6 +657,19 @@ func (s *TorznabIndexerStore) Update(ctx context.Context, id int, params Torznab
 		return nil, ErrTorznabIndexerIDRequired
 	}
 
+	if params.UploadLimitBytes != nil {
+		existing.UploadLimitBytes = *params.UploadLimitBytes
+	}
+	if params.DownloadLimitBytes != nil {
+		existing.DownloadLimitBytes = *params.DownloadLimitBytes
+	}
+	if params.UploadLimitUnit != nil {
+		existing.UploadLimitUnit = *params.UploadLimitUnit
+	}
+	if params.DownloadLimitUnit != nil {
+		existing.DownloadLimitUnit = *params.DownloadLimitUnit
+	}
+
 	// Handle API key update
 	var encryptedAPIKey string
 	if params.APIKey != "" {
@@ -716,7 +743,7 @@ func (s *TorznabIndexerStore) Update(ctx context.Context, id int, params Torznab
 
 	query := `
 		UPDATE torznab_indexers
-		SET name_id = ?, base_url_id = ?, indexer_id_string_id = ?, basic_username_id = ?, basic_password_encrypted = ?, backend = ?, api_key_encrypted = ?, enabled = ?, priority = ?, timeout_seconds = ?
+		SET name_id = ?, base_url_id = ?, indexer_id_string_id = ?, basic_username_id = ?, basic_password_encrypted = ?, backend = ?, api_key_encrypted = ?, enabled = ?, priority = ?, timeout_seconds = ?, upload_limit_bytes = ?, download_limit_bytes = ?, upload_limit_unit = ?, download_limit_unit = ?
 		WHERE id = ?
 	`
 
@@ -731,6 +758,10 @@ func (s *TorznabIndexerStore) Update(ctx context.Context, id int, params Torznab
 		BoolToSQLite(existing.Enabled),
 		existing.Priority,
 		existing.TimeoutSeconds,
+		existing.UploadLimitBytes,
+		existing.DownloadLimitBytes,
+		existing.UploadLimitUnit,
+		existing.DownloadLimitUnit,
 		id,
 	)
 
@@ -789,6 +820,31 @@ func (s *TorznabIndexerStore) UpdateTestStatus(ctx context.Context, id int, stat
 		return ErrTorznabIndexerNotFound
 	}
 
+	return nil
+}
+
+// UpdateLimits sets upload/download limits for an indexer.
+func (s *TorznabIndexerStore) UpdateLimitUnits(ctx context.Context, id int, uploadUnit, downloadUnit string) error {
+	_, err := s.db.ExecContext(ctx, `
+		UPDATE torznab_indexers SET upload_limit_unit = ?, download_limit_unit = ? WHERE id = ?
+	`, uploadUnit, downloadUnit, id)
+	return err
+}
+
+func (s *TorznabIndexerStore) UpdateLimits(ctx context.Context, id int, uploadLimitBytes, downloadLimitBytes int64) error {
+	result, err := s.db.ExecContext(ctx, `
+		UPDATE torznab_indexers SET upload_limit_bytes = ?, download_limit_bytes = ? WHERE id = ?
+	`, uploadLimitBytes, downloadLimitBytes, id)
+	if err != nil {
+		return fmt.Errorf("failed to update indexer limits: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrTorznabIndexerNotFound
+	}
 	return nil
 }
 

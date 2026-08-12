@@ -45,6 +45,8 @@ type Instance struct {
 	UseReflinks bool `json:"useReflinks"`
 	// Fallback to regular mode when reflink/hardlink fails
 	FallbackToRegularMode bool `json:"fallbackToRegularMode"`
+	// Collect and record daily traffic statistics for this instance
+	DailyTrafficEnabled bool `json:"dailyTrafficEnabled"`
 }
 
 func (i Instance) MarshalJSON() ([]byte, error) {
@@ -66,6 +68,7 @@ func (i Instance) MarshalJSON() ([]byte, error) {
 		HardlinkDirPreset        string     `json:"hardlinkDirPreset"`
 		UseReflinks              bool       `json:"useReflinks"`
 		FallbackToRegularMode    bool       `json:"fallbackToRegularMode"`
+		DailyTrafficEnabled      bool       `json:"dailyTrafficEnabled"`
 		LastConnectedAt          *time.Time `json:"last_connected_at,omitempty"`
 		CreatedAt                time.Time  `json:"created_at"`
 		UpdatedAt                time.Time  `json:"updated_at"`
@@ -93,6 +96,7 @@ func (i Instance) MarshalJSON() ([]byte, error) {
 		HardlinkDirPreset:        i.HardlinkDirPreset,
 		UseReflinks:              i.UseReflinks,
 		FallbackToRegularMode:    i.FallbackToRegularMode,
+		DailyTrafficEnabled:      i.DailyTrafficEnabled,
 	})
 }
 
@@ -115,6 +119,7 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 		HardlinkDirPreset        *string    `json:"hardlinkDirPreset,omitempty"`
 		UseReflinks              *bool      `json:"useReflinks,omitempty"`
 		FallbackToRegularMode    *bool      `json:"fallbackToRegularMode,omitempty"`
+		DailyTrafficEnabled      *bool      `json:"dailyTrafficEnabled,omitempty"`
 		LastConnectedAt          *time.Time `json:"last_connected_at,omitempty"`
 		CreatedAt                time.Time  `json:"created_at"`
 		UpdatedAt                time.Time  `json:"updated_at"`
@@ -164,6 +169,13 @@ func (i *Instance) UnmarshalJSON(data []byte) error {
 	// Fallback to regular mode setting (defaults to false if not provided)
 	if temp.FallbackToRegularMode != nil {
 		i.FallbackToRegularMode = *temp.FallbackToRegularMode
+	}
+
+	// Daily traffic setting (defaults to true if not provided, matches the DB default)
+	if temp.DailyTrafficEnabled != nil {
+		i.DailyTrafficEnabled = *temp.DailyTrafficEnabled
+	} else {
+		i.DailyTrafficEnabled = true
 	}
 
 	// Handle password - don't overwrite if redacted
@@ -447,7 +459,7 @@ func (s *InstanceStore) Create(ctx context.Context, name, rawHost, username, pas
 
 func (s *InstanceStore) Get(ctx context.Context, id int) (*Instance, error) {
 	query := `
-		SELECT id, name, host, username, password_encrypted, api_key_encrypted, basic_username, basic_password_encrypted, tls_skip_verify, sort_order, is_active, has_local_filesystem_access, use_hardlinks, hardlink_base_dir, hardlink_dir_preset, use_reflinks, fallback_to_regular_mode
+		SELECT id, name, host, username, password_encrypted, api_key_encrypted, basic_username, basic_password_encrypted, tls_skip_verify, sort_order, is_active, has_local_filesystem_access, use_hardlinks, hardlink_base_dir, hardlink_dir_preset, use_reflinks, fallback_to_regular_mode, daily_traffic_enabled
 		FROM instances_view
 		WHERE id = ?
 	`
@@ -463,6 +475,7 @@ func (s *InstanceStore) Get(ctx context.Context, id int) (*Instance, error) {
 	var hardlinkBaseDir, hardlinkDirPreset string
 	var useReflinks int
 	var fallbackToRegularMode int
+	var dailyTrafficEnabled int
 
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
 		&instanceID,
@@ -482,6 +495,7 @@ func (s *InstanceStore) Get(ctx context.Context, id int) (*Instance, error) {
 		&hardlinkDirPreset,
 		&useReflinks,
 		&fallbackToRegularMode,
+		&dailyTrafficEnabled,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -506,6 +520,7 @@ func (s *InstanceStore) Get(ctx context.Context, id int) (*Instance, error) {
 		HardlinkDirPreset:        hardlinkDirPreset,
 		UseReflinks:              SQLiteIntToBool(useReflinks),
 		FallbackToRegularMode:    SQLiteIntToBool(fallbackToRegularMode),
+		DailyTrafficEnabled:      SQLiteIntToBool(dailyTrafficEnabled),
 	}
 
 	if basicUsername.Valid {
@@ -525,7 +540,7 @@ func (s *InstanceStore) List(ctx context.Context) ([]*Instance, error) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, host, username, password_encrypted, api_key_encrypted, basic_username, basic_password_encrypted, tls_skip_verify, sort_order, is_active, has_local_filesystem_access, use_hardlinks, hardlink_base_dir, hardlink_dir_preset, use_reflinks, fallback_to_regular_mode
+		SELECT id, name, host, username, password_encrypted, api_key_encrypted, basic_username, basic_password_encrypted, tls_skip_verify, sort_order, is_active, has_local_filesystem_access, use_hardlinks, hardlink_base_dir, hardlink_dir_preset, use_reflinks, fallback_to_regular_mode, daily_traffic_enabled
 		FROM instances_view
 		ORDER BY sort_order ASC, %s ASC, id ASC
 	`, orderByName)
@@ -549,6 +564,7 @@ func (s *InstanceStore) List(ctx context.Context) ([]*Instance, error) {
 		var hardlinkBaseDir, hardlinkDirPreset string
 		var useReflinks int
 		var fallbackToRegularMode int
+		var dailyTrafficEnabled int
 
 		err := rows.Scan(
 			&id,
@@ -568,6 +584,7 @@ func (s *InstanceStore) List(ctx context.Context) ([]*Instance, error) {
 			&hardlinkDirPreset,
 			&useReflinks,
 			&fallbackToRegularMode,
+			&dailyTrafficEnabled,
 		)
 		if err != nil {
 			return nil, err
@@ -589,6 +606,7 @@ func (s *InstanceStore) List(ctx context.Context) ([]*Instance, error) {
 			HardlinkDirPreset:        hardlinkDirPreset,
 			UseReflinks:              SQLiteIntToBool(useReflinks),
 			FallbackToRegularMode:    SQLiteIntToBool(fallbackToRegularMode),
+			DailyTrafficEnabled:      SQLiteIntToBool(dailyTrafficEnabled),
 		}
 
 		if basicUsername.Valid {
@@ -617,6 +635,7 @@ type InstanceUpdateParams struct {
 	HardlinkDirPreset        *string
 	UseReflinks              *bool
 	FallbackToRegularMode    *bool
+	DailyTrafficEnabled      *bool
 }
 
 func (s *InstanceStore) Update(ctx context.Context, id int, name, rawHost, username, password string, basicUsername, basicPassword *string, params *InstanceUpdateParams, apiKey ...*string) (*Instance, error) {
@@ -763,6 +782,11 @@ func (s *InstanceStore) Update(ctx context.Context, id int, name, rawHost, usern
 		if params.FallbackToRegularMode != nil {
 			query += ", fallback_to_regular_mode = ?"
 			args = append(args, BoolToSQLite(*params.FallbackToRegularMode))
+		}
+
+		if params.DailyTrafficEnabled != nil {
+			query += ", daily_traffic_enabled = ?"
+			args = append(args, BoolToSQLite(*params.DailyTrafficEnabled))
 		}
 	}
 

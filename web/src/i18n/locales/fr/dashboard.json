@@ -51,6 +51,7 @@
     "freeSpace": "Espace Libre",
     "showMore": "Afficher plus",
     "showLess": "Afficher moins",
+    "openInstance": "Ouvrir l'instance dans un nouvel onglet",
     "uptime": "Disponibilité",
     "peerConnections": "Connexions Pairs",
     "queuedIOJobs": "Tâches E/S en file",
@@ -82,7 +83,9 @@
       "enable": "Activer",
       "disable": "Désactiver",
       "cancel": "Annuler"
-    }
+    },
+    "todayDownloaded": "Téléchargé aujourd'hui",
+    "todayUploaded": "Envoyé aujourd'hui"
   },
   "mobileOverview": {
     "title": "Aperçu",
@@ -91,7 +94,9 @@
     "torrents": "Torrents",
     "activeCount": "{{count}} actifs",
     "download": "Téléchargement",
-    "upload": "Envoi"
+    "upload": "Envoi",
+    "todayDownload": "Téléchargé aujourd'hui",
+    "todayUpload": "Envoyé aujourd'hui"
   },
   "globalStats": {
     "instances": "Instances",
@@ -101,7 +106,10 @@
     "totalDownload": "Téléchargement Total",
     "downloadingActive": "{{count}} actifs - {{size}} restants",
     "totalUpload": "Envoi Total",
-    "seedingActive": "{{count}} actifs - {{size}} en partage"
+    "seedingActive": "{{count}} actifs - {{size}} en partage",
+    "todayTraffic": "Trafic du jour",
+    "todayDownload": "Téléchargement",
+    "todayUpload": "Envoi"
   },
   "serverStats": {
     "title": "Statistiques du Serveur",
@@ -222,5 +230,23 @@
     "allDisabled": "Toutes les instances sont désactivées",
     "enableInstance": "Activez une instance depuis Paramètres → Instances pour voir les statistiques du tableau de bord.",
     "manageInstances": "Gérer les instances"
+  },
+  "dailyTraffic": {
+    "loading": "Chargement du trafic...",
+    "empty": "Aucun trafic enregistré pour l'instant.",
+    "date": "Date",
+    "downloaded": "Téléchargé",
+    "uploaded": "Envoyé",
+    "download": "Téléchargement",
+    "upload": "Envoi",
+    "peakDl": "Pic DL",
+    "peakUl": "Pic UL",
+    "baseline": "Référence",
+    "baselineAt": "Référence à",
+    "source": "Source",
+    "sourceSession": "Session",
+    "sourceAlltime": "Historique",
+    "sourceRestart": "Redémarrage",
+    "sourceReinstall": "Réinstallation"
   }
 }

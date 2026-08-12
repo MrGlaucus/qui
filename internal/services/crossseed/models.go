@@ -6,6 +6,7 @@ package crossseed
 import (
 	"maps"
 	"sync"
+	"time"
 
 	qbt "github.com/autobrr/go-qbittorrent"
 	"github.com/moistari/rls"
@@ -26,6 +27,8 @@ const (
 type CrossSeedRequest struct {
 	// TorrentData is the base64-encoded torrent file
 	TorrentData string `json:"torrent_data"`
+	// PublishDate is the original publish date from the tracker (Torznab/RSS)
+	PublishDate time.Time `json:"-"`
 	// TargetInstanceIDs specifies which instances to cross-seed to
 	// If empty, will attempt to cross-seed to all instances
 	TargetInstanceIDs []int `json:"target_instance_ids,omitempty"`
@@ -41,6 +44,10 @@ type CrossSeedRequest struct {
 	InheritSourceTags bool `json:"inherit_source_tags,omitempty"`
 	// IndexerName specifies the name of the indexer for this torrent (used with useCategoryFromIndexer setting)
 	IndexerName string `json:"indexer_name,omitempty"`
+	// UploadLimitBytes limits upload speed for the added torrent (0 = unlimited, bytes per second)
+	UploadLimitBytes int64 `json:"-"`
+	// DownloadLimitBytes limits download speed for the added torrent (0 = unlimited, bytes per second)
+	DownloadLimitBytes int64 `json:"-"`
 	// FindIndividualEpisodes enables episode-aware matching for season packs. When true,
 	// a season pack source can match individual episode candidates (useful for finding
 	// episodes to seed within a pack). However, applying a season pack cross-seed is
@@ -307,6 +314,19 @@ type TorrentSearchResult struct {
 	SearchSourceTitles []string `json:"-"`
 }
 
+// PublishDateParsed parses the PublishDate string into time.Time.
+// Returns zero time if parsing fails.
+func (r *TorrentSearchResult) PublishDateParsed() time.Time {
+	if r == nil || r.PublishDate == "" {
+		return time.Time{}
+	}
+	t, err := time.Parse(time.RFC3339, r.PublishDate)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
+}
+
 // TorrentSearchResponse bundles the seeded torrent information with potential cross-seed matches.
 type TorrentSearchResponse struct {
 	SourceTorrent TorrentInfo                  `json:"source_torrent"`
@@ -531,6 +551,17 @@ type SeasonPackApplyRequest struct {
 	// diversion) rather than the webhook. Gated by SeasonPackAutomationEnabled
 	// instead of SeasonPackEnabled. Not settable via JSON by design.
 	autonomous bool
+}
+
+// CrossSeedLogEntryView is the API view for a cross-seed log entry with instance name.
+type CrossSeedLogEntryView struct {
+	InfoHash      string  `json:"infoHash"`
+	InstanceID    int     `json:"instanceId"`
+	InstanceName  string  `json:"instanceName"`
+	TorrentName   string  `json:"torrentName"`
+	SourceIndexer string  `json:"sourceIndexer"`
+	PublishDate   *string `json:"publishDate,omitempty"`
+	CreatedAt     string  `json:"createdAt"`
 }
 
 // SeasonPackApplyResponse is the result of a season-pack apply attempt.

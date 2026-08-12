@@ -39,6 +39,7 @@
     "createTorrent": "Vytvořit torrent",
     "torrentCreationTasks": "Úlohy vytváření torrentů",
     "instanceSettings": "Nastavení instance",
+    "openInstance": "Otevřít instanci v nové kartě",
     "addToInstance": "Přidat do instance",
     "createForInstance": "Vytvořit pro instanci",
     "tasksForInstance": "Úlohy pro instanci",

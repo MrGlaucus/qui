@@ -58,7 +58,7 @@ import { withBasePath } from "@/lib/base-url"
 import { canRegisterProtocolHandler, getMagnetHandlerRegistrationGuidance, registerMagnetHandler } from "@/lib/protocol-handler"
 import { copyTextToClipboard, formatBytes, formatDuration } from "@/lib/utils"
 import type { SettingsSearch } from "@/routes/_authenticated/settings"
-import type { ApplicationInfo, Instance, TorznabSearchCacheStats, User } from "@/types"
+import type { ApplicationInfo, Instance, InstanceFormData, TorznabSearchCacheStats, User } from "@/types"
 import { useForm } from "@tanstack/react-form"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Bell, Globe, Copy, Database, ExternalLink, FileText, Info, Key, Layers, Link2, Loader2, Palette, Plus, RefreshCw, Server, Share2, Shield, Terminal, Trash2 } from "lucide-react"
@@ -69,7 +69,7 @@ import { toast } from "sonner"
 
 type SettingsTab = NonNullable<SettingsSearch["tab"]>
 
-const TORZNAB_CACHE_MIN_TTL_MINUTES = 1440
+const TORZNAB_CACHE_MIN_TTL_MINUTES = 1
 
 function LanguageSelector() {
   const { i18n } = useTranslation("settings")
@@ -521,6 +521,8 @@ function InstancesManager({ search, onSearchChange }: InstancesManagerProps) {
   const [titleBarSpeedsEnabled, setTitleBarSpeedsEnabled] = usePersistedTitleBarSpeeds(false)
   const isDialogOpen = search.tab === "instances" && search.modal === "add-instance"
   const [editingInstanceId, setEditingInstanceId] = useState<number | null>(null)
+  const [cloneData, setCloneData] = useState<InstanceFormData | undefined>(undefined)
+  const [cloneSourceId, setCloneSourceId] = useState<number | null>(null)
   const editingInstance = instances?.find(instance => instance.id === editingInstanceId)
 
   // Close edit dialog if instance was deleted
@@ -531,10 +533,36 @@ function InstancesManager({ search, onSearchChange }: InstancesManagerProps) {
   }, [editingInstanceId, editingInstance, isLoading])
 
   const handleOpenAddDialog = () => {
+    setCloneData(undefined)
+    onSearchChange({ ...search, tab: "instances", modal: "add-instance" })
+  }
+
+  const handleCloneInstance = (instance: Instance) => {
+    setCloneSourceId(instance.id)
+    setCloneData({
+      name: instance.name,
+      host: instance.host,
+      username: instance.username ?? "",
+      password: "",
+      apiKey: instance.hasApiKey ? "redacted" : "",
+      basicUsername: instance.basicUsername ?? "",
+      basicPassword: "",
+      tlsSkipVerify: instance.tlsSkipVerify,
+      hasLocalFilesystemAccess: instance.hasLocalFilesystemAccess,
+      useHardlinks: instance.useHardlinks,
+      hardlinkBaseDir: instance.hardlinkBaseDir,
+      hardlinkDirPreset: instance.hardlinkDirPreset,
+      useReflinks: instance.useReflinks,
+      fallbackToRegularMode: instance.fallbackToRegularMode,
+      reannounceSettings: instance.reannounceSettings,
+      cloneInstanceId: instance.id,
+    })
     onSearchChange({ ...search, tab: "instances", modal: "add-instance" })
   }
 
   const handleCloseDialog = () => {
+    setCloneData(undefined)
+    setCloneSourceId(null)
     onSearchChange({ tab: "instances" })
   }
 
@@ -589,6 +617,7 @@ function InstancesManager({ search, onSearchChange }: InstancesManagerProps) {
                     key={instance.id}
                     instance={instance}
                     onEdit={() => handleEditInstance(instance)}
+                    onClone={() => handleCloneInstance(instance)}
                     onMoveUp={index > 0 ? () => handleReorder(instance.id, -1) : undefined}
                     onMoveDown={index < instances.length - 1 ? () => handleReorder(instance.id, 1) : undefined}
                     disableMoveUp={isReordering}
@@ -631,14 +660,22 @@ function InstancesManager({ search, onSearchChange }: InstancesManagerProps) {
       <Dialog open={isDialogOpen} onOpenChange={(open) => open ? handleOpenAddDialog() : handleCloseDialog()}>
         <DialogContent className="sm:max-w-[425px] max-h-[90dvh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle>{t("instances.addDialog.title")}</DialogTitle>
+            <DialogTitle>{cloneData ? t("instances.addDialog.cloneTitle") : t("instances.addDialog.title")}</DialogTitle>
             <DialogDescription>
-              {t("instances.addDialog.description")}
+              {cloneData ? t("instances.addDialog.cloneDescription") : t("instances.addDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0">
             <InstanceForm
-              onSuccess={handleCloseDialog}
+              defaultValues={cloneData}
+              onSuccess={(newInstanceId) => {
+                if (cloneSourceId !== null && newInstanceId !== undefined) {
+                  api.copyAutomationsToInstance(cloneSourceId, newInstanceId).catch(() => {
+                    toast.error(t("instances.toasts.copyAutomationsFailed"))
+                  })
+                }
+                handleCloseDialog()
+              }}
               onCancel={handleCloseDialog}
               formId={INSTANCE_FORM_ID}
             />

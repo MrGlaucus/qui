@@ -562,6 +562,10 @@ func (app *Application) runServer() {
 	}
 	defer clientPool.Close()
 
+	// Daily traffic collection (server-local timezone day boundaries)
+	dailyTrafficStore := models.NewInstanceDailyTrafficStore(db)
+	clientPool.SetDailyTrafficRecorder(qbittorrent.NewDailyTrafficRecorder(dailyTrafficStore, 7))
+
 	// Initialize managers
 	syncManager := qbittorrent.NewSyncManager(clientPool, trackerCustomizationStore)
 
@@ -625,6 +629,9 @@ func (app *Application) runServer() {
 	defer notificationCancel()
 	if notificationService != nil {
 		notificationService.Start(notificationCtx)
+		notificationService.StartDailyTrafficReport(notificationCtx, dailyTrafficStore)
+		notificationService.StartHourlyTrafficReport(notificationCtx, dailyTrafficStore)
+		notificationService.StartBaselineReport(notificationCtx, dailyTrafficStore)
 	}
 
 	// activityHub fans qui-owned server events (reannounce, scans, cross-seed,
@@ -645,6 +652,7 @@ func (app *Application) runServer() {
 	}
 	instanceCrossSeedCompletionStore := models.NewInstanceCrossSeedCompletionStore(db)
 	crossSeedBlocklistStore := models.NewCrossSeedBlocklistStore(db)
+	crossSeedLogStore := models.NewCrossSeedLogStore(db)
 	seasonPackRunStore := models.NewSeasonPackRunStore(db)
 	crossSeedService := crossseed.NewService(
 		instanceStore,
@@ -652,6 +660,8 @@ func (app *Application) runServer() {
 		filesManagerService,
 		crossSeedStore,
 		crossSeedBlocklistStore,
+		crossSeedLogStore,
+		torznabIndexerStore,
 		jackettService,
 		arrService,
 		externalProgramStore,
@@ -667,7 +677,7 @@ func (app *Application) runServer() {
 	crossSeedService.SetActivityPublisher(activityHub)
 	reannounceService := reannounce.NewService(reannounce.DefaultConfig(), instanceStore, instanceReannounceStore, reannounceSettingsCache, clientPool, syncManager)
 	reannounceService.SetActivityPublisher(activityHub)
-	automationService := automations.NewService(automations.DefaultConfig(), instanceStore, automationStore, automationActivityStore, trackerCustomizationStore, syncManager, notificationService, externalProgramService, crossSeedService)
+	automationService := automations.NewService(automations.DefaultConfig(), instanceStore, automationStore, automationActivityStore, trackerCustomizationStore, syncManager, notificationService, externalProgramService, crossSeedService, crossSeedLogStore)
 	automationService.SetActivityPublisher(activityHub)
 
 	orphanScanStore := models.NewOrphanScanStore(db)
@@ -791,6 +801,8 @@ func (app *Application) runServer() {
 		BackupService:                    backupService,
 		FilesManager:                     filesManagerService,
 		CrossSeedService:                 crossSeedService,
+		CrossSeedLogStore:                crossSeedLogStore,
+		DailyTrafficStore:                dailyTrafficStore,
 		JackettService:                   jackettService,
 		TorznabIndexerStore:              torznabIndexerStore,
 		AutomationStore:                  automationStore,

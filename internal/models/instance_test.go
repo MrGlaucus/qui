@@ -171,6 +171,7 @@ func TestInstanceStoreWithHost(t *testing.T) {
 			hardlink_dir_preset TEXT NOT NULL DEFAULT '',
 			use_reflinks BOOLEAN NOT NULL DEFAULT 0,
 			fallback_to_regular_mode BOOLEAN NOT NULL DEFAULT 0,
+			daily_traffic_enabled BOOLEAN NOT NULL DEFAULT 1,
 			last_connected_at TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -198,7 +199,8 @@ func TestInstanceStoreWithHost(t *testing.T) {
 			i.hardlink_base_dir,
 			i.hardlink_dir_preset,
 			i.use_reflinks,
-			i.fallback_to_regular_mode
+			i.fallback_to_regular_mode,
+			i.daily_traffic_enabled
 		FROM instances i
 		LEFT JOIN string_pool sp_name ON i.name_id = sp_name.id
 		LEFT JOIN string_pool sp_host ON i.host_id = sp_host.id
@@ -293,6 +295,7 @@ func TestInstanceStoreWithEmptyUsername(t *testing.T) {
 			hardlink_dir_preset TEXT NOT NULL DEFAULT '',
 			use_reflinks BOOLEAN NOT NULL DEFAULT 0,
 			fallback_to_regular_mode BOOLEAN NOT NULL DEFAULT 0,
+			daily_traffic_enabled BOOLEAN NOT NULL DEFAULT 1,
 			last_connected_at TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -320,7 +323,8 @@ func TestInstanceStoreWithEmptyUsername(t *testing.T) {
 			i.hardlink_base_dir,
 			i.hardlink_dir_preset,
 			i.use_reflinks,
-			i.fallback_to_regular_mode
+			i.fallback_to_regular_mode,
+			i.daily_traffic_enabled
 		FROM instances i
 		LEFT JOIN string_pool sp_name ON i.name_id = sp_name.id
 		LEFT JOIN string_pool sp_host ON i.host_id = sp_host.id
@@ -401,6 +405,7 @@ func TestInstanceStoreEmptyUsernameSelfHealing(t *testing.T) {
 			hardlink_dir_preset TEXT NOT NULL DEFAULT '',
 			use_reflinks BOOLEAN NOT NULL DEFAULT 0,
 			fallback_to_regular_mode BOOLEAN NOT NULL DEFAULT 0,
+			daily_traffic_enabled BOOLEAN NOT NULL DEFAULT 1,
 			FOREIGN KEY (name_id) REFERENCES string_pool(id),
 			FOREIGN KEY (host_id) REFERENCES string_pool(id),
 			FOREIGN KEY (username_id) REFERENCES string_pool(id),
@@ -425,7 +430,8 @@ func TestInstanceStoreEmptyUsernameSelfHealing(t *testing.T) {
 			i.hardlink_base_dir,
 			i.hardlink_dir_preset,
 			i.use_reflinks,
-			i.fallback_to_regular_mode
+			i.fallback_to_regular_mode,
+			i.daily_traffic_enabled
 		FROM instances i
 		LEFT JOIN string_pool sp_name ON i.name_id = sp_name.id
 		LEFT JOIN string_pool sp_host ON i.host_id = sp_host.id
@@ -498,6 +504,7 @@ func TestInstanceStoreUpdateEmptyUsernameSelfHealing(t *testing.T) {
 			hardlink_dir_preset TEXT NOT NULL DEFAULT '',
 			use_reflinks BOOLEAN NOT NULL DEFAULT 0,
 			fallback_to_regular_mode BOOLEAN NOT NULL DEFAULT 0,
+			daily_traffic_enabled BOOLEAN NOT NULL DEFAULT 1,
 			FOREIGN KEY (name_id) REFERENCES string_pool(id),
 			FOREIGN KEY (host_id) REFERENCES string_pool(id),
 			FOREIGN KEY (username_id) REFERENCES string_pool(id),
@@ -522,7 +529,8 @@ func TestInstanceStoreUpdateEmptyUsernameSelfHealing(t *testing.T) {
 			i.hardlink_base_dir,
 			i.hardlink_dir_preset,
 			i.use_reflinks,
-			i.fallback_to_regular_mode
+			i.fallback_to_regular_mode,
+			i.daily_traffic_enabled
 		FROM instances i
 		LEFT JOIN string_pool sp_name ON i.name_id = sp_name.id
 		LEFT JOIN string_pool sp_host ON i.host_id = sp_host.id
@@ -595,6 +603,7 @@ func TestInstanceStoreUpdateOrder(t *testing.T) {
 			hardlink_dir_preset TEXT NOT NULL DEFAULT '',
 			use_reflinks BOOLEAN NOT NULL DEFAULT 0,
 			fallback_to_regular_mode BOOLEAN NOT NULL DEFAULT 0,
+			daily_traffic_enabled BOOLEAN NOT NULL DEFAULT 1,
 			last_connected_at TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -622,7 +631,8 @@ func TestInstanceStoreUpdateOrder(t *testing.T) {
 			i.hardlink_base_dir,
 			i.hardlink_dir_preset,
 			i.use_reflinks,
-			i.fallback_to_regular_mode
+			i.fallback_to_regular_mode,
+			i.daily_traffic_enabled
 		FROM instances i
 		LEFT JOIN string_pool sp_name ON i.name_id = sp_name.id
 		LEFT JOIN string_pool sp_host ON i.host_id = sp_host.id
@@ -702,6 +712,7 @@ func TestInstanceStoreAPIKeyAuth(t *testing.T) {
 			hardlink_dir_preset TEXT NOT NULL DEFAULT '',
 			use_reflinks BOOLEAN NOT NULL DEFAULT 0,
 			fallback_to_regular_mode BOOLEAN NOT NULL DEFAULT 0,
+			daily_traffic_enabled BOOLEAN NOT NULL DEFAULT 1,
 			FOREIGN KEY (name_id) REFERENCES string_pool(id),
 			FOREIGN KEY (host_id) REFERENCES string_pool(id),
 			FOREIGN KEY (username_id) REFERENCES string_pool(id),
@@ -726,7 +737,8 @@ func TestInstanceStoreAPIKeyAuth(t *testing.T) {
 			i.hardlink_base_dir,
 			i.hardlink_dir_preset,
 			i.use_reflinks,
-			i.fallback_to_regular_mode
+			i.fallback_to_regular_mode,
+			i.daily_traffic_enabled
 		FROM instances i
 		LEFT JOIN string_pool sp_name ON i.name_id = sp_name.id
 		LEFT JOIN string_pool sp_host ON i.host_id = sp_host.id
@@ -836,6 +848,7 @@ func newInstanceStoreWithAPIKeySchema(t *testing.T) *InstanceStore {
 			hardlink_dir_preset TEXT NOT NULL DEFAULT '',
 			use_reflinks BOOLEAN NOT NULL DEFAULT 0,
 			fallback_to_regular_mode BOOLEAN NOT NULL DEFAULT 0,
+			daily_traffic_enabled BOOLEAN NOT NULL DEFAULT 1,
 			FOREIGN KEY (name_id) REFERENCES string_pool(id),
 			FOREIGN KEY (host_id) REFERENCES string_pool(id),
 			FOREIGN KEY (username_id) REFERENCES string_pool(id),
@@ -860,7 +873,8 @@ func newInstanceStoreWithAPIKeySchema(t *testing.T) *InstanceStore {
 			i.hardlink_base_dir,
 			i.hardlink_dir_preset,
 			i.use_reflinks,
-			i.fallback_to_regular_mode
+			i.fallback_to_regular_mode,
+			i.daily_traffic_enabled
 		FROM instances i
 		LEFT JOIN string_pool sp_name ON i.name_id = sp_name.id
 		LEFT JOIN string_pool sp_host ON i.host_id = sp_host.id

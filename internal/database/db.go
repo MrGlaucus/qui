@@ -190,6 +190,18 @@ var sqliteMigrationFilenameRenames = []migrationFilenameRename{
 		from: "075_add_season_pack_category.sql",
 		to:   "076_add_season_pack_category.sql",
 	},
+	{
+		from: "080_add_cross_seed_log.sql",
+		to:   "090_add_cross_seed_log.sql",
+	},
+	{
+		from: "081_add_cross_seed_log_columns.sql",
+		to:   "091_add_cross_seed_log_columns.sql",
+	},
+	{
+		from: "082_add_cross_seed_log_indexer.sql",
+		to:   "092_add_cross_seed_log_indexer.sql",
+	},
 }
 
 var postgresMigrationFilenameRenames = []migrationFilenameRename{
@@ -248,6 +260,18 @@ var postgresMigrationFilenameRenames = []migrationFilenameRename{
 	{
 		from: "076_add_season_pack_category.sql",
 		to:   "077_add_season_pack_category.sql",
+	},
+	{
+		from: "082_add_cross_seed_log.sql",
+		to:   "090_add_cross_seed_log.sql",
+	},
+	{
+		from: "083_add_cross_seed_log_columns.sql",
+		to:   "091_add_cross_seed_log_columns.sql",
+	},
+	{
+		from: "084_add_cross_seed_log_indexer.sql",
+		to:   "092_add_cross_seed_log_indexer.sql",
 	},
 }
 

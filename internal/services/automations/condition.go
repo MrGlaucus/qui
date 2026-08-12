@@ -81,6 +81,7 @@ const (
 	FieldAddedOnAge      = models.FieldAddedOnAge
 	FieldCompletionOnAge = models.FieldCompletionOnAge
 	FieldLastActivityAge = models.FieldLastActivityAge
+	FieldPublishedOnAge  = models.FieldPublishedOnAge
 
 	// Numeric fields (float64)
 	FieldRatio            = models.FieldRatio

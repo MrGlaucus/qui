@@ -300,12 +300,12 @@ export const GeneralTabHorizontal = memo(function GeneralTabHorizontal({
             <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{t("generalTab.network")}</h4>
             <StatRow
               label="DL"
-              value={`${formatSpeedWithUnit(properties.dl_speed || 0, speedUnit)} - (${formatSpeedWithUnit(properties.dl_speed_avg || 0, speedUnit)} avg.)`}
+              value={`${formatSpeedWithUnit(properties.dl_speed || 0, speedUnit)} - (${formatSpeedWithUnit(properties.dl_speed_avg || 0, speedUnit)} avg.) - (${formatSpeedWithUnit(properties.peak_dl_speed ?? 0, speedUnit)} peak)`}
               highlight="green"
             />
             <StatRow
               label="UL"
-              value={`${formatSpeedWithUnit(properties.up_speed || 0, speedUnit)} - (${formatSpeedWithUnit(properties.up_speed_avg || 0, speedUnit)} avg.)`}
+              value={`${formatSpeedWithUnit(properties.up_speed || 0, speedUnit)} - (${formatSpeedWithUnit(properties.up_speed_avg || 0, speedUnit)} avg.) - (${formatSpeedWithUnit(properties.peak_up_speed ?? 0, speedUnit)} peak)`}
               highlight="blue"
             />
             <StatRow
@@ -335,6 +335,9 @@ export const GeneralTabHorizontal = memo(function GeneralTabHorizontal({
             <StatRow label={t("generalTab.timeActive")} value={formatDuration(properties.time_elapsed || 0)} />
             <StatRow label={t("generalTab.seedingTime")} value={formatDuration(properties.seeding_time || 0)} />
             <StatRow label={t("generalTab.addedOn")} value={formatTimestamp(properties.addition_date, true)} />
+            {properties.publish_date && (
+              <StatRow label={t("generalTab.publishedOn")} value={formatTimestamp(properties.publish_date, true)} />
+            )}
             {properties.completion_date > 0 && (
               <StatRow label={t("generalTab.completedOn")} value={formatTimestamp(properties.completion_date, true)} />
             )}
@@ -346,7 +349,7 @@ export const GeneralTabHorizontal = memo(function GeneralTabHorizontal({
           {/* Limits */}
           <div className="space-y-1">
             <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{t("generalTab.limits")}</h4>
-            <StatRow label={t("generalTab.ratioLimit")} value={torrent.max_ratio > 0 ? torrent.max_ratio.toFixed(2) : "∞"} />
+            <StatRow label={t("generalTab.ratioLimit")} value={torrent.max_ratio > 0 ? (torrent.max_ratio ?? 0).toFixed(2) : "∞"} />
             <StatRow label={t("generalTab.downLimit")} value={downloadLimitLabel} />
             <StatRow label={t("generalTab.upLimit")} value={uploadLimitLabel} />
             <StatRow
@@ -370,7 +373,7 @@ export const GeneralTabHorizontal = memo(function GeneralTabHorizontal({
               {t("generalTab.pieces")}
             </h4>
             <span className="text-xs text-muted-foreground tabular-nums">
-              {piecesStats.total > 0? `${piecesStats.have} / ${piecesStats.total} (${piecesStats.progress.toFixed(1)}%)`: "—"}
+              {piecesStats.total > 0? `${piecesStats.have} / ${piecesStats.total} (${(piecesStats.progress ?? 0).toFixed(1)}%)`: "—"}
             </span>
           </div>
           <PieceBar

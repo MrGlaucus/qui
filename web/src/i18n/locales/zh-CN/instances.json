@@ -11,10 +11,12 @@
       "enableInstance": "启用实例",
       "moveUp": "上移",
       "moveDown": "下移",
-      "instanceSettings": "实例设置"
+      "instanceSettings": "实例设置",
+      "openInstance": "在新标签页中打开实例"
     },
     "actions": {
       "edit": "编辑",
+      "clone": "复制",
       "testConnection": "测试连接",
       "delete": "删除"
     },
@@ -75,7 +77,9 @@
       "basicAuthUsername": "基本认证用户名",
       "basicAuthPassword": "基本认证密码",
       "authType": "认证方式",
-      "authTypeDescription": "选择 qui 连接 qBittorrent 时使用的认证方式。"
+      "authTypeDescription": "选择 qui 连接 qBittorrent 时使用的认证方式。",
+      "dailyTrafficEnabled": "每日流量统计",
+      "dailyTrafficEnabledDescription": "记录此实例每日的上传/下载总量与峰值速度。关闭后将停止收集新的数据。"
     },
     "placeholders": {
       "instanceName": "例如：主服务器 或 家用 qBittorrent",
@@ -83,6 +87,7 @@
       "username": "qBittorrent 用户名（通常是 admin）",
       "passwordNew": "qBittorrent 密码",
       "passwordExisting": "留空则保持当前密码",
+      "passwordClone": "留空则复制源实例密码",
       "basicAuthUsername": "基本认证用户名",
       "basicAuthPassword": "输入基本认证密码（必填）",
       "apiKeyNew": "qBittorrent API 密钥",
@@ -239,7 +244,9 @@
         "username": "用户名",
         "password": "密码",
         "qbittorrentAuth": "qBittorrent 认证",
-        "qbittorrentAuthDescription": "选择 qui 连接 qBittorrent 时使用的认证方式。"
+        "qbittorrentAuthDescription": "选择 qui 连接 qBittorrent 时使用的认证方式。",
+        "dailyTrafficEnabled": "每日流量统计",
+        "dailyTrafficEnabledDescription": "记录此实例每日的上传/下载总量与峰值速度。关闭后将停止收集新的数据。"
       },
       "placeholders": {
         "instanceName": "例如：主服务器",
@@ -739,6 +746,14 @@
       "runDryRunNow": "立即模拟运行",
       "duplicate": "复制",
       "copyTo": "复制到...",
+      "copyOverwriteTo": "覆盖到其它实例",
+      "copyOverwriteDialogTitle": "覆盖到其它实例",
+      "copyOverwriteDialogDescription": "选择目标实例。同名规则将被覆盖，新规则将被创建。",
+      "copyOverwriteCancel": "取消",
+      "copyOverwriteConfirm": "确认覆盖（{{count}} 个实例）",
+      "copyOverwriting": "覆盖中…",
+      "selectAll": "全选",
+      "deselectAll": "全不选",
       "exportJSON": "导出 JSON",
       "dragToReorder": "拖拽以重新排序工作流",
       "actions": {
@@ -832,6 +847,10 @@
         "copyFailed": "复制到剪贴板失败",
         "createdWorkflow": "已创建\"{{name}}\"",
         "copiedWorkflow": "已将\"{{name}}\"复制到 {{instance}}",
+        "copyOverwriteSuccess": "已将规则覆盖到 {{instance}}（新建 {{created}} 条，更新 {{updated}} 条）",
+        "copyOverwriteFailed": "覆盖规则失败",
+        "copyOverwriteSuccessAll": "已覆盖 {{count}} 个实例（新建 {{created}} 条，更新 {{updated}} 条）",
+        "copyOverwritePartialFailed": "部分覆盖失败（新建 {{created}} 条，更新 {{updated}} 条，失败 {{failed}} 个实例）",
         "importedWorkflow": "已导入\"{{name}}\"",
         "createFailed": "创建工作流失败",
         "reorderFailed": "重新排序工作流失败",

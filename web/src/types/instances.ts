@@ -20,6 +20,8 @@ export interface Instance {
   useReflinks: boolean
   // Fallback to regular mode when reflink/hardlink fails
   fallbackToRegularMode: boolean
+  // Collect and record daily traffic statistics for this instance
+  dailyTrafficEnabled: boolean
   sortOrder: number
   isActive: boolean
   reannounceSettings: InstanceReannounceSettings
@@ -43,7 +45,10 @@ export interface InstanceFormData {
   useReflinks?: boolean
   // Fallback to regular mode when reflink/hardlink fails
   fallbackToRegularMode?: boolean
+  dailyTrafficEnabled?: boolean
   reannounceSettings: InstanceReannounceSettings
+  /** When set, creating the instance copies credentials from this source. */
+  cloneInstanceId?: number
 }
 
 export interface InstanceReannounceSettings {
@@ -162,4 +167,29 @@ export interface InstanceCapabilities {
   supportsShareLimitsAction: boolean
   supportsShareLimitsMode?: boolean
   webAPIVersion?: string
+}
+
+export type DailyTrafficDataSource = "session" | "alltime" | "restart" | "reinstall"
+
+export interface InstanceDailyTraffic {
+  id: number
+  instanceId: number
+  date: string // YYYY-MM-DD in UI timezone
+  uploaded: number
+  downloaded: number
+  peakUlSpeed: number
+  peakDlSpeed: number
+  dataSource: DailyTrafficDataSource
+  createdAt: string
+  updatedAt: string
+  baselineSessionUploaded: number
+  baselineSessionDownloaded: number
+  baselineAlltimeUploaded: number
+  baselineAlltimeDownloaded: number
+  baselineAt: string // RFC3339, first sample time of the day
+}
+
+export interface InstanceDailyTrafficResponse {
+  items: InstanceDailyTraffic[]
+  total: number
 }

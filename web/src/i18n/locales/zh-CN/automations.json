@@ -174,13 +174,15 @@
       "ADDED_ON_AGE": "添加时间（旧版）",
       "COMPLETION_ON_AGE": "完成时间（旧版）",
       "LAST_ACTIVITY_AGE": "不活跃时长（旧版）",
+      "PUBLISHED_ON_AGE": "发布时间",
       "SYSTEM_HOUR": "系统小时",
       "SYSTEM_MINUTE": "系统分钟",
       "SYSTEM_DAY_OF_WEEK": "系统星期",
       "SYSTEM_DAY": "系统日",
       "SYSTEM_MONTH": "系统月",
       "SYSTEM_YEAR": "系统年",
-      "RATIO": "分享率",
+      "RATIO": "分享率(上传量/下载量)",
+      "UPLOADED_OVER_SIZE": "分享率(上传量/种子大小)",
       "RATIO_LIMIT": "分享率限制",
       "MAX_RATIO": "最大分享率",
       "PROGRESS": "进度",
@@ -241,6 +243,9 @@
       "between": "介于",
       "existsIn": "存在于",
       "similarExistsIn": "类似存在于"
+    },
+    "limitOptions": {
+      "unlimited": "未限速"
     },
     "torrentStates": {
       "downloading": "下载中",

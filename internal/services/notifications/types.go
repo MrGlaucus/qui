@@ -29,6 +29,9 @@ const (
 	EventCrossSeedWebhookFailed       EventType = "cross_seed_webhook_failed"
 	EventAutomationsActionsApplied    EventType = "automations_actions_applied"
 	EventAutomationsRunFailed         EventType = "automations_run_failed"
+	EventDailyTrafficReport           EventType = "daily_traffic_report"
+	EventHourlyTrafficReport          EventType = "hourly_traffic_report"
+	EventBaselineReport               EventType = "baseline_report"
 )
 
 type EventDefinition struct {
@@ -56,6 +59,9 @@ var eventDefinitions = []EventDefinition{
 	{Type: EventCrossSeedWebhookFailed, Label: "Cross-seed webhook check failed", Description: "A webhook check run fails."},
 	{Type: EventAutomationsActionsApplied, Label: "Automations actions applied", Description: "Automation rules applied actions (summary counts and samples; only when actions occur)."},
 	{Type: EventAutomationsRunFailed, Label: "Automations run failed", Description: "Automation rules failed to run for an instance (system error)."},
+	{Type: EventDailyTrafficReport, Label: "Daily traffic report", Description: "Daily upload/download traffic summary for all instances, reported at midnight."},
+	{Type: EventHourlyTrafficReport, Label: "Hourly traffic report", Description: "Cumulative upload/download traffic summary for all instances, reported on the hour."},
+	{Type: EventBaselineReport, Label: "Baseline capture report", Description: "Daily traffic baseline snapshot reported after the midnight capture."},
 }
 
 var eventTypeIndex = func() map[string]int {

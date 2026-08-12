@@ -170,6 +170,7 @@
       "ADDED_ON_AGE": "Вік додавання (застарілий)",
       "COMPLETION_ON_AGE": "Вік завершення (застарілий)",
       "LAST_ACTIVITY_AGE": "Час неактивності (застарілий)",
+      "PUBLISHED_ON_AGE": "Час публікації",
       "SYSTEM_HOUR": "Системна година",
       "SYSTEM_MINUTE": "Системна хвилина",
       "SYSTEM_DAY_OF_WEEK": "День тижня",

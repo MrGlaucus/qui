@@ -56,6 +56,9 @@ export interface TorrentProperties {
   up_limit: number
   up_speed: number
   up_speed_avg: number
+  publish_date?: number
+  peak_dl_speed?: number
+  peak_up_speed?: number
 }
 
 export interface TorrentFile {
@@ -200,6 +203,11 @@ export interface TorrentCounts {
   tagSizes?: Record<string, number>
   trackers: Record<string, number>
   trackerTransfers?: Record<string, TrackerTransferStats>
+  /**
+   * Per-instance torrent counts (unified view only). Keys are stringified
+   * instance IDs.
+   */
+  instances?: Record<string, number>
   total: number
 }
 
@@ -218,6 +226,10 @@ export interface TorrentFilters {
   excludeTags: string[]
   trackers: string[]
   excludeTrackers: string[]
+  /** Instance IDs to include; only meaningful in unified view. */
+  instances?: number[]
+  /** Instance IDs to exclude; only meaningful in unified view. */
+  excludeInstances?: number[]
   expr?: string
 }
 
@@ -251,6 +263,13 @@ export interface InstanceMeta {
   connectionStatus?: string
 }
 
+/** Current UI-timezone day totals for an instance, streamed live on SSE. */
+export interface TodayTraffic {
+  date: string
+  downloaded: number
+  uploaded: number
+}
+
 /**
  * Torrent list response shared by REST and stream snapshots.
  *
@@ -268,6 +287,7 @@ export interface TorrentResponse {
   categories?: Record<string, Category>
   tags?: string[]
   serverState?: ServerState
+  todayTraffic?: TodayTraffic  // Real-time day totals from SSE
   appInfo?: QBittorrentAppInfo
   /** qBittorrent preferences for this instance; `null` explicitly clears cached preferences. */
   preferences?: AppPreferences | null

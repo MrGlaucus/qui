@@ -84,6 +84,8 @@ type Client struct {
 	isHealthy                  bool
 	syncManager                *qbt.SyncManager
 	peerSyncManager            map[string]*qbt.PeerSyncManager // Map of torrent hash to PeerSyncManager
+	dailyTrafficRecorder       *DailyTrafficRecorder
+	dailyTrafficEnabled        bool
 	// optimisticUpdates stores temporary optimistic state changes for this instance
 	optimisticUpdates    *ttlcache.Cache[string, *OptimisticTorrentUpdate]
 	trackerExclusions    map[string]map[string]struct{} // Domains to hide hashes from until fresh sync arrives
@@ -311,6 +313,29 @@ func (c *Client) SetSyncEventSink(sink SyncEventSink) {
 	c.mu.Unlock()
 }
 
+// SetDailyTrafficRecorder configures daily traffic collection for this client.
+// Pass a nil recorder (or enabled=false) to disable collection.
+func (c *Client) SetDailyTrafficRecorder(recorder *DailyTrafficRecorder, enabled bool) {
+	c.mu.Lock()
+	c.dailyTrafficRecorder = recorder
+	c.dailyTrafficEnabled = enabled
+	c.mu.Unlock()
+}
+
+// recordDailyTraffic ingests the latest server state into the daily traffic
+// recorder when collection is enabled for this instance.
+func (c *Client) recordDailyTraffic(serverState *qbt.ServerState) {
+	c.mu.RLock()
+	recorder := c.dailyTrafficRecorder
+	enabled := c.dailyTrafficEnabled
+	c.mu.RUnlock()
+
+	if recorder == nil || !enabled {
+		return
+	}
+	recorder.Record(context.Background(), c.instanceID, serverState)
+}
+
 func (c *Client) SupportsTorrentExport() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -410,6 +435,8 @@ func (c *Client) updateServerState(data *qbt.MainData) {
 
 	stateCopy := data.ServerState
 	c.lastServerState = &stateCopy
+
+	c.recordDailyTraffic(&stateCopy)
 }
 
 func (c *Client) clearServerState() {

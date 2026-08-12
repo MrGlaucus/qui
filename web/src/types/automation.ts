@@ -60,6 +60,7 @@ export type ConditionField =
   | "ADDED_ON_AGE"
   | "COMPLETION_ON_AGE"
   | "LAST_ACTIVITY_AGE"
+  | "PUBLISHED_ON_AGE"
   // System Time fields
   | "SYSTEM_HOUR"
   | "SYSTEM_MINUTE"
@@ -126,6 +127,9 @@ export type ConditionOperator =
   // Cross-category lookup operators (NAME field only)
   | "EXISTS_IN"
   | "CONTAINS_IN"
+  // Dropdown match operators
+  | "IS"
+  | "IS_NOT"
 
 export interface RuleCondition {
   /** UI-only stable identifier (not persisted server-side) */

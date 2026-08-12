@@ -281,6 +281,11 @@ const (
 	minSearchIntervalSecondsTorznab       = 60
 	minSearchIntervalSecondsGazelleOnly   = 5
 	minSearchCooldownMinutes              = 720
+	// minRSSIntervalMinutes is the minimum interval (in minutes) enforced between
+	// RSS Automation runs. It applies to both the scheduler cadence and the manual
+	// run cooldown. Change this single constant to adjust the floor.
+	// Keep in sync with frontend web/src/pages/CrossSeedPage.tsx MIN_RSS_INTERVAL_MINUTES.
+	minRSSIntervalMinutes                 = 1
 	maxCompletionSearchAttempts           = 3
 	maxCompletionCheckingAttempts         = 3
 	torznabCrossSeedSearchLimit           = 100
@@ -359,6 +364,8 @@ type Service struct {
 
 	automationStore          *models.CrossSeedStore
 	blocklistStore           *models.CrossSeedBlocklistStore
+	crossSeedLogStore        *models.CrossSeedLogStore
+	torznabIndexerStore      *models.TorznabIndexerStore
 	automationSettingsLoader func(context.Context) (*models.CrossSeedAutomationSettings, error)
 	jackettService           *jackett.Service
 	arrService               arrLookupService // ARR service for ID lookup
@@ -519,6 +526,8 @@ func NewService(
 	filesManager *filesmanager.Service,
 	automationStore *models.CrossSeedStore,
 	blocklistStore *models.CrossSeedBlocklistStore,
+	crossSeedLogStore *models.CrossSeedLogStore,
+	torznabIndexerStore *models.TorznabIndexerStore,
 	jackettService *jackett.Service,
 	arrService *arr.Service,
 	externalProgramStore *models.ExternalProgramStore,
@@ -561,6 +570,8 @@ func NewService(
 		stringNormalizer:              stringutils.NewDefaultNormalizer(),
 		automationStore:               automationStore,
 		blocklistStore:                blocklistStore,
+		crossSeedLogStore:             crossSeedLogStore,
+		torznabIndexerStore:           torznabIndexerStore,
 		jackettService:                jackettService,
 		arrService:                    arrLookup,
 		notifier:                      notifier,
@@ -1698,6 +1709,58 @@ func (s *Service) DeleteBlocklistEntry(ctx context.Context, instanceID int, info
 	return nil
 }
 
+// ListCrossSeedLog returns cross-seed log entries with instance names, with pagination.
+func (s *Service) ListCrossSeedLog(ctx context.Context, limit, offset int) ([]CrossSeedLogEntryView, int, error) {
+	if s.crossSeedLogStore == nil {
+		return nil, 0, errors.New("cross-seed log store unavailable")
+	}
+	total, err := s.crossSeedLogStore.Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	entries, err := s.crossSeedLogStore.List(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Build instance name map
+	instances, err := s.instanceStore.List(ctx)
+	instanceNames := make(map[int]string)
+	if err == nil {
+		for _, inst := range instances {
+			if inst != nil {
+				instanceNames[inst.ID] = inst.Name
+			}
+		}
+	}
+
+	view := make([]CrossSeedLogEntryView, 0, len(entries))
+	for _, e := range entries {
+		v := CrossSeedLogEntryView{
+			InfoHash:      e.InfoHash,
+			InstanceID:    e.InstanceID,
+			InstanceName:  instanceNames[e.InstanceID],
+			TorrentName:   e.TorrentName,
+			SourceIndexer: e.SourceIndexer,
+			CreatedAt:     e.CreatedAt.Format(time.RFC3339),
+		}
+		if !e.PublishDate.IsZero() {
+			s := e.PublishDate.Format(time.RFC3339)
+			v.PublishDate = &s
+		}
+		view = append(view, v)
+	}
+	return view, total, nil
+}
+
+// DeleteCrossSeedLogOlderThan deletes cross-seed log entries older than the specified duration.
+func (s *Service) DeleteCrossSeedLogOlderThan(ctx context.Context, age time.Duration) (int64, error) {
+	if s.crossSeedLogStore == nil {
+		return 0, errors.New("cross-seed log store unavailable")
+	}
+	return s.crossSeedLogStore.DeleteOlderThan(ctx, time.Now().Add(-age))
+}
+
 // UpdateAutomationSettings persists automation configuration and wakes the scheduler.
 func (s *Service) UpdateAutomationSettings(ctx context.Context, settings *models.CrossSeedAutomationSettings) (*models.CrossSeedAutomationSettings, error) {
 	if settings == nil {
@@ -1724,11 +1787,11 @@ func (s *Service) UpdateAutomationSettings(ctx context.Context, settings *models
 // validateAndNormalizeSettings validates and normalizes automation settings.
 // These settings apply to RSS Automation only, not Seeded Torrent Search.
 func (s *Service) validateAndNormalizeSettings(settings *models.CrossSeedAutomationSettings) {
-	// RSS Automation: minimum 30 minutes between RSS feed polls, default 120 minutes
+	// RSS Automation: minimum interval between RSS feed polls (minRSSIntervalMinutes), default 120 minutes
 	if settings.RunIntervalMinutes <= 0 {
 		settings.RunIntervalMinutes = 120
-	} else if settings.RunIntervalMinutes < 30 {
-		settings.RunIntervalMinutes = 30
+	} else if settings.RunIntervalMinutes < minRSSIntervalMinutes {
+		settings.RunIntervalMinutes = minRSSIntervalMinutes
 	}
 	// RSS Automation: maximum number of RSS results to process per run
 	if settings.MaxResultsPerRun <= 0 {
@@ -2029,7 +2092,7 @@ func (s *Service) RunAutomation(ctx context.Context, opts AutomationRunOptions) 
 		if intervalMinutes <= 0 {
 			intervalMinutes = 120
 		}
-		cooldown := max(time.Duration(intervalMinutes)*time.Minute, 30*time.Minute)
+		cooldown := max(time.Duration(intervalMinutes)*time.Minute, minRSSIntervalMinutes*time.Minute)
 
 		lastRun, err := s.automationStore.GetLatestRun(ctx)
 		if err != nil {
@@ -3557,7 +3620,7 @@ func (s *Service) computeNextRunDelay(ctx context.Context, settings *models.Cros
 	if intervalMinutes <= 0 {
 		intervalMinutes = 120
 	}
-	interval := max(time.Duration(intervalMinutes)*time.Minute, 30*time.Minute)
+	interval := max(time.Duration(intervalMinutes)*time.Minute, minRSSIntervalMinutes*time.Minute)
 
 	lastRun, err := s.automationStore.GetLatestRun(ctx)
 	if err != nil {
@@ -4004,6 +4067,7 @@ func (s *Service) processAutomationCandidate(ctx context.Context, run *models.Cr
 	skipIfExists := true
 	req := &CrossSeedRequest{
 		TorrentData:                  encodedTorrent,
+		PublishDate:                  result.PublishDate,
 		TargetInstanceIDs:            append([]int(nil), settings.TargetInstanceIDs...),
 		Tags:                         append([]string(nil), settings.RSSAutomationTags...),
 		InheritSourceTags:            settings.InheritSourceTags,
@@ -5024,23 +5088,42 @@ func (s *Service) processCrossSeedCandidate(
 		hashes = append(hashes, trimmed)
 	}
 
-	if s.blocklistStore != nil {
-		blockedHash, blocked, err := s.blocklistStore.FindBlocked(ctx, candidate.InstanceID, hashes)
+	// Cross-seed log dedup: prevents re-adding previously cross-seeded torrents
+	// (even if deleted by user) and deduplicates across all instances.
+	if s.crossSeedLogStore != nil {
+		logHash, found, err := s.crossSeedLogStore.FindByHashes(ctx, hashes)
 		if err != nil {
-			result.Message = fmt.Sprintf("Failed to check cross-seed blocklist: %v", err)
+			result.Message = fmt.Sprintf("Failed to check cross-seed log: %v", err)
 			return result
 		}
-		if blocked {
+		if found {
 			result.Status = "blocked"
-			result.Message = "Blocked by cross-seed blocklist"
-			log.Info().
+			result.Message = "Previously cross-seeded (blocked)"
+			log.Warn().
 				Int("instanceID", candidate.InstanceID).
 				Str("instanceName", candidate.InstanceName).
+				Str("torrentName", torrentName).
+				Str("matchType", candidate.MatchType).
 				Str("torrentHash", torrentHash).
-				Str("blockedHash", blockedHash).
-				Msg("Cross-seed apply skipped: infohash is blocked")
+				Str("logHash", logHash).
+				Msg("[CROSSSEED] Duplicate cross-seed prevented: infohash was previously cross-seeded")
 			return result
 		}
+	}
+
+	// Cross-instance hash dedup: check if this infohash already exists on any other active instance.
+	if otherInstanceID := s.hashExistsOnOtherInstance(ctx, hashes, candidate.InstanceID); otherInstanceID > 0 {
+		result.Status = "exists"
+		result.Message = "Torrent already exists on another instance"
+		log.Warn().
+			Int("instanceID", candidate.InstanceID).
+			Str("instanceName", candidate.InstanceName).
+			Str("torrentName", torrentName).
+			Str("matchType", candidate.MatchType).
+			Int("otherInstanceID", otherInstanceID).
+			Str("torrentHash", torrentHash).
+			Msg("[CROSSSEED] Duplicate cross-seed prevented: torrent already exists on another instance")
+		return result
 	}
 
 	existingTorrent, exists, err := s.syncManager.HasTorrentByAnyHash(ctx, candidate.InstanceID, hashes)
@@ -5119,6 +5202,32 @@ func (s *Service) processCrossSeedCandidate(
 	} else {
 		options["paused"] = "false"
 		options["stopped"] = "false"
+	}
+
+	// Look up indexer limits from config and apply to the added torrent
+	if req.IndexerName != "" && s.torznabIndexerStore != nil && req.UploadLimitBytes == 0 && req.DownloadLimitBytes == 0 {
+		indexers, err := s.torznabIndexerStore.List(ctx)
+		if err == nil {
+			for _, idx := range indexers {
+				if idx != nil && idx.Name == req.IndexerName {
+					if idx.UploadLimitBytes > 0 {
+						options["upLimit"] = strconv.FormatInt(idx.UploadLimitBytes, 10)
+						req.UploadLimitBytes = idx.UploadLimitBytes
+					}
+					if idx.DownloadLimitBytes > 0 {
+						options["dlLimit"] = strconv.FormatInt(idx.DownloadLimitBytes, 10)
+						req.DownloadLimitBytes = idx.DownloadLimitBytes
+					}
+					break
+				}
+			}
+		}
+	}
+	if req.UploadLimitBytes > 0 {
+		options["upLimit"] = strconv.FormatInt(req.UploadLimitBytes, 10)
+	}
+	if req.DownloadLimitBytes > 0 {
+		options["dlLimit"] = strconv.FormatInt(req.DownloadLimitBytes, 10)
 	}
 
 	// Compute add policy from source files (e.g., disc layout detection)
@@ -5893,6 +6002,24 @@ func (s *Service) processCrossSeedCandidate(
 		result.Message += addPolicy.StatusSuffix()
 	}
 	result.Success = true
+
+	// Record in cross-seed log so future attempts (even after manual deletion)
+	// are blocked globally across all instances.
+	if s.crossSeedLogStore != nil {
+		for _, h := range dedupeHashes(torrentHash, torrentHashV2) {
+			if h == "" {
+				continue
+			}
+			var pubDate *time.Time
+			if !req.PublishDate.IsZero() {
+				pubDate = &req.PublishDate
+			}
+			if err := s.crossSeedLogStore.Upsert(ctx, h, candidate.InstanceID, torrentName, req.IndexerName, pubDate); err != nil {
+				log.Warn().Err(err).Str("torrentHash", h).Msg("[CROSSSEED] Failed to persist cross-seed log entry")
+			}
+		}
+	}
+
 	result.Status = "added"
 	result.MatchedTorrent = &MatchedTorrent{
 		Hash:     matchedTorrent.Hash,
@@ -5915,6 +6042,26 @@ func (s *Service) processCrossSeedCandidate(
 		Str("crossCategory", crossCategory).
 		Bool("isEpisodeInPack", isEpisodeInPack).
 		Bool("hasExtraFiles", hasExtraFiles)
+	if req.UploadLimitBytes > 0 || req.DownloadLimitBytes > 0 {
+		fmtLimit := func(b int64) string {
+			if b >= 1073741824 {
+				return fmt.Sprintf("%dGB/s", b/1073741824)
+			}
+			if b >= 1048576 {
+				return fmt.Sprintf("%dMB/s", b/1048576)
+			}
+			return fmt.Sprintf("%dKB/s", b/1024)
+		}
+		upStr, downStr := "", ""
+		if req.UploadLimitBytes > 0 {
+			upStr = fmtLimit(req.UploadLimitBytes)
+		}
+		if req.DownloadLimitBytes > 0 {
+			downStr = fmtLimit(req.DownloadLimitBytes)
+		}
+		logEvent = logEvent.Str("uploadLimit", upStr).Str("downloadLimit", downStr)
+	}
+	logEvent = logEvent.Str("publishDate", req.PublishDate.Format(time.RFC3339))
 	if needsRecheckAndResume {
 		logEvent.Msg("Successfully added cross-seed torrent (auto-resume pending)")
 	} else {
@@ -5922,6 +6069,30 @@ func (s *Service) processCrossSeedCandidate(
 	}
 
 	return result
+}
+
+// hashExistsOnOtherInstance checks if any of the given infohashes exist on active
+// instances other than the excluded one. Returns the instance ID where found, or 0.
+func (s *Service) hashExistsOnOtherInstance(ctx context.Context, hashes []string, excludeInstanceID int) int {
+	instances, err := s.instanceStore.List(ctx)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to list instances for cross-instance dedup")
+		return 0
+	}
+	for _, inst := range instances {
+		if inst == nil || !inst.IsActive || inst.ID == excludeInstanceID {
+			continue
+		}
+		_, exists, err := s.syncManager.HasTorrentByAnyHash(ctx, inst.ID, hashes)
+		if err != nil {
+			log.Debug().Err(err).Int("instanceID", inst.ID).Msg("Cross-instance hash check failed")
+			continue
+		}
+		if exists {
+			return inst.ID
+		}
+	}
+	return 0
 }
 
 func dedupeHashes(hashes ...string) []string {
@@ -9663,6 +9834,7 @@ func (s *Service) ApplyTorrentSearchResults(ctx context.Context, instanceID int,
 
 			payload := &CrossSeedRequest{
 				TorrentData:                  base64.StdEncoding.EncodeToString(torrentBytes),
+				PublishDate:                  cachedResult.PublishDateParsed(),
 				TargetInstanceIDs:            []int{instanceID},
 				StartPaused:                  &startPausedCopy,
 				Tags:                         applyTags,
@@ -11264,6 +11436,7 @@ func (s *Service) executeCrossSeedSearchAttempt(ctx context.Context, state *sear
 	skipIfExists := true
 	request := &CrossSeedRequest{
 		TorrentData:                  encoded,
+		PublishDate:                  match.PublishDateParsed(),
 		TargetInstanceIDs:            []int{state.opts.InstanceID},
 		StartPaused:                  &startPaused,
 		Tags:                         append([]string(nil), state.opts.TagsOverride...),

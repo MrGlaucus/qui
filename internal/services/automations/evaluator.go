@@ -99,6 +99,10 @@ type EvalContext struct {
 	// If zero, time.Now().Unix() is used. Set this for deterministic tests.
 	NowUnix int64
 
+	// PublishedAtMap maps torrent infohash → Unix timestamp of original tracker publish date.
+	// Populated by the automation service when rules use PUBLISHED_ON_AGE.
+	PublishedAtMap map[string]int64
+
 	// CrossInstanceHashSet contains hashes of torrents that exist on at least one other instance.
 	// Built from SyncManager cached data when rules use EXISTS_ON_OTHER_INSTANCE.
 	CrossInstanceHashSet map[string]struct{}
@@ -467,6 +471,15 @@ func evaluateLeaf(cond *RuleCondition, torrent qbt.Torrent, ctx *EvalContext) bo
 		return compareAgeIfSet(qbittorrent.NormalizeCompletionTimestamp(torrent.CompletionOn), cond, ctx)
 	case FieldLastActivityAge:
 		return compareAgeIfSet(torrent.LastActivity, cond, ctx)
+	case FieldPublishedOnAge:
+		if ctx == nil || ctx.PublishedAtMap == nil {
+			return false
+		}
+		pubUnix, ok := lookupPublishedAt(ctx.PublishedAtMap, torrent.Hash, torrent.InfohashV1, torrent.InfohashV2)
+		if !ok || pubUnix <= 0 {
+			return false
+		}
+		return compareAge(pubUnix, cond, ctx)
 
 	// Float64 fields
 	case FieldRatio:
@@ -497,8 +510,20 @@ func evaluateLeaf(cond *RuleCondition, torrent qbt.Torrent, ctx *EvalContext) bo
 	case FieldUpSpeed:
 		return compareInt64(torrent.UpSpeed, cond)
 	case FieldDlLimit:
+		if cond.Operator == models.OperatorIs {
+			return torrent.DlLimit <= 0
+		}
+		if cond.Operator == models.OperatorIsNot {
+			return torrent.DlLimit > 0
+		}
 		return compareInt64(torrent.DlLimit, cond)
 	case FieldUpLimit:
+		if cond.Operator == models.OperatorIs {
+			return torrent.UpLimit <= 0
+		}
+		if cond.Operator == models.OperatorIsNot {
+			return torrent.UpLimit > 0
+		}
 		return compareInt64(torrent.UpLimit, cond)
 
 	// Count fields (int64)
@@ -1252,6 +1277,24 @@ func compareAgeIfSet(timestamp int64, cond *RuleCondition, ctx *EvalContext) boo
 		return false
 	}
 	return compareAge(timestamp, cond, ctx)
+}
+
+// lookupPublishedAt tries to find the publish date by hash, falling back to v1/v2 variants.
+func lookupPublishedAt(pubMap map[string]int64, hash, infohashV1, infohashV2 string) (int64, bool) {
+	if v, ok := pubMap[hash]; ok && v > 0 {
+		return v, true
+	}
+	if infohashV1 != "" && infohashV1 != hash {
+		if v, ok := pubMap[infohashV1]; ok && v > 0 {
+			return v, true
+		}
+	}
+	if infohashV2 != "" && infohashV2 != hash && infohashV2 != infohashV1 {
+		if v, ok := pubMap[infohashV2]; ok && v > 0 {
+			return v, true
+		}
+	}
+	return 0, false
 }
 
 // compareRlsYearIfSet compares a parsed release year and treats an unparsed year (<= 0)

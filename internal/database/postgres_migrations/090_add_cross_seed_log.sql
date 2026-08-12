@@ -1,0 +1,5 @@
+CREATE TABLE cross_seed_log (
+    infohash TEXT NOT NULL PRIMARY KEY,
+    publish_date TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);

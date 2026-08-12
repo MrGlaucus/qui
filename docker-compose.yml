@@ -1,0 +1,19 @@
+# Local source build & deploy.
+# Rebuild from source after code changes:
+#   docker compose up -d --build
+services:
+  qui:
+    build:
+      context: .
+      dockerfile: distrib/docker/Dockerfile
+    image: qui:custom
+    container_name: qui-custom
+    restart: unless-stopped
+    environment:
+      # Day boundaries (e.g. daily traffic stats) use the process local timezone.
+      # Defaults to Asia/Shanghai; override with TZ=<zone> in .env or shell.
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "7476:7476"
+    volumes:
+      - ./config:/config

@@ -28,10 +28,11 @@ import { TORRENT_ACTIONS, useTorrentActions } from "@/hooks/useTorrentActions"
 import { buildTorrentActionTargets } from "@/lib/torrent-action-targets"
 import { anyTorrentHasTag, getCommonCategory, getCommonSavePath, getTorrentHashesWithTag, getTotalSize, parseTorrentTags } from "@/lib/torrent-utils"
 import { formatBytes } from "@/lib/utils"
-import type { Category, Torrent, TorrentFilters } from "@/types"
+import type { Category, CrossInstanceTorrent, Torrent, TorrentFilters } from "@/types"
 import {
   ArrowDown,
   ArrowUp,
+  BarChart3,
   Blocks,
   CheckCircle,
   ChevronsDown,
@@ -49,9 +50,10 @@ import {
   Tag,
   Trash2
 } from "lucide-react"
-import { memo, useCallback, useMemo } from "react"
+import { memo, useCallback, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { DeleteTorrentDialog } from "./DeleteTorrentDialog"
+import { TaskReportDialog } from "./TaskReportDialog"
 import {
   LocationWarningDialog,
   SetCategoryDialog,
@@ -98,6 +100,9 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
   const metadataInstanceId = actionInstanceId > 0 ? actionInstanceId : 0
   const supportsCrossSeedDeleteTools = actionInstanceId >= 0
   const supportsCrossSeedBlocklist = actionInstanceId >= 0
+  // In the unified all-instances view (actionInstanceId === 0) each row carries
+  // its own instanceId; use it so the task report resolves to the right client.
+  const reportInstanceId = actionInstanceId > 0 ? actionInstanceId : (selectedTorrents[0] as Partial<CrossInstanceTorrent> | undefined)?.instanceId ?? 0
 
   // Use shared metadata hook to leverage cache from table and filter sidebar
   const { data: metadata, isLoading: isMetadataLoading } = useInstanceMetadata(metadataInstanceId, {
@@ -209,6 +214,8 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
       }
     },
   })
+
+  const [showReportDialog, setShowReportDialog] = useState(false)
 
   // Cross-seed warning for delete dialog
   const crossSeedWarning = useCrossSeedWarning({
@@ -718,6 +725,23 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Task Report */}
+          {selectedTorrents.length === 1 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowReportDialog(true)}
+                  disabled={isPending || isDisabled}
+                >
+                  <BarChart3 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("managementBar.report")}</TooltipContent>
+            </Tooltip>
+          )}
+
           {/* TMM Toggle */}
           {(() => {
             const tmmStates = selectedTorrents?.map(t => t.auto_tmm) ?? []
@@ -910,6 +934,16 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
         onConfirm={proceedToLocationDialog}
         isPending={isPending}
       />
+
+      {/* Task Report Dialog */}
+      {showReportDialog && selectedTorrents.length === 1 && reportInstanceId > 0 && (
+        <TaskReportDialog
+          open={showReportDialog}
+          onOpenChange={setShowReportDialog}
+          instanceId={reportInstanceId}
+          torrent={selectedTorrents[0]}
+        />
+      )}
     </>
   )
 })

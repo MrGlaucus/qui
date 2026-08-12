@@ -11,10 +11,12 @@
       "enableInstance": "Enable instance",
       "moveUp": "Move up",
       "moveDown": "Move down",
-      "instanceSettings": "Instance Settings"
+      "instanceSettings": "Instance Settings",
+      "openInstance": "Open instance in new tab"
     },
     "actions": {
       "edit": "Edit",
+      "clone": "Clone",
       "testConnection": "Test Connection",
       "delete": "Delete"
     },
@@ -66,6 +68,8 @@
       "skipTlsDescription": "Allow connections to qBittorrent instances that use self-signed or otherwise untrusted certificates.",
       "localFilesystemAccess": "Local Filesystem Access",
       "localFilesystemDescription": "Enable if qui can access this instance's download paths (required for hardlink detection in automations).",
+      "dailyTrafficEnabled": "Daily Traffic Tracking",
+      "dailyTrafficEnabledDescription": "Record per-day upload/download totals and peak speeds for this instance. Disable to stop collecting new data.",
       "authBypass": "Authentication Bypass",
       "authBypassDescription": "Enable when qBittorrent bypasses authentication for localhost or whitelisted IPs",
       "username": "Username",
@@ -83,6 +87,7 @@
       "username": "qBittorrent username (usually admin)",
       "passwordNew": "qBittorrent password",
       "passwordExisting": "Leave empty to keep current password",
+      "passwordClone": "Leave empty to copy source password",
       "basicAuthUsername": "Basic auth username",
       "basicAuthPassword": "Enter basic auth password (required)",
       "apiKeyNew": "qBittorrent API key",
@@ -239,7 +244,9 @@
         "username": "Username",
         "password": "Password",
         "qbittorrentAuth": "qBittorrent Authentication",
-        "qbittorrentAuthDescription": "Select how qui should authenticate to qBittorrent."
+        "qbittorrentAuthDescription": "Select how qui should authenticate to qBittorrent.",
+        "dailyTrafficEnabled": "Daily Traffic Tracking",
+        "dailyTrafficEnabledDescription": "Record per-day upload/download totals and peak speeds for this instance. Disable to stop collecting new data."
       },
       "placeholders": {
         "instanceName": "e.g., Main Server",
@@ -740,6 +747,14 @@
       "runDryRunNow": "Run dry-run now",
       "duplicate": "Duplicate",
       "copyTo": "Copy to...",
+      "copyOverwriteTo": "Copy overwrite to...",
+      "copyOverwriteDialogTitle": "Copy overwrite to another instance",
+      "copyOverwriteDialogDescription": "Select target instances. Rules with the same name will be overwritten, new rules will be created.",
+      "copyOverwriteCancel": "Cancel",
+      "copyOverwriteConfirm": "Confirm overwrite ({{count}} instances)",
+      "copyOverwriting": "Copying…",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
       "exportJSON": "Export JSON",
       "dragToReorder": "Drag to reorder workflow",
       "actions": {
@@ -850,6 +865,10 @@
         "copyFailed": "Failed to copy to clipboard",
         "createdWorkflow": "Created \"{{name}}\"",
         "copiedWorkflow": "Copied \"{{name}}\" to {{instance}}",
+        "copyOverwriteSuccess": "Copied rules to {{instance}} ({{created}} created, {{updated}} updated)",
+        "copyOverwriteFailed": "Failed to copy rules",
+        "copyOverwriteSuccessAll": "Copied to {{count}} instances ({{created}} created, {{updated}} updated)",
+        "copyOverwritePartialFailed": "Partial failure ({{created}} created, {{updated}} updated, {{failed}} instances failed)",
         "importedWorkflow": "Imported \"{{name}}\"",
         "createFailed": "Failed to create workflow",
         "reorderFailed": "Failed to reorder workflows",

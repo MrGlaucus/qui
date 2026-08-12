@@ -144,7 +144,10 @@ export function toDuplicateInput(
   existingNames: string[]
 ): AutomationInput {
   const exportData = toExportFormat(workflow)
-  return fromImportFormat(exportData, existingNames)
+  const input = fromImportFormat(exportData, existingNames)
+  // Preserve original name without "(copy)" suffix
+  input.name = workflow.name
+  return input
 }
 
 /**

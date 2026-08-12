@@ -39,6 +39,7 @@
     "createTorrent": "Створити торент",
     "torrentCreationTasks": "Завдання створення торента",
     "instanceSettings": "Налаштування екземпляра",
+    "openInstance": "Відкрити екземпляр у новій вкладці",
     "addToInstance": "Додати до екземпляра",
     "createForInstance": "Створити для екземпляра",
     "tasksForInstance": "Завдання екземпляра",

@@ -13,6 +13,10 @@ export interface TorznabIndexer {
   enabled: boolean
   priority: number
   timeout_seconds: number
+  upload_limit_bytes: number
+  download_limit_bytes: number
+  upload_limit_unit: string
+  download_limit_unit: string
   capabilities: string[]
   categories: TorznabIndexerCategory[]
   last_test_at?: string
@@ -149,6 +153,10 @@ export interface TorznabIndexerFormData {
   enabled?: boolean
   priority?: number
   timeout_seconds?: number
+  upload_limit_bytes?: number
+  download_limit_bytes?: number
+  upload_limit_unit?: string
+  download_limit_unit?: string
   capabilities?: string[]
   categories?: TorznabIndexerCategory[]
 }
@@ -165,6 +173,10 @@ export interface TorznabIndexerUpdate {
   enabled?: boolean
   priority?: number
   timeout_seconds?: number
+  upload_limit_bytes?: number
+  download_limit_bytes?: number
+  upload_limit_unit?: string
+  download_limit_unit?: string
   capabilities?: string[]
   categories?: TorznabIndexerCategory[]
 }

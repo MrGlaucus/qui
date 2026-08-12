@@ -125,6 +125,7 @@ export function InstanceSettingsPanel({ instance, onSuccess }: InstanceSettingsP
       basicPassword: instance?.basicUsername ? "<redacted>" : "",
       tlsSkipVerify: instance?.tlsSkipVerify ?? false,
       hasLocalFilesystemAccess: instance?.hasLocalFilesystemAccess ?? false,
+      dailyTrafficEnabled: instance?.dailyTrafficEnabled ?? true,
       reannounceSettings: instance?.reannounceSettings ?? DEFAULT_REANNOUNCE_SETTINGS,
     },
     onSubmit: ({ value }) => {
@@ -147,6 +148,7 @@ export function InstanceSettingsPanel({ instance, onSuccess }: InstanceSettingsP
         basicPassword: instance?.basicUsername ? "<redacted>" : "",
         tlsSkipVerify: instance?.tlsSkipVerify ?? false,
         hasLocalFilesystemAccess: instance?.hasLocalFilesystemAccess ?? false,
+        dailyTrafficEnabled: instance?.dailyTrafficEnabled ?? true,
         reannounceSettings: instance?.reannounceSettings ?? DEFAULT_REANNOUNCE_SETTINGS,
       })
       setShowBasicAuth(!!instance?.basicUsername)
@@ -288,6 +290,28 @@ export function InstanceSettingsPanel({ instance, onSuccess }: InstanceSettingsP
                   checked={field.state.value}
                   onCheckedChange={(checked) => field.handleChange(checked)}
                   aria-describedby="local-filesystem-access-desc"
+                />
+              </label>
+            )}
+          </form.Field>
+
+          <form.Field name="dailyTrafficEnabled">
+            {(field) => (
+              <label
+                htmlFor="daily-traffic-enabled"
+                className="flex items-center justify-between gap-4 rounded-lg border bg-muted/40 p-4 cursor-pointer"
+              >
+                <div className="space-y-0.5">
+                  <span className="text-sm font-medium">{t("preferences.settingsPanel.labels.dailyTrafficEnabled")}</span>
+                  <p id="daily-traffic-enabled-desc" className="text-xs text-muted-foreground">
+                    {t("preferences.settingsPanel.labels.dailyTrafficEnabledDescription")}
+                  </p>
+                </div>
+                <Switch
+                  id="daily-traffic-enabled"
+                  checked={field.state.value}
+                  onCheckedChange={(checked) => field.handleChange(checked)}
+                  aria-describedby="daily-traffic-enabled-desc"
                 />
               </label>
             )}

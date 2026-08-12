@@ -883,3 +883,70 @@ func decodeStreamPayloadData(t *testing.T, data string) *StreamPayload {
 	require.NoError(t, json.Unmarshal([]byte(data), &payload), "failed to decode stream payload data")
 	return &payload
 }
+
+// TestMaterializeGroupResponsePopulatesTodayTraffic confirms single-instance
+// streams carry the current day totals when a provider is wired, and that the
+// field stays omitted without a provider or on lookup failure. Multi-instance
+// aggregates never populate the field.
+func TestMaterializeGroupResponsePopulatesTodayTraffic(t *testing.T) {
+	canned := cannedResponse()
+	provider := &fakeSyncProvider{torrentsResponse: canned, crossInstanceResponse: canned}
+	manager := NewStreamManager(nil, provider, nil)
+	t.Cleanup(func() { _ = manager.Shutdown(context.Background()) })
+
+	// No provider wired: field stays omitted.
+	response, errPayload := manager.materializeGroupResponse(
+		StreamOptions{InstanceID: 1, Limit: 100},
+		&StreamMeta{Timestamp: time.Now()},
+		"today-no-provider",
+	)
+	require.NotNil(t, response)
+	require.Nil(t, errPayload)
+	require.Nil(t, response.TodayTraffic)
+
+	// Provider wired: field populated from the provider result.
+	manager.SetTodayTrafficProvider(func(_ context.Context, instanceID int) (*qbittorrent.TodayTraffic, error) {
+		return &qbittorrent.TodayTraffic{Date: "2026-08-10", Downloaded: 123, Uploaded: 456}, nil
+	})
+	response, errPayload = manager.materializeGroupResponse(
+		StreamOptions{InstanceID: 1, Limit: 100},
+		&StreamMeta{Timestamp: time.Now()},
+		"today-with-provider",
+	)
+	require.NotNil(t, response)
+	require.Nil(t, errPayload)
+	require.NotNil(t, response.TodayTraffic)
+	require.Equal(t, "2026-08-10", response.TodayTraffic.Date)
+	require.Equal(t, int64(123), response.TodayTraffic.Downloaded)
+	require.Equal(t, int64(456), response.TodayTraffic.Uploaded)
+
+	// Provider lookup failure: field omitted, tick still succeeds.
+	failing := NewStreamManager(nil, provider, nil)
+	t.Cleanup(func() { _ = failing.Shutdown(context.Background()) })
+	failing.SetTodayTrafficProvider(func(context.Context, int) (*qbittorrent.TodayTraffic, error) {
+		return nil, errors.New("boom")
+	})
+	response, errPayload = failing.materializeGroupResponse(
+		StreamOptions{InstanceID: 1, Limit: 100},
+		&StreamMeta{Timestamp: time.Now()},
+		"today-error",
+	)
+	require.NotNil(t, response)
+	require.Nil(t, errPayload)
+	require.Nil(t, response.TodayTraffic)
+
+	// Multi-instance aggregates never populate the field.
+	multi := NewStreamManager(nil, provider, nil)
+	t.Cleanup(func() { _ = multi.Shutdown(context.Background()) })
+	multi.SetTodayTrafficProvider(func(_ context.Context, instanceID int) (*qbittorrent.TodayTraffic, error) {
+		return &qbittorrent.TodayTraffic{Date: "2026-08-10", Downloaded: 1, Uploaded: 2}, nil
+	})
+	response, errPayload = multi.materializeGroupResponse(
+		StreamOptions{InstanceIDs: []int{1, 2}, Limit: 100},
+		&StreamMeta{Timestamp: time.Now()},
+		"today-cross",
+	)
+	require.NotNil(t, response)
+	require.Nil(t, errPayload)
+	require.Nil(t, response.TodayTraffic)
+}

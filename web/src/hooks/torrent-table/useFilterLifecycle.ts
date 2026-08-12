@@ -105,6 +105,8 @@ export function useFilterLifecycle({
           excludeTags: [],
           trackers: [],
           excludeTrackers: [],
+          instances: [],
+          excludeInstances: [],
         }
         onFilterChange?.(emptyFilters)
       }

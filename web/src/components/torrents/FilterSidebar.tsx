@@ -919,7 +919,7 @@ const FilterSidebarComponent = ({
     }
   }, [cancelLongPress])
 
-  const makeToggleKey = useCallback((group: "status" | "category" | "tag" | "tracker", value: string) => {
+  const makeToggleKey = useCallback((group: "status" | "category" | "tag" | "tracker" | "instance", value: string) => {
     return `${group}:${value === "" ? "__empty__" : value}`
   }, [])
 
@@ -934,6 +934,9 @@ const FilterSidebarComponent = ({
 
   const includeTrackerSet = useMemo(() => new Set(selectedFilters.trackers), [selectedFilters.trackers])
   const excludeTrackerSet = useMemo(() => new Set(selectedFilters.excludeTrackers), [selectedFilters.excludeTrackers])
+
+  const includeInstanceSet = useMemo(() => new Set(selectedFilters.instances ?? []), [selectedFilters.instances])
+  const excludeInstanceSet = useMemo(() => new Set(selectedFilters.excludeInstances ?? []), [selectedFilters.excludeInstances])
 
   const getStatusState = useCallback((status: string): TriState => {
     // Special handling for cross-seeds status
@@ -1232,6 +1235,57 @@ const FilterSidebarComponent = ({
       excludeTrackers: nextExcluded,
     })
   }, [applyFilterChange, excludeTrackerSet, includeTrackerSet, selectedFilters])
+
+  const getInstanceState = useCallback((instanceId: number): TriState => {
+    if (includeInstanceSet.has(instanceId)) return "include"
+    if (excludeInstanceSet.has(instanceId)) return "exclude"
+    return "neutral"
+  }, [includeInstanceSet, excludeInstanceSet])
+
+  const setInstanceState = useCallback((instanceId: number, state: TriState) => {
+    let nextIncluded = selectedFilters.instances ?? []
+    let nextExcluded = selectedFilters.excludeInstances ?? []
+
+    const isIncluded = includeInstanceSet.has(instanceId)
+    const isExcluded = excludeInstanceSet.has(instanceId)
+
+    switch (state) {
+      case "include":
+        if (!isIncluded) {
+          nextIncluded = [...nextIncluded, instanceId]
+        }
+        if (isExcluded) {
+          nextExcluded = nextExcluded.filter(id => id !== instanceId)
+        }
+        break
+      case "exclude":
+        if (isIncluded) {
+          nextIncluded = nextIncluded.filter(id => id !== instanceId)
+        }
+        if (!isExcluded) {
+          nextExcluded = [...nextExcluded, instanceId]
+        }
+        break
+      case "neutral":
+        if (isIncluded) {
+          nextIncluded = nextIncluded.filter(id => id !== instanceId)
+        }
+        if (isExcluded) {
+          nextExcluded = nextExcluded.filter(id => id !== instanceId)
+        }
+        break
+    }
+
+    if (nextIncluded === (selectedFilters.instances ?? []) && nextExcluded === (selectedFilters.excludeInstances ?? [])) {
+      return
+    }
+
+    applyFilterChange({
+      ...selectedFilters,
+      instances: nextIncluded,
+      excludeInstances: nextExcluded,
+    })
+  }, [applyFilterChange, excludeInstanceSet, includeInstanceSet, selectedFilters])
 
   const getCheckboxVisualState = useCallback((state: "include" | "exclude" | "neutral"): boolean | "indeterminate" => {
     if (state === "include") return true
@@ -1579,6 +1633,66 @@ const FilterSidebarComponent = ({
     }
   }, [cancelLongPress, handleTrackerGroupExcludeToggle, isMobile, makeToggleKey, scheduleLongPressExclude])
 
+  const handleInstanceIncludeToggle = useCallback((instanceId: number) => {
+    const currentState = getInstanceState(instanceId)
+
+    if (currentState === "include" || currentState === "exclude") {
+      setInstanceState(instanceId, "neutral")
+      return
+    }
+
+    setInstanceState(instanceId, "include")
+  }, [getInstanceState, setInstanceState])
+
+  const handleInstanceExcludeToggle = useCallback((instanceId: number) => {
+    const currentState = getInstanceState(instanceId)
+    const nextState = currentState === "exclude" ? "neutral" : "exclude"
+    setInstanceState(instanceId, nextState)
+  }, [getInstanceState, setInstanceState])
+
+  const handleInstanceCheckboxChange = useCallback((instanceId: number) => {
+    const key = makeToggleKey("instance", instanceId.toString())
+    if (skipNextToggleRef.current === key) {
+      skipNextToggleRef.current = null
+      return
+    }
+
+    skipNextToggleRef.current = null
+    handleInstanceIncludeToggle(instanceId)
+  }, [handleInstanceIncludeToggle, makeToggleKey])
+
+  const handleInstancePointerDown = useCallback((event: React.PointerEvent<HTMLElement>, instanceId: number) => {
+    if (event.button !== 0) {
+      skipNextToggleRef.current = null
+      cancelLongPress()
+      return
+    }
+
+    if (event.metaKey || event.ctrlKey) {
+      event.preventDefault()
+      event.stopPropagation()
+      skipNextToggleRef.current = makeToggleKey("instance", instanceId.toString())
+      handleInstanceExcludeToggle(instanceId)
+      cancelLongPress()
+      return
+    }
+
+    skipNextToggleRef.current = null
+
+    const pointerType = event.pointerType
+    const isTouchLike =
+      pointerType === "touch" ||
+      pointerType === "pen" ||
+      (pointerType !== "mouse" && isMobile)
+
+    if (isTouchLike) {
+      const key = makeToggleKey("instance", instanceId.toString())
+      scheduleLongPressExclude(key, () => handleInstanceExcludeToggle(instanceId))
+    } else {
+      cancelLongPress()
+    }
+  }, [cancelLongPress, handleInstanceExcludeToggle, isMobile, makeToggleKey, scheduleLongPressExclude])
+
   const untaggedState = getTagState("")
   const uncategorizedState = getCategoryState("")
   const noTrackerState = getTrackerState("")
@@ -1726,6 +1840,14 @@ const FilterSidebarComponent = ({
       excludeTrackers: [],
     })
   }
+
+  const clearInstancesFilter = () => {
+    applyFilterChange({
+      ...selectedFilters,
+      instances: [],
+      excludeInstances: [],
+    })
+  }
   const clearTagsFilter = () => {
     applyFilterChange({
       ...selectedFilters,
@@ -1832,6 +1954,8 @@ const FilterSidebarComponent = ({
     selectedFilters.excludeTags.length > 0 ||
     selectedFilters.trackers.length > 0 ||
     selectedFilters.excludeTrackers.length > 0 ||
+    (selectedFilters.instances?.length ?? 0) > 0 ||
+    (selectedFilters.excludeInstances?.length ?? 0) > 0 ||
     Boolean(selectedFilters.expr)
 
   if (isConcreteInstanceScope && !isInstanceActive) {
@@ -1940,6 +2064,70 @@ const FilterSidebarComponent = ({
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">
                     {t("filterSidebar.customFilterHelp")}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+
+            {!isConcreteInstanceScope && (
+              <AccordionItem value="instances" className="border rounded-lg last:border-b">
+                <AccordionTrigger className={cn(accordionTriggerClass, "hover:no-underline")}>
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-sm font-medium">{t("filterSidebar.instances")}</span>
+                    {(selectedFilters.instances?.length ?? 0) + (selectedFilters.excludeInstances?.length ?? 0) > 0 && (
+                      <FilterBadge
+                        count={(selectedFilters.instances?.length ?? 0) + (selectedFilters.excludeInstances?.length ?? 0)}
+                        onClick={clearInstancesFilter}
+                      />
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className={accordionContentClass}>
+                  <div className="flex flex-col gap-0">
+                    {!instances || instances.length === 0 ? (
+                      <div className="text-xs text-muted-foreground px-2 py-3 text-center italic">
+                        {t("filterSidebar.noInstances")}
+                      </div>
+                    ) : (
+                      instances.map((instance) => {
+                        const instanceState = getInstanceState(instance.id)
+                        return (
+                          <label
+                            key={instance.id}
+                            className={cn(
+                              filterRowClass,
+                              "rounded cursor-pointer w-full min-w-0",
+                              filterItemClass,
+                              instanceState === "exclude"? "bg-destructive/10 text-destructive hover:bg-destructive/15": "hover:bg-muted"
+                            )}
+                            onPointerDown={(event) => handleInstancePointerDown(event, instance.id)}
+                            onPointerLeave={handlePointerLeave}
+                          >
+                            <Checkbox
+                              checked={getCheckboxVisualState(instanceState)}
+                              onCheckedChange={() => handleInstanceCheckboxChange(instance.id)}
+                              className="rounded border-input"
+                            />
+                            <TruncatedText
+                              className={cn(
+                                "text-sm flex-1 min-w-0",
+                                instanceState === "exclude" ? "text-destructive" : undefined
+                              )}
+                            >
+                              {instance.name}
+                            </TruncatedText>
+                            <span
+                              className={cn(
+                                "text-xs tabular-nums shrink-0",
+                                instanceState === "exclude" ? "text-destructive" : "text-muted-foreground"
+                              )}
+                            >
+                              {getDisplayCount(`instance:${instance.id}`)}
+                            </span>
+                          </label>
+                        )
+                      })
+                    )}
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -2170,9 +2358,7 @@ const FilterSidebarComponent = ({
                   {/* No results message for categories */}
                   {hasReceivedCategoriesData && debouncedCategorySearch && filteredCategories.length === 0 && (
                     <div className="text-xs text-muted-foreground px-2 py-3 text-center italic">
-                      {!showHiddenCategories && hiddenCategorySearchMatches > 0
-                        ? t("filterSidebar.allCategoriesEmpty")
-                        : t("filterSidebar.noCategoriesFound", { query: debouncedCategorySearch })}
+                      {!showHiddenCategories && hiddenCategorySearchMatches > 0? t("filterSidebar.allCategoriesEmpty"): t("filterSidebar.noCategoriesFound", { query: debouncedCategorySearch })}
                     </div>
                   )}
 
@@ -2582,9 +2768,7 @@ const FilterSidebarComponent = ({
                   {/* No results message for tags */}
                   {hasReceivedTagsData && debouncedTagSearch && filteredTags.length === 0 && (
                     <div className="text-xs text-muted-foreground px-2 py-3 text-center italic">
-                      {!showHiddenTags && hiddenTagSearchMatches > 0
-                        ? t("filterSidebar.allTagsEmpty")
-                        : t("filterSidebar.noTagsFound", { query: debouncedTagSearch })}
+                      {!showHiddenTags && hiddenTagSearchMatches > 0? t("filterSidebar.allTagsEmpty"): t("filterSidebar.noTagsFound", { query: debouncedTagSearch })}
                     </div>
                   )}
 

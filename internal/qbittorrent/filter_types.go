@@ -14,7 +14,13 @@ type FilterOptions struct {
 	ExcludeTags       []string `json:"excludeTags"`
 	Trackers          []string `json:"trackers"`
 	ExcludeTrackers   []string `json:"excludeTrackers"`
-	Expr              string   `json:"expr"`
+	// Instances and ExcludeInstances are only meaningful for cross-instance
+	// (unified view) filtering. Include semantics: when Instances is non-empty,
+	// only torrents from those instance IDs are returned. ExcludeInstances
+	// removes torrents from those instance IDs.
+	Instances        []int  `json:"instances"`
+	ExcludeInstances []int  `json:"excludeInstances"`
+	Expr             string `json:"expr"`
 }
 
 // IsEmpty reports whether no filter is set.
@@ -28,5 +34,7 @@ func (f FilterOptions) IsEmpty() bool {
 		len(f.ExcludeTags) == 0 &&
 		len(f.Trackers) == 0 &&
 		len(f.ExcludeTrackers) == 0 &&
+		len(f.Instances) == 0 &&
+		len(f.ExcludeInstances) == 0 &&
 		f.Expr == ""
 }

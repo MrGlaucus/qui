@@ -37,12 +37,9 @@ export function MobileScrollProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      // Determine scroll direction
-      if (scrollY > lastScrollY.current) {
-        setIsFooterVisible(false) // Hide on scroll down
-      } else {
-        setIsFooterVisible(true) // Show on scroll up
-      }
+      // Footer always visible — auto-hide disabled while upstream resolves
+      // scroll-boundary flicker. Restore the direction-based logic below when ready.
+      setIsFooterVisible(true)
 
       lastScrollY.current = scrollY > 0 ? scrollY : 0
       ticking.current = false

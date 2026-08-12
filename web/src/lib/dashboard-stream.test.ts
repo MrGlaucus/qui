@@ -12,12 +12,13 @@ import {
   hasDashboardStatsPayload,
   mergeDashboardInstanceMeta,
   mergeDashboardStatsSnapshot,
+  mergeLiveTodayTraffic,
   resolveDashboardDataStatusKind,
   resolveDashboardStreamError,
   resolveDashboardTorrentCounts,
   shouldUseDashboardStatsFallback
 } from "@/lib/dashboard-stream"
-import type { InstanceResponse, TorrentCounts } from "@/types"
+import type { InstanceDailyTraffic, InstanceResponse, TodayTraffic, TorrentCounts } from "@/types"
 
 function makeCounts(overrides: Partial<TorrentCounts> = {}): TorrentCounts {
   return {
@@ -53,6 +54,7 @@ function makeInstance(overrides: Partial<InstanceResponse> = {}): InstanceRespon
     hardlinkDirPreset: "flat",
     useReflinks: false,
     fallbackToRegularMode: true,
+    dailyTrafficEnabled: true,
     sortOrder: 0,
     isActive: true,
     reannounceSettings: {
@@ -246,5 +248,62 @@ describe("mergeDashboardStatsSnapshot", () => {
 
     expect(merged.counts).toBe(cachedCounts)
     expect(merged.stats?.totalDownloadSpeed).toBe(1)
+  })
+})
+
+describe("mergeLiveTodayTraffic", () => {
+  function makeDailyItem(overrides: Partial<InstanceDailyTraffic> = {}): InstanceDailyTraffic {
+    return {
+      id: 1,
+      instanceId: 7,
+      date: "2026-08-10",
+      uploaded: 100,
+      downloaded: 200,
+      peakUlSpeed: 10,
+      peakDlSpeed: 20,
+      dataSource: "session",
+      createdAt: "",
+      updatedAt: "",
+      baselineSessionUploaded: 0,
+      baselineSessionDownloaded: 0,
+      baselineAlltimeUploaded: 0,
+      baselineAlltimeDownloaded: 0,
+      baselineAt: "2026-08-10T00:00:00Z",
+      ...overrides,
+    }
+  }
+
+  it("updates only the row matching the live date", () => {
+    const today = makeDailyItem()
+    const yesterday = makeDailyItem({ id: 2, date: "2026-08-09", uploaded: 55, downloaded: 66 })
+    const live: TodayTraffic = { date: "2026-08-10", uploaded: 150, downloaded: 250 }
+
+    const merged = mergeLiveTodayTraffic(
+      { items: [today, yesterday], total: 2 },
+      live
+    )
+
+    expect(merged).toBeDefined()
+    expect(merged!.items[0].uploaded).toBe(150)
+    expect(merged!.items[0].downloaded).toBe(250)
+    expect(merged!.items[0].peakUlSpeed).toBe(10) // untouched fields survive
+    expect(merged!.items[0].dataSource).toBe("session")
+    expect(merged!.items[1]).toBe(yesterday) // history rows keep their identity
+  })
+
+  it("returns the same reference when the live values are unchanged", () => {
+    const today = makeDailyItem({ uploaded: 150, downloaded: 250 })
+    const response = { items: [today], total: 1 }
+    const live: TodayTraffic = { date: "2026-08-10", uploaded: 150, downloaded: 250 }
+
+    expect(mergeLiveTodayTraffic(response, live)).toBe(response)
+  })
+
+  it("returns current unchanged when live data is absent or has no matching row", () => {
+    const response = { items: [makeDailyItem({ date: "2026-08-09" })], total: 1 }
+    expect(mergeLiveTodayTraffic(response, null)).toBe(response)
+    expect(mergeLiveTodayTraffic(response, undefined)).toBe(response)
+    expect(mergeLiveTodayTraffic(response, { date: "2026-08-08", uploaded: 1, downloaded: 2 })).toBe(response)
+    expect(mergeLiveTodayTraffic(undefined, { date: "2026-08-10", uploaded: 1, downloaded: 2 })).toBeUndefined()
   })
 })

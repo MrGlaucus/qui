@@ -20,7 +20,7 @@ func TestAutomationSummaryMessageDoesNotDuplicateTopFailures(t *testing.T) {
 	summary.failedByAction[models.ActivityActionDeleteFailed] = 1
 
 	msg := summary.message()
-	require.Equal(t, 1, strings.Count(msg, "Top failures:"))
+	require.Equal(t, 1, strings.Count(msg, "主要失败:"))
 }
 
 func TestBuildAutomationRuleSummariesGroupsActionsByRule(t *testing.T) {
@@ -108,7 +108,7 @@ func TestBuildAutomationRuleSummariesUsesRuleIDFallbackWhenNameMissing(t *testin
 	}, 1)
 
 	msg := summary.message()
-	require.Contains(t, msg, "Rules: Rule #99")
+	require.Contains(t, msg, "规则: Rule #99")
 	require.NotContains(t, msg, "Unknown rule")
 
 	got := buildAutomationRuleSummaries(summary)
@@ -129,8 +129,8 @@ func TestAutomationSummaryMessageIncludesTagDetailsAndSamples(t *testing.T) {
 	summary.addTagSamples([]string{"Torrent B", "Torrent A", "Torrent A"}, 3)
 
 	msg := summary.message()
-	require.Contains(t, msg, "Tags: +freeleech=2; -temp=1")
-	require.Contains(t, msg, "Tag samples:")
+	require.Contains(t, msg, "标签: +freeleech=2; -temp=1")
+	require.Contains(t, msg, "标签样本:")
 	require.Contains(t, msg, "Torrent A")
 	require.Contains(t, msg, "Torrent B")
 }
@@ -146,7 +146,7 @@ func TestAutomationSummaryMessageIncludesSamplesForNonDeleteActions(t *testing.T
 	}, 1)
 
 	msg := summary.message()
-	require.Contains(t, msg, "Samples: Some.Release.2026")
+	require.Contains(t, msg, "样本: Some.Release.2026")
 }
 
 func TestAutomationSummaryAddTorrentSamplesUsesLimitAndDedupes(t *testing.T) {
@@ -161,7 +161,7 @@ func TestAutomationSummaryAddTorrentSamplesUsesLimitAndDedupes(t *testing.T) {
 	}, 3)
 
 	msg := summary.message()
-	require.Contains(t, msg, "Samples:")
+	require.Contains(t, msg, "样本:")
 	require.Contains(t, msg, "Torrent A")
 	require.Contains(t, msg, "Torrent B")
 	require.Contains(t, msg, "Torrent C")

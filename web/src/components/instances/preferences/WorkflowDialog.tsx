@@ -260,6 +260,7 @@ const SIMPLE_SORT_FIELD_SET = new Set<ConditionField>([
   "ADDED_ON_AGE",
   "COMPLETION_ON_AGE",
   "LAST_ACTIVITY_AGE",
+  "PUBLISHED_ON_AGE",
   "RATIO",
   "PROGRESS",
   "AVAILABILITY",
@@ -295,6 +296,7 @@ const SCORE_MULTIPLIER_FIELD_SET = new Set<ConditionField>([
   "ADDED_ON_AGE",
   "COMPLETION_ON_AGE",
   "LAST_ACTIVITY_AGE",
+  "PUBLISHED_ON_AGE",
   "RATIO",
   "PROGRESS",
   "AVAILABILITY",
@@ -1286,19 +1288,6 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
     }
   }, [formState.actionCondition, formState.deleteEnabled, formState.exprDeleteMode, t])
 
-  // Auto-switch interval from 1 minute when FREE_SPACE delete condition is added
-  // The backend has a ~5 minute cooldown, so 1 minute intervals would be ineffective
-  // Only switch on user edits, not during initial hydration (respect saved config)
-  useEffect(() => {
-    if (isHydrating.current) return
-    if (formState.deleteEnabled && formState.intervalSeconds === 60) {
-      if (conditionUsesField(formState.actionCondition, "FREE_SPACE")) {
-        setFormState(prev => ({ ...prev, intervalSeconds: 300 })) // Switch to 5 minutes
-        toast.info(t("preferences.workflowDialog.toast.switchedIntervalForFreeSpace"))
-      }
-    }
-  }, [formState.actionCondition, formState.deleteEnabled, formState.intervalSeconds, t])
-
   // Auto-switch free space source from "path" to "qbittorrent" on Windows (not supported)
   // This must run during hydration to handle legacy workflows opened on Windows.
   // Only toast after hydration to avoid noise when opening dialogs.
@@ -1622,7 +1611,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
   const deleteUsesFreeSpace = formState.deleteEnabled && conditionUsesFreeSpace
   const intervalOptions = useMemo(() => ([
     { value: "default", label: t("preferences.workflowDialog.interval.default") },
-    { value: "60", label: t("preferences.workflowDialog.interval.oneMinute"), disabled: deleteUsesFreeSpace },
+    { value: "60", label: t("preferences.workflowDialog.interval.oneMinute") },
     { value: "300", label: t("preferences.workflowDialog.interval.fiveMinutes") },
     { value: "900", label: t("preferences.workflowDialog.interval.fifteenMinutes") },
     { value: "1800", label: t("preferences.workflowDialog.interval.thirtyMinutes") },
@@ -1632,7 +1621,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
     { value: "21600", label: t("preferences.workflowDialog.interval.sixHours") },
     { value: "43200", label: t("preferences.workflowDialog.interval.twelveHours") },
     { value: "86400", label: t("preferences.workflowDialog.interval.twentyFourHours") },
-  ]), [deleteUsesFreeSpace, t])
+  ]), [t])
 
   // Count enabled actions
   const enabledActionsCount = [
@@ -1967,7 +1956,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
     { header: t("preferences.workflowDialog.csv.hash"), accessor: t => t.hash },
     { header: t("preferences.workflowDialog.csv.tracker"), accessor: t => t.tracker },
     { header: t("preferences.workflowDialog.csv.size"), accessor: t => formatBytes(t.size) },
-    { header: t("preferences.workflowDialog.csv.ratio"), accessor: item => item.ratio === -1 ? t("preferences.workflowDialog.infinity") : item.ratio.toFixed(2) },
+    { header: t("preferences.workflowDialog.csv.ratio"), accessor: item => item.ratio === -1 ? t("preferences.workflowDialog.infinity") : (item.ratio ?? 0).toFixed(2) },
     { header: t("preferences.workflowDialog.csv.seedingTimeSeconds"), accessor: t => t.seedingTime },
     { header: t("preferences.workflowDialog.csv.category"), accessor: t => t.category },
     { header: t("preferences.workflowDialog.csv.tags"), accessor: t => t.tags },
@@ -4103,7 +4092,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                     </SelectTrigger>
                     <SelectContent>
                       {intervalOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
+                        <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
@@ -4116,27 +4105,6 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
                       )}
                     </SelectContent>
                   </Select>
-                  {deleteUsesFreeSpace && (
-                    <TooltipProvider delayDuration={150}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className="inline-flex items-center text-muted-foreground hover:text-foreground"
-                            aria-label={t("preferences.workflowDialog.interval.cooldownAria")}
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-[280px]">
-                          <p>{t("preferences.workflowDialog.interval.cooldownDescription")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                  {deleteUsesFreeSpace && formState.intervalSeconds === 60 && (
-                    <span className="text-xs text-yellow-500">{t("preferences.workflowDialog.interval.cooldownWarning")}</span>
-                  )}
                 </div>
               </div>
               <div className="flex gap-2 w-full sm:w-auto">

@@ -105,7 +105,7 @@ const (
 	defaultTorrentCacheTTL   = 12 * time.Hour
 	defaultSearchCacheTTL    = 24 * time.Hour
 	storeOperationTimeout    = 5 * time.Second
-	minSearchCacheTTL        = defaultSearchCacheTTL
+	minSearchCacheTTL        = 1 * time.Minute
 
 	interactiveSearchMinInterval = 10 * time.Second
 	interactiveSearchMaxWait     = 10 * time.Second

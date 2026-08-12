@@ -5,6 +5,7 @@
 
 import { CompletionOverview } from "@/components/instances/preferences/CompletionOverview"
 import { BlocklistTab } from "@/components/cross-seed/BlocklistTab"
+import { CrossSeedLogTab } from "@/components/cross-seed/CrossSeedLogTab"
 import { DirScanTab } from "@/components/cross-seed/DirScanTab"
 import { SeasonPackCategoryRulesEditor } from "@/components/crossseed/SeasonPackCategoryRulesEditor"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -143,7 +144,7 @@ interface GlobalCrossSeedSettings {
 type CategoryMode = "reuse" | "affix" | "indexer" | "custom"
 
 // RSS Automation constants
-const MIN_RSS_INTERVAL_MINUTES = 30   // RSS: minimum interval between RSS feed polls
+const MIN_RSS_INTERVAL_MINUTES = 1   // RSS: minimum interval between RSS feed polls (keep in sync with backend minRSSIntervalMinutes in internal/services/crossseed/service.go)
 const DEFAULT_RSS_INTERVAL_MINUTES = 120  // RSS: default interval (2 hours)
 const MIN_SEEDED_SEARCH_INTERVAL_SECONDS = 60  // Seeded Search: minimum interval between torrents
 const MIN_GAZELLE_ONLY_SEARCH_INTERVAL_SECONDS = 5  // Gazelle-only seeded search: still be polite; per-torrent work can trigger multiple API calls
@@ -268,8 +269,8 @@ function aggregateInstanceMetadata(
 }
 
 interface CrossSeedPageProps {
-  activeTab: "auto" | "scan" | "dir-scan" | "rules" | "blocklist"
-  onTabChange: (tab: "auto" | "scan" | "dir-scan" | "rules" | "blocklist") => void
+  activeTab: "auto" | "scan" | "dir-scan" | "rules" | "blocklist" | "log"
+  onTabChange: (tab: "auto" | "scan" | "dir-scan" | "rules" | "blocklist" | "log") => void
 }
 
 interface RSSRunItemProps {
@@ -2035,6 +2036,7 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
           <TabsTrigger className="shrink-0" value="dir-scan">{t("tabs.dirScan")}</TabsTrigger>
           <TabsTrigger className="shrink-0" value="rules">{t("tabs.rules")}</TabsTrigger>
           <TabsTrigger className="shrink-0" value="blocklist">{t("tabs.blocklist")}</TabsTrigger>
+          <TabsTrigger className="shrink-0" value="log">{t("tabs.log")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="auto" className="space-y-6">
@@ -3554,6 +3556,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
         </TabsContent>
         <TabsContent value="blocklist" className="space-y-6">
           <BlocklistTab instances={instances ?? []} />
+        </TabsContent>
+        <TabsContent value="log" className="space-y-6">
+          <CrossSeedLogTab />
         </TabsContent>
       </Tabs>
 

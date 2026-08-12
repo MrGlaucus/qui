@@ -1479,11 +1479,23 @@ func (h *Handler) handleTorrentProperties(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	dlPeak, upPeak := h.syncManager.GetPeakSpeeds(instanceID, hash)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
+	resp := struct {
+		*qbt.TorrentProperties
+		PeakDlSpeed int64 `json:"peak_dl_speed,omitempty"`
+		PeakUpSpeed int64 `json:"peak_up_speed,omitempty"`
+	}{
+		TorrentProperties: properties,
+		PeakDlSpeed:       dlPeak,
+		PeakUpSpeed:       upPeak,
+	}
+
 	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(properties); err != nil {
+	if err := encoder.Encode(resp); err != nil {
 		log.Error().
 			Err(err).
 			Int("instanceId", instanceID).

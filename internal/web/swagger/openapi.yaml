@@ -1262,6 +1262,43 @@ paths:
         '500':
           description: Failed to get directory contents
 
+  /api/instances/{instanceID}/traffic/daily:
+    get:
+      tags:
+        - Instances
+      summary: Get daily traffic statistics
+      description: Returns recent per-day traffic rows for an instance, newest first.
+      parameters:
+        - $ref: '#/components/parameters/instanceID'
+        - in: query
+          name: days
+          required: false
+          schema:
+            type: integer
+            default: 7
+            maximum: 365
+          description: Maximum number of daily rows to return
+      responses:
+        '200':
+          description: Daily traffic rows
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InstanceDailyTraffic'
+                  total:
+                    type: integer
+                    description: Number of rows returned
+        '400':
+          description: Invalid instance ID or days parameter
+        '500':
+          description: Failed to load daily traffic
+
+
   /api/instances/{instanceID}/reannounce/activity:
     get:
       tags:
@@ -3823,6 +3860,77 @@ paths:
         '409':
           description: No automation run is currently active
 
+  /api/cross-seed/log:
+    get:
+      tags:
+        - Cross-Seed
+      summary: List cross-seed log entries
+      description: Returns paginated cross-seed log entries.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+          description: Maximum number of entries to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of entries to skip
+      responses:
+        '200':
+          description: Cross-seed log entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CrossSeedLogEntryView'
+                  total:
+                    type: integer
+        '500':
+          description: Failed to list cross-seed log
+
+  /api/cross-seed/log/cleanup:
+    post:
+      tags:
+        - Cross-Seed
+      summary: Clean cross-seed log entries
+      description: Deletes cross-seed log entries older than the specified age.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ageHours
+              properties:
+                ageHours:
+                  type: integer
+                  minimum: 1
+                  description: Delete entries older than this many hours
+      responses:
+        '200':
+          description: Number of deleted entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: integer
+        '400':
+          description: ageHours must be a positive number
+        '500':
+          description: Failed to clean cross-seed log
+
   /api/cross-seed/blocklist:
     get:
       tags:
@@ -5625,6 +5733,43 @@ paths:
           description: Service is alive
 
 
+  /api/peers/geoip:
+    post:
+      tags:
+        - Torrents
+      summary: Batch ISP lookup for peer IPs
+      description: Resolves the ISP for a batch of IP addresses, with server-side caching and rate limiting.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ips
+              properties:
+                ips:
+                  type: array
+                  items:
+                    type: string
+                  description: IP addresses to look up
+      responses:
+        '200':
+          description: ISP lookup results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: object
+                    additionalProperties:
+                      type: string
+                      nullable: true
+                    description: Map of IP to resolved ISP, or null when lookup failed
+        '400':
+          description: Invalid request body or no IPs provided
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -5683,6 +5828,43 @@ components:
       description: Directory scan run ID
 
   schemas:
+    InstanceDailyTraffic:
+      type: object
+      properties:
+        id:
+          type: integer
+        instanceId:
+          type: integer
+        date:
+          type: string
+          description: UI/server-timezone calendar day in YYYY-MM-DD format
+        uploaded:
+          type: integer
+          format: int64
+          description: Uploaded bytes attributed to the day
+        downloaded:
+          type: integer
+          format: int64
+          description: Downloaded bytes attributed to the day
+        peakUlSpeed:
+          type: integer
+          format: int64
+          description: Peak upload speed sampled during the day (bytes/s)
+        peakDlSpeed:
+          type: integer
+          format: int64
+          description: Peak download speed sampled during the day (bytes/s)
+        dataSource:
+          type: string
+          enum: [session, alltime, restart, reinstall]
+          description: How the day's traffic was attributed
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
     User:
       type: object
       properties:
@@ -6672,6 +6854,27 @@ components:
           type: string
         note:
           type: string
+
+    CrossSeedLogEntryView:
+      type: object
+      properties:
+        infoHash:
+          type: string
+        instanceId:
+          type: integer
+        instanceName:
+          type: string
+        torrentName:
+          type: string
+        sourceIndexer:
+          type: string
+        publishDate:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
 
     InstanceCrossSeedCompletionSettings:
       type: object

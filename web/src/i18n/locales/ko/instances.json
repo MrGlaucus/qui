@@ -11,7 +11,8 @@
       "enableInstance": "인스턴스 활성화",
       "moveUp": "위로 이동",
       "moveDown": "아래로 이동",
-      "instanceSettings": "인스턴스 설정"
+      "instanceSettings": "인스턴스 설정",
+      "openInstance": "새 탭에서 인스턴스 열기"
     },
     "actions": {
       "edit": "편집",
@@ -75,7 +76,9 @@
       "basicAuthUsername": "기본 인증 사용자 이름",
       "basicAuthPassword": "기본 인증 비밀번호",
       "authType": "인증 유형",
-      "authTypeDescription": "qui가 qBittorrent에 인증하는 방식을 선택하세요."
+      "authTypeDescription": "qui가 qBittorrent에 인증하는 방식을 선택하세요.",
+      "dailyTrafficEnabled": "일일 트래픽 기록",
+      "dailyTrafficEnabledDescription": "이 인스턴스의 일별 업로드/다운로드 합계와 최대 속도를 기록합니다. 비활성화하면 새 데이터 수집을 중단합니다."
     },
     "placeholders": {
       "instanceName": "예: 메인 서버 또는 홈 qBittorrent",
@@ -239,7 +242,9 @@
         "username": "사용자 이름",
         "password": "비밀번호",
         "qbittorrentAuth": "qBittorrent 인증",
-        "qbittorrentAuthDescription": "qui가 qBittorrent에 인증하는 방식을 선택하세요."
+        "qbittorrentAuthDescription": "qui가 qBittorrent에 인증하는 방식을 선택하세요.",
+        "dailyTrafficEnabled": "일일 트래픽 기록",
+        "dailyTrafficEnabledDescription": "이 인스턴스의 일별 업로드/다운로드 합계와 최대 속도를 기록합니다. 비활성화하면 새 데이터 수집을 중단합니다."
       },
       "placeholders": {
         "instanceName": "예: 메인 서버",

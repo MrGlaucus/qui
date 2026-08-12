@@ -65,6 +65,7 @@ export const CONDITION_FIELDS = {
   ADDED_ON_AGE: { label: "Added Age (legacy)", type: "duration" as const, description: "Legacy alias for Added Age" },
   COMPLETION_ON_AGE: { label: "Completed Age (legacy)", type: "duration" as const, description: "Legacy alias for Completed Age" },
   LAST_ACTIVITY_AGE: { label: "Inactive Time (legacy)", type: "duration" as const, description: "Legacy alias for Inactive Time" },
+  PUBLISHED_ON_AGE: { label: "Published Age", type: "duration" as const, description: "Time since torrent was published on tracker" },
 
   // System Time fields
   SYSTEM_HOUR: { label: "System Hour", type: "integer" as const, description: "Current system hour (0-23)" },
@@ -75,10 +76,10 @@ export const CONDITION_FIELDS = {
   SYSTEM_YEAR: { label: "System Year", type: "integer" as const, description: "Current system year" },
 
   // Float fields
-  RATIO: { label: "Ratio", type: "float" as const, description: "Upload/download ratio" },
+  RATIO: { label: "Ratio (Uploaded / Downloaded)", type: "float" as const, description: "Upload/download ratio" },
   RATIO_LIMIT: { label: "Ratio Limit", type: "float" as const, description: "Configured ratio limit" },
   MAX_RATIO: { label: "Max Ratio", type: "float" as const, description: "Maximum ratio value from qBittorrent" },
-  UPLOADED_OVER_SIZE: { label: "Uploaded / Size", type: "float" as const, description: "Uploaded / total torrent size. Cross-seed-safe alternative to RATIO." },
+  UPLOADED_OVER_SIZE: { label: "Ratio (Uploaded / Size)", type: "float" as const, description: "Uploaded / total torrent size. Cross-seed-safe alternative to Ratio." },
   PROGRESS: { label: "Progress", type: "percentage" as const, description: "Download progress (0-100%)" },
   AVAILABILITY: { label: "Availability", type: "float" as const, description: "Distributed copies" },
   POPULARITY: { label: "Popularity", type: "float" as const, description: "Swarm popularity metric" },
@@ -175,15 +176,17 @@ export const OPERATORS_BY_TYPE: Record<FieldType, { value: string; label: string
     { value: "LESS_THAN_OR_EQUAL", label: "<=" },
     { value: "BETWEEN", label: "between" },
   ],
-  speed: [
-    { value: "EQUAL", label: "=" },
-    { value: "NOT_EQUAL", label: "!=" },
-    { value: "GREATER_THAN", label: ">" },
-    { value: "GREATER_THAN_OR_EQUAL", label: ">=" },
-    { value: "LESS_THAN", label: "<" },
-    { value: "LESS_THAN_OR_EQUAL", label: "<=" },
-    { value: "BETWEEN", label: "between" },
-  ],
+   speed: [
+     { value: "EQUAL", label: "=" },
+     { value: "NOT_EQUAL", label: "!=" },
+     { value: "GREATER_THAN", label: ">" },
+     { value: "GREATER_THAN_OR_EQUAL", label: ">=" },
+     { value: "LESS_THAN", label: "<" },
+     { value: "LESS_THAN_OR_EQUAL", label: "<=" },
+     { value: "BETWEEN", label: "between" },
+     { value: "IS", label: "is" },
+     { value: "IS_NOT", label: "is not" },
+   ],
   integer: [
     { value: "EQUAL", label: "=" },
     { value: "NOT_EQUAL", label: "!=" },
@@ -242,6 +245,11 @@ export const DELETE_MODES = [
   { value: "deleteWithFilesIncludeCrossSeeds", label: "Remove with files (include cross-seeds)" },
 ];
 
+// Speed limit state options used by the IS / IS_NOT operator on DL_LIMIT / UP_LIMIT.
+export const LIMIT_OPTIONS = [
+  { value: "unlimited", label: "Unlimited" },
+];
+
 // Field groups for organized selection
 export const FIELD_GROUPS = [
   {
@@ -266,7 +274,7 @@ export const FIELD_GROUPS = [
   },
   {
     label: "Time",
-    fields: ["ADDED_ON", "COMPLETION_ON", "LAST_ACTIVITY", "SEEN_COMPLETE", "ETA", "REANNOUNCE", "SEEDING_TIME", "TIME_ACTIVE", "MAX_SEEDING_TIME", "MAX_INACTIVE_SEEDING_TIME", "SEEDING_TIME_LIMIT", "INACTIVE_SEEDING_TIME_LIMIT"],
+    fields: ["ADDED_ON", "COMPLETION_ON", "LAST_ACTIVITY", "SEEN_COMPLETE", "PUBLISHED_ON_AGE", "ETA", "REANNOUNCE", "SEEDING_TIME", "TIME_ACTIVE", "MAX_SEEDING_TIME", "MAX_INACTIVE_SEEDING_TIME", "SEEDING_TIME_LIMIT", "INACTIVE_SEEDING_TIME_LIMIT"],
   },
   {
     label: "System Time",
@@ -274,7 +282,7 @@ export const FIELD_GROUPS = [
   },
   {
     label: "Progress",
-    fields: ["RATIO", "RATIO_LIMIT", "MAX_RATIO", "UPLOADED_OVER_SIZE", "PROGRESS", "AVAILABILITY", "POPULARITY"],
+    fields: ["RATIO", "UPLOADED_OVER_SIZE", "RATIO_LIMIT", "MAX_RATIO", "PROGRESS", "AVAILABILITY", "POPULARITY"],
   },
   {
     label: "Speed",
@@ -426,6 +434,8 @@ const OPERATOR_LABEL_KEYS: Record<string, string> = {
   BETWEEN: "between",
   EXISTS_IN: "existsIn",
   CONTAINS_IN: "similarExistsIn",
+  IS: "is",
+  IS_NOT: "isNot",
 };
 
 /** Get translated operators for a field, preserving the original structure */
@@ -441,6 +451,9 @@ export function getTranslatedOperatorsForField(field: string, t: TFunction): { v
     if ((type === "state" || type === "trackerStatus" || type === "boolean" || type === "hardlinkScope") && (op.value === "EQUAL" || op.value === "NOT_EQUAL")) {
       return { value: op.value, label: t(`queryBuilder.operators.${op.value === "EQUAL" ? "is" : "isNot"}`, { defaultValue: op.label }) };
     }
+    if (op.value === "IS" || op.value === "IS_NOT") {
+      return { value: op.value, label: t(`queryBuilder.operators.${op.value === "IS" ? "is" : "isNot"}`, { defaultValue: op.label }) };
+    }
     return { value: op.value, label: t(`queryBuilder.operators.${key}`, { defaultValue: op.label }) };
   });
 }
@@ -449,7 +462,15 @@ export function getTranslatedOperatorsForField(field: string, t: TFunction): { v
 export function getTranslatedTorrentStates(t: TFunction): { value: string; label: string }[] {
   return TORRENT_STATES.map((state) => ({
     value: state.value,
-    label: t(`queryBuilder.torrentStates.${state.value}`, { defaultValue: state.label }),
+    label: t(`queryBuilder.states.${state.value}`, { defaultValue: state.label }),
+  }));
+}
+
+/** Get translated limit options (unlimited / limited) */
+export function getTranslatedLimitOptions(t: TFunction): { value: string; label: string }[] {
+  return LIMIT_OPTIONS.map((opt) => ({
+    value: opt.value,
+    label: t(`queryBuilder.limitOptions.${opt.value}`, { defaultValue: opt.label }),
   }));
 }
 

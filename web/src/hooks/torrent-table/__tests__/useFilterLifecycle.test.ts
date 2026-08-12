@@ -31,6 +31,7 @@ function makeParams(over: Partial<UseFilterLifecycleParams> = {}): UseFilterLife
 const EMPTY_FILTERS = {
   status: [], excludeStatus: [], categories: [], excludeCategories: [],
   tags: [], excludeTags: [], trackers: [], excludeTrackers: [],
+  instances: [], excludeInstances: [],
 }
 
 describe("useFilterLifecycle", () => {

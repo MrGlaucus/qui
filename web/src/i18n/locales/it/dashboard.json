@@ -51,6 +51,7 @@
     "freeSpace": "Spazio libero",
     "showMore": "Mostra di più",
     "showLess": "Mostra di meno",
+    "openInstance": "Apri istanza in una nuova scheda",
     "uptime": "Tempo di attività",
     "peerConnections": "Connessioni peer",
     "queuedIOJobs": "Operazioni I/O in coda",
@@ -82,7 +83,9 @@
       "enable": "Abilita",
       "disable": "Disabilita",
       "cancel": "Annulla"
-    }
+    },
+    "todayDownloaded": "Scaricato oggi",
+    "todayUploaded": "Caricato oggi"
   },
   "mobileOverview": {
     "title": "Panoramica",
@@ -91,7 +94,9 @@
     "torrents": "Torrent",
     "activeCount": "{{count}} attivi",
     "download": "Download",
-    "upload": "Upload"
+    "upload": "Upload",
+    "todayDownload": "Scaricato oggi",
+    "todayUpload": "Caricato oggi"
   },
   "globalStats": {
     "instances": "Istanze",
@@ -101,7 +106,10 @@
     "totalDownload": "Download totale",
     "downloadingActive": "{{count}} attivi - {{size}} rimanenti",
     "totalUpload": "Upload totale",
-    "seedingActive": "{{count}} attivi - {{size}} in distribuzione"
+    "seedingActive": "{{count}} attivi - {{size}} in distribuzione",
+    "todayTraffic": "Traffico di oggi",
+    "todayDownload": "Download",
+    "todayUpload": "Upload"
   },
   "serverStats": {
     "title": "Statistiche del server",
@@ -222,5 +230,23 @@
     "allDisabled": "Tutte le istanze sono disabilitate",
     "enableInstance": "Abilita un'istanza da Impostazioni → Istanze per vedere le statistiche della dashboard.",
     "manageInstances": "Gestisci istanze"
+  },
+  "dailyTraffic": {
+    "loading": "Caricamento traffico...",
+    "empty": "Nessun traffico registrato finora.",
+    "date": "Data",
+    "downloaded": "Scaricato",
+    "uploaded": "Caricato",
+    "download": "Download",
+    "upload": "Upload",
+    "peakDl": "Picco DL",
+    "peakUl": "Picco UL",
+    "baseline": "Valore di riferimento",
+    "baselineAt": "Riferimento alle",
+    "source": "Fonte",
+    "sourceSession": "Sessione",
+    "sourceAlltime": "Totale",
+    "sourceRestart": "Riavvio",
+    "sourceReinstall": "Reinstallazione"
   }
 }

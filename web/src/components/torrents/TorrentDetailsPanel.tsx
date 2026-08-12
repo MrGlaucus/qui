@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useIspData } from "@/contexts/IspDataContext"
 import { useSyncStream } from "@/contexts/SyncStreamContext"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
 import { useInstanceCapabilities } from "@/hooks/useInstanceCapabilities"
@@ -23,6 +24,7 @@ import { usePersistedTabState } from "@/hooks/usePersistedTabState"
 import { scheduleTorrentListRefetches } from "@/hooks/useTorrentActions"
 import { api } from "@/lib/api"
 import { isHardlinkManaged, useLocalCrossSeedMatches } from "@/lib/cross-seed-utils"
+import { getCountryName } from "@/lib/countryNames"
 import { getLinuxCategory, getLinuxComment, getLinuxCreatedBy, getLinuxFileName, getLinuxHash, getLinuxIsoName, getLinuxSavePath, getLinuxTags, getLinuxTracker, useIncognitoMode } from "@/lib/incognito"
 import { renderTextWithLinks } from "@/lib/linkUtils"
 import { formatSpeedWithUnit, useSpeedUnits } from "@/lib/speedUnits"
@@ -34,12 +36,13 @@ import { cn, copyTextToClipboard, formatBytes, formatDuration } from "@/lib/util
 import type { SortedPeersResponse, Torrent, TorrentFile, TorrentFilters, TorrentStreamPayload, TorrentTracker, TorrentPeer } from "@/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import "flag-icons/css/flag-icons.min.css"
-import { Ban, Copy, Loader2, Trash2, UserPlus, X } from "lucide-react"
+import { Ban, BarChart3, Copy, Loader2, Network, Trash2, UserPlus, X } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { CrossSeedTable, GeneralTabHorizontal, PeersTable, TorrentFileTable, TrackerContextMenu, TrackersTable, WebSeedsTable } from "./details"
 import { EditTrackerDialog, RenameTorrentFileDialog, RenameTorrentFolderDialog } from "./TorrentDialogs"
+import { TaskReportDialog } from "./TaskReportDialog"
 import { TorrentFileMediaInfoDialog } from "./TorrentFileMediaInfoDialog"
 import { TorrentFileTree } from "./TorrentFileTree"
 
@@ -80,6 +83,7 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
   // to close panel and clear selection atomically
 
   const [showAddPeersDialog, setShowAddPeersDialog] = useState(false)
+  const [showReportDialog, setShowReportDialog] = useState(false)
   const { formatTimestamp } = useDateTimeFormatters()
   const [showBanPeerDialog, setShowBanPeerDialog] = useState(false)
   const [peersToAdd, setPeersToAdd] = useState("")
@@ -486,6 +490,55 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
   })
+
+  const { ispData, setIspData } = useIspData()
+
+  // Mobile peers view: default sort by upload speed (descending)
+  const mobileSortedPeers = useMemo(() => {
+    if (!peersData?.peers) return []
+    const list = peersData.sorted_peers ||
+      Object.entries(peersData.peers).map(([key, peer]) => ({ key, ...peer }))
+    return [...list].sort((a, b) => (b.up_speed || 0) - (a.up_speed || 0))
+  }, [peersData])
+
+  const handleLookupIsp = useCallback(async () => {
+    if (!peersData?.sorted_peers) return
+    const ips = peersData.sorted_peers
+      .map((p) => p.ip)
+      .filter((ip): ip is string => !!ip && !ispData[ip])
+    if (ips.length === 0) return
+    setIspData((prev) => {
+      const next = { ...prev }
+      for (const ip of ips) next[ip] = "loading"
+      return next
+    })
+    try {
+      const results = await api.lookupGeoIP(ips)
+      setIspData((prev) => {
+        const next = { ...prev }
+        for (const ip of ips) next[ip] = results[ip] ?? null
+        return next
+      })
+    } catch {
+      setIspData((prev) => {
+        const next = { ...prev }
+        for (const ip of ips) next[ip] = null
+        return next
+      })
+      toast.error(t("detailsPanel.toast.ispLookupFailed"))
+    }
+  }, [peersData?.sorted_peers, ispData, t])
+
+  const handleRetryIsp = useCallback(async (ip: string) => {
+    setIspData((prev) => ({ ...prev, [ip]: "loading" }))
+    try {
+      const results = await api.lookupGeoIP([ip])
+      setIspData((prev) => ({ ...prev, [ip]: results[ip] ?? null }))
+    } catch {
+      setIspData((prev) => ({ ...prev, [ip]: null }))
+      toast.error(t("detailsPanel.toast.ispLookupFailed"))
+    }
+  }, [t])
 
   // Fetch web seeds (HTTP sources) - always fetch to determine if tab should be shown
   const { data: webseedsData, isLoading: loadingWebseeds } = useQuery({
@@ -894,6 +947,17 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
               </TabsTrigger>
             </TabsList>
           </div>
+          {!isHorizontal && displayTorrent && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-10 shrink-0 rounded-none"
+              onClick={() => setShowReportDialog(true)}
+              aria-label={t("detailsPanel.openReport")}
+            >
+              <BarChart3 className="h-4 w-4" />
+            </Button>
+          )}
           {onClose && (
             <Button
               variant="ghost"
@@ -1092,12 +1156,14 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                               <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.downloadSpeed")}</p>
                               <p className="text-base font-semibold text-green-500">{formatSpeedWithUnit(properties.dl_speed || 0, speedUnit)}</p>
                               <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.average", { value: formatSpeedWithUnit(properties.dl_speed_avg || 0, speedUnit) })}</p>
+                              <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.peak", { value: formatSpeedWithUnit(properties.peak_dl_speed ?? 0, speedUnit) })}</p>
                               <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.limit", { value: downloadLimitLabel })}</p>
                             </div>
                             <div className="space-y-1">
                               <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.uploadSpeed")}</p>
                               <p className="text-base font-semibold text-blue-500">{formatSpeedWithUnit(properties.up_speed || 0, speedUnit)}</p>
                               <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.average", { value: formatSpeedWithUnit(properties.up_speed_avg || 0, speedUnit) })}</p>
+                              <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.peak", { value: formatSpeedWithUnit(properties.peak_up_speed ?? 0, speedUnit) })}</p>
                               <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.limit", { value: uploadLimitLabel })}</p>
                             </div>
                           </div>
@@ -1192,6 +1258,12 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                               <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.added")}</p>
                               <p className="text-sm">{formatTimestamp(properties.addition_date, true)}</p>
                             </div>
+                            {properties.publish_date && (
+                              <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.published")}</p>
+                                <p className="text-sm">{formatTimestamp(properties.publish_date, true)}</p>
+                              </div>
+                            )}
                             {properties.completion_date && properties.completion_date !== -1 && (
                               <div className="space-y-1">
                                 <p className="text-xs text-muted-foreground">{t("detailsPanel.labels.completed")}</p>
@@ -1322,15 +1394,27 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                   <span className="text-muted-foreground">
                     {t("detailsPanel.counts.connectedPeers", { count: peersData?.sorted_peers?.length ?? 0 })}
                   </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs"
-                    onClick={() => setShowAddPeersDialog(true)}
-                  >
-                    <UserPlus className="h-3 w-3 mr-1.5" />
-                    {t("detailsPanel.addPeers.title")}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => handleLookupIsp()}
+                      disabled={Object.values(ispData).some((v) => v === "loading")}
+                    >
+                      <Network className="h-3 w-3 mr-1.5" />
+                      {t("detailsPanel.queryIsp")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => setShowAddPeersDialog(true)}
+                    >
+                      <UserPlus className="h-3 w-3 mr-1.5" />
+                      {t("detailsPanel.addPeers.title")}
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex-1 overflow-hidden">
                   <PeersTable
@@ -1340,6 +1424,8 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                     showFlags={true}
                     incognitoMode={incognitoMode}
                     onBanPeer={handleBanPeerClick}
+                    ispData={ispData}
+                    onRetryIsp={handleRetryIsp}
                   />
                 </div>
               </div>
@@ -1357,19 +1443,28 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("detailsPanel.sections.connectedPeers")}</h3>
                           <p className="text-xs text-muted-foreground mt-1">{t("detailsPanel.counts.connectedPeers", { count: Object.keys(peersData.peers).length })}</p>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowAddPeersDialog(true)}
-                        >
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          {t("detailsPanel.addPeers.title")}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleLookupIsp()}
+                            disabled={Object.values(ispData).some((v) => v === "loading")}
+                          >
+                            <Network className="h-4 w-4 mr-2" />
+                            {t("detailsPanel.queryIsp")}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAddPeersDialog(true)}
+                          >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            {t("detailsPanel.addPeers.title")}
+                          </Button>
+                        </div>
                       </div>
                       <div className="space-y-4 mt-4">
-                        {(peersData.sorted_peers ||
-                          Object.entries(peersData.peers).map(([key, peer]) => ({ key, ...peer }))
-                        ).map((peerWithKey) => {
+                        {mobileSortedPeers.map((peerWithKey) => {
                           const peerKey = peerWithKey.key
                           const peer = peerWithKey
                           const isActive = (peer.dl_speed || 0) > 0 || (peer.up_speed || 0) > 0
@@ -1396,16 +1491,23 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                                   {/* Peer Header */}
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 space-y-1">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-mono text-sm cursor-context-menu">{peer.ip}:{peer.port}</span>
-                                        {peer.country_code && (
-                                          <span
-                                            className={`fi fi-${peer.country_code.toLowerCase()} rounded text-sm`}
-                                            title={peer.country || peer.country_code}
-                                          />
-                                        )}
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono text-sm cursor-context-menu break-all">{peer.ip}:{peer.port}</span>
                                         {isSeeder && (
-                                          <Badge variant="secondary" className="text-xs">{t("detailsPanel.values.seeder")}</Badge>
+                                          <Badge variant="secondary" className="text-xs shrink-0">{t("detailsPanel.values.seeder")}</Badge>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="flex items-center gap-1.5 min-w-0">
+                                          {peer.country_code && (
+                                            <span className={`fi fi-${peer.country_code.toLowerCase()} rounded text-sm shrink-0`} title={peer.country || peer.country_code} />
+                                          )}
+                                          <span className="text-xs text-muted-foreground truncate">
+                                            [{getCountryName(peer.country_code ?? "", peer.country, t)}]
+                                          </span>
+                                        </span>
+                                        {peer.ip && ispData[peer.ip] && ispData[peer.ip] !== "loading" && (
+                                          <span className="text-xs text-muted-foreground text-right truncate max-w-[50%]">{ispData[peer.ip]}</span>
                                         )}
                                       </div>
                                       <p className="text-xs text-muted-foreground">{peer.client || t("detailsPanel.values.unknownClient")}</p>
@@ -2174,6 +2276,15 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
         torrentHash={mediaInfoTorrentHash ?? ""}
         file={mediaInfoFile}
       />
+
+      {displayTorrent && (
+        <TaskReportDialog
+          open={showReportDialog}
+          onOpenChange={setShowReportDialog}
+          instanceId={instanceId}
+          torrent={displayTorrent}
+        />
+      )}
     </div>
   )
 });

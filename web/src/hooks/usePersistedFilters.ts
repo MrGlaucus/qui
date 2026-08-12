@@ -39,6 +39,8 @@ export function usePersistedFilters(instanceId: number) {
       excludeTags: instance.excludeTags || [],
       trackers: instance.trackers || [],
       excludeTrackers: instance.excludeTrackers || [],
+      instances: instance.instances || [],
+      excludeInstances: instance.excludeInstances || [],
       expr: instance.expr || "",
     }
   })
@@ -57,6 +59,8 @@ export function usePersistedFilters(instanceId: number) {
       excludeTags: instance.excludeTags || [],
       trackers: instance.trackers || [],
       excludeTrackers: instance.excludeTrackers || [],
+      instances: instance.instances || [],
+      excludeInstances: instance.excludeInstances || [],
       expr: instance.expr || "",
     })
   }, [instanceId])
@@ -74,6 +78,8 @@ export function usePersistedFilters(instanceId: number) {
       excludeTags: filters.excludeTags,
       trackers: filters.trackers,
       excludeTrackers: filters.excludeTrackers,
+      instances: filters.instances,
+      excludeInstances: filters.excludeInstances,
       expr: filters.expr,
     }))
   }, [filters, instanceId])

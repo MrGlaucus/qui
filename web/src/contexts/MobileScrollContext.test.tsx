@@ -45,7 +45,7 @@ describe("useMobileScroll", () => {
     cleanup()
   })
 
-  it("hides on scroll down and shows again on scroll up", () => {
+  it("keeps the footer visible regardless of scroll direction", () => {
     const container = document.createElement("div")
     const { result } = renderHook(() => useMobileScroll(), { wrapper })
 
@@ -53,7 +53,7 @@ describe("useMobileScroll", () => {
     expect(result.current.isFooterVisible).toBe(true)
 
     act(() => scrollTo(container, 100))
-    expect(result.current.isFooterVisible).toBe(false)
+    expect(result.current.isFooterVisible).toBe(true)
 
     act(() => scrollTo(container, 50))
     expect(result.current.isFooterVisible).toBe(true)
@@ -74,7 +74,7 @@ describe("useMobileScroll", () => {
 
     act(() => result.current.setScrollContainer(container))
     act(() => scrollTo(container, 100))
-    expect(result.current.isFooterVisible).toBe(false)
+    expect(result.current.isFooterVisible).toBe(true)
 
     // Queue a scroll-down frame but unregister before it runs
     act(() => {

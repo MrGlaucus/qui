@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import type { CacheMetadata, InstanceMeta, InstanceResponse, TorrentCounts, TorrentResponse } from "@/types"
+import type { CacheMetadata, InstanceDailyTrafficResponse, InstanceMeta, InstanceResponse, TodayTraffic, TorrentCounts, TorrentResponse } from "@/types"
 
 export const DASHBOARD_STATS_FALLBACK_SORT = "added_on"
 export const DASHBOARD_STATS_FALLBACK_ORDER = "desc"
@@ -156,5 +156,46 @@ export function mergeDashboardStatsSnapshot(
     appInfo: incoming.appInfo ?? cached.appInfo,
     cacheMetadata: incoming.cacheMetadata ?? cached.cacheMetadata,
     instanceMeta: incoming.instanceMeta ?? cached.instanceMeta,
+  }
+}
+
+/**
+ * Merges a live SSE day-total into a daily-traffic REST snapshot so the chart and
+ * history table stay consistent with the Dashboard card's real-time "today"
+ * numbers. Only the row matching the live date is touched — historical rows are
+ * immutable and stay exactly as REST returned them. Returns the same reference
+ * when nothing changed so react-query does not re-render on identical frames.
+ */
+export function mergeLiveTodayTraffic(
+  current: InstanceDailyTrafficResponse | undefined,
+  live: TodayTraffic | null | undefined
+): InstanceDailyTrafficResponse | undefined {
+  if (!current || !live) {
+    return current
+  }
+
+  let changed = false
+  const items = current.items.map(item => {
+    if (item.date !== live.date) {
+      return item
+    }
+    if (item.downloaded === live.downloaded && item.uploaded === live.uploaded) {
+      return item
+    }
+    changed = true
+    return {
+      ...item,
+      downloaded: live.downloaded,
+      uploaded: live.uploaded,
+    }
+  })
+
+  if (!changed) {
+    return current
+  }
+
+  return {
+    ...current,
+    items,
   }
 }

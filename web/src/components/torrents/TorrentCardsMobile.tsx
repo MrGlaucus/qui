@@ -855,7 +855,7 @@ function SwipeableCard({
           {/* Downloaded/Size and Ratio */}
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">
-              {formatBytes(torrent.downloaded)} / {formatBytes(torrent.size)}
+              {formatBytes(torrent.uploaded)} / {formatBytes(torrent.size)}
             </span>
             <div className="flex items-center gap-1">
               <span className="text-muted-foreground">{t("mobileCards.ratio")}</span>
@@ -863,7 +863,7 @@ function SwipeableCard({
                 className="font-medium"
                 style={{ color: getRatioColor(displayRatio) }}
               >
-                {displayRatio === -1 ? "∞" : displayRatio.toFixed(2)}
+                {displayRatio === -1 ? "∞" : (displayRatio ?? 0).toFixed(2)}
               </span>
             </div>
           </div>
@@ -885,7 +885,7 @@ function SwipeableCard({
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-muted-foreground">
-                {formatBytes(torrent.downloaded)} / {formatBytes(torrent.size)}
+                {formatBytes(torrent.uploaded)} / {formatBytes(torrent.size)}
               </span>
               <div className="flex items-center gap-2">
                 {/* ETA */}
@@ -917,7 +917,7 @@ function SwipeableCard({
                   className="font-medium"
                   style={{ color: getRatioColor(displayRatio) }}
                 >
-                  {displayRatio === -1 ? "∞" : displayRatio.toFixed(2)}
+                  {displayRatio === -1 ? "∞" : (displayRatio ?? 0).toFixed(2)}
                 </span>
               </div>
 
@@ -1201,6 +1201,18 @@ export function TorrentCardsMobile({
       excludeCategories: filters.expandedExcludeCategories ?? filters.excludeCategories ?? [],
     }
   }, [filters])
+
+  const hasActiveFilter = filters ? (
+    filters.status.length > 0 ||
+    filters.excludeStatus.length > 0 ||
+    (filters.expandedCategories ?? filters.categories ?? []).length > 0 ||
+    (filters.expandedExcludeCategories ?? filters.excludeCategories ?? []).length > 0 ||
+    filters.tags.length > 0 ||
+    filters.excludeTags.length > 0 ||
+    filters.trackers.length > 0 ||
+    filters.excludeTrackers.length > 0 ||
+    (filters.expr?.length ?? 0) > 0
+  ) : false
 
   // Progressive loading state with async management
   const [loadedRows, setLoadedRows] = useState(100)
@@ -2115,7 +2127,16 @@ export function TorrentCardsMobile({
           </div>
         ) : (
           <div className="flex items-center justify-between text-xs mb-3">
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground min-w-0 truncate">
+              {stats?.totalDownloadSpeed != null && (
+                <>
+                  <span className="whitespace-nowrap">
+                    ↓ {formatSpeedWithUnit(stats.totalDownloadSpeed, speedUnit)}{" "}
+                    ↑ {formatSpeedWithUnit(stats.totalUploadSpeed ?? 0, speedUnit)}
+                  </span>
+                  {" · "}
+                </>
+              )}
               {torrents.length === 0 && isLoading ? (
                 t("statusBar.loadingTorrents")
               ) : totalCount === 0 ? (
@@ -2858,9 +2879,9 @@ export function TorrentCardsMobile({
 
             <button
               onClick={() => window.dispatchEvent(new Event("qui-open-mobile-filters"))}
-              className="flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-xs font-medium transition-colors min-w-0 flex-1 text-muted-foreground hover:text-foreground active:scale-95"
+              className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-xs font-medium transition-colors min-w-0 flex-1 active:scale-95 ${hasActiveFilter ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
             >
-              <Filter className="h-5 w-5" />
+              <Filter className={`h-5 w-5 ${hasActiveFilter ? "text-red-500" : ""}`} />
               <span className="truncate text-[10px]">{t("filterSidebar.title")}</span>
             </button>
 

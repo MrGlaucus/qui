@@ -1,5 +1,5 @@
 # Build stage
-FROM node:22.18-alpine AS frontend-builder
+FROM node:24-alpine AS frontend-builder
 
 # Install git for cloning
 RUN apk add --no-cache git
@@ -11,10 +11,11 @@ RUN npm install -g corepack@latest && \
 WORKDIR /app/web
 
 COPY web/package.json web/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+ENV PNPM_CONFIG_DANGEROUSLY_ALLOW_ALL_BUILDS=true
+RUN pnpm install --no-frozen-lockfile
 
 COPY web ./
-RUN pnpm run build
+RUN pnpm run build:docker
 
 # Go build stage
 # Use BUILDPLATFORM to build on native architecture (fast)

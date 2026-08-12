@@ -1,0 +1,2 @@
+ALTER TABLE cross_seed_log ADD COLUMN instance_id INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE cross_seed_log ADD COLUMN torrent_name TEXT NOT NULL DEFAULT '';

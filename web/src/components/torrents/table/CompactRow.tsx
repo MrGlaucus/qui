@@ -146,7 +146,7 @@ export const CompactRow = memo(({
             className="font-medium"
             style={{ color: getRatioColor(displayRatio) }}
           >
-            {displayRatio === -1 ? "∞" : displayRatio.toFixed(2)}
+            {displayRatio === -1 ? "∞" : (displayRatio ?? 0).toFixed(2)}
           </span>
         </div>
       </div>

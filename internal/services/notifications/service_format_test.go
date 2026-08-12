@@ -32,14 +32,14 @@ func TestFormatEventTorrentAddedIncludesMetricLines(t *testing.T) {
 		TorrentNumLeechs:       0,
 	}, true)
 
-	require.Equal(t, "Torrent added", title)
-	require.Contains(t, message, "Progress: 0.00")
-	require.Contains(t, message, "Ratio: 0.0000")
-	require.Contains(t, message, "Total size: 0.00 GB")
-	require.Contains(t, message, "DL speed: 0 B/s")
-	require.Contains(t, message, "UP speed: 0 B/s")
-	require.Contains(t, message, "Seeds: 0")
-	require.Contains(t, message, "Leechs: 0")
+	require.Equal(t, "种子已添加", title)
+	require.Contains(t, message, "进度: 0.00")
+	require.Contains(t, message, "分享率: 0.0000")
+	require.Contains(t, message, "总大小: 0.00 GB")
+	require.Contains(t, message, "下载速度: 0 B/s")
+	require.Contains(t, message, "上传速度: 0 B/s")
+	require.Contains(t, message, "做种: 0")
+	require.Contains(t, message, "下载: 0")
 }
 
 func TestFormatEventTorrentCompletedOmitsMetricLinesOutsideNotifiarrAPI(t *testing.T) {
@@ -65,20 +65,20 @@ func TestFormatEventTorrentCompletedOmitsMetricLinesOutsideNotifiarrAPI(t *testi
 		TorrentNumLeechs:       2,
 	}, true)
 
-	require.Equal(t, "Torrent completed", title)
-	require.Contains(t, message, "Torrent: Done.Release [fedcba98]")
+	require.Equal(t, "种子已完成", title)
+	require.Contains(t, message, "种子: Done.Release [fedcba98]")
 	require.Contains(t, message, "Tracker: tracker.example")
-	require.Contains(t, message, "Category: movies")
-	require.Contains(t, message, "Tags: tag-a, tag-b")
-	require.NotContains(t, message, "Progress:")
-	require.NotContains(t, message, "Ratio:")
-	require.NotContains(t, message, "Total size")
-	require.NotContains(t, message, "Downloaded")
-	require.NotContains(t, message, "Amount left")
-	require.NotContains(t, message, "DL speed")
-	require.NotContains(t, message, "UP speed")
-	require.NotContains(t, message, "Seeds:")
-	require.NotContains(t, message, "Leechs:")
+	require.Contains(t, message, "分类: movies")
+	require.Contains(t, message, "标签: tag-a, tag-b")
+	require.NotContains(t, message, "进度:")
+	require.NotContains(t, message, "分享率:")
+	require.NotContains(t, message, "总大小")
+	require.NotContains(t, message, "已下载")
+	require.NotContains(t, message, "剩余")
+	require.NotContains(t, message, "下载速度")
+	require.NotContains(t, message, "上传速度")
+	require.NotContains(t, message, "做种:")
+	require.NotContains(t, message, "下载:")
 }
 
 func TestFormatEventTorrentAddedNotifiarrAPIMetricsStayRaw(t *testing.T) {
@@ -101,11 +101,11 @@ func TestFormatEventTorrentAddedNotifiarrAPIMetricsStayRaw(t *testing.T) {
 		TorrentNumLeechs:       1,
 	}, false)
 
-	require.Equal(t, "Torrent added", title)
-	require.Contains(t, message, "Progress: 0.0306")
-	require.Contains(t, message, "Total size bytes: 7926201054")
-	require.Contains(t, message, "DL speed bps: 29308908")
-	require.Contains(t, message, "UP speed bps: 0")
+	require.Equal(t, "种子已添加", title)
+	require.Contains(t, message, "进度: 0.0306")
+	require.Contains(t, message, "总大小（字节）: 7926201054")
+	require.Contains(t, message, "下载速度 (bps): 29308908")
+	require.Contains(t, message, "上传速度 (bps): 0")
 }
 
 func TestFormatEventTorrentCompletedNotifiarrAPIMetricsStayRaw(t *testing.T) {
@@ -128,16 +128,16 @@ func TestFormatEventTorrentCompletedNotifiarrAPIMetricsStayRaw(t *testing.T) {
 		TorrentNumLeechs:       2,
 	}, false)
 
-	require.Equal(t, "Torrent completed", title)
-	require.Contains(t, message, "Progress: 1.0000")
-	require.Contains(t, message, "Ratio: 1.5000")
-	require.Contains(t, message, "Total size bytes: 123")
-	require.Contains(t, message, "Downloaded bytes: 123")
-	require.Contains(t, message, "Amount left bytes: 0")
-	require.Contains(t, message, "DL speed bps: 0")
-	require.Contains(t, message, "UP speed bps: 42")
-	require.Contains(t, message, "Seeds: 7")
-	require.Contains(t, message, "Leechs: 2")
+	require.Equal(t, "种子已完成", title)
+	require.Contains(t, message, "进度: 1.0000")
+	require.Contains(t, message, "分享率: 1.5000")
+	require.Contains(t, message, "总大小（字节）: 123")
+	require.Contains(t, message, "已下载（字节）: 123")
+	require.Contains(t, message, "剩余（字节）: 0")
+	require.Contains(t, message, "下载速度 (bps): 0")
+	require.Contains(t, message, "上传速度 (bps): 42")
+	require.Contains(t, message, "做种: 7")
+	require.Contains(t, message, "下载: 2")
 }
 
 func TestFormatEventAutomationsActionsAppliedMergesSamplesOutsideNotifiarrAPI(t *testing.T) {
@@ -146,17 +146,17 @@ func TestFormatEventAutomationsActionsAppliedMergesSamplesOutsideNotifiarrAPI(t 
 	svc := &Service{}
 	title, message := svc.formatEvent(context.Background(), Event{
 		Type: EventAutomationsActionsApplied,
-		Message: "Applied: 1\n" +
-			"Top actions: Tags updated=1\n" +
-			"Tags: +no_hl=1\n" +
-			"Tag samples: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR\n" +
-			"Samples: Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv",
+		Message: "已应用: 1\n" +
+			"主要操作: Tags updated=1\n" +
+			"标签: +no_hl=1\n" +
+			"标签样本: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR\n" +
+			"样本: Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv",
 	}, true)
 
-	require.Equal(t, "Automations actions applied", title)
-	require.NotContains(t, message, "Tag samples:")
-	require.Contains(t, message, "Samples: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR; Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv")
-	require.Equal(t, 1, strings.Count(message, "Samples:"))
+	require.Equal(t, "自动化操作已应用", title)
+	require.NotContains(t, message, "标签样本:")
+	require.Contains(t, message, "样本: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR; Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv")
+	require.Equal(t, 1, strings.Count(message, "样本:"))
 }
 
 func TestFormatEventAutomationsActionsAppliedKeepsSamplesForNotifiarrAPI(t *testing.T) {
@@ -165,14 +165,14 @@ func TestFormatEventAutomationsActionsAppliedKeepsSamplesForNotifiarrAPI(t *test
 	svc := &Service{}
 	title, message := svc.formatEvent(context.Background(), Event{
 		Type: EventAutomationsActionsApplied,
-		Message: "Applied: 1\n" +
-			"Top actions: Tags updated=1\n" +
-			"Tags: +no_hl=1\n" +
-			"Tag samples: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT\n" +
-			"Samples: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT",
+		Message: "已应用: 1\n" +
+			"主要操作: Tags updated=1\n" +
+			"标签: +no_hl=1\n" +
+			"标签样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT\n" +
+			"样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT",
 	}, false)
 
-	require.Equal(t, "Automations actions applied", title)
-	require.Contains(t, message, "Tag samples: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
-	require.Contains(t, message, "Samples: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
+	require.Equal(t, "自动化操作已应用", title)
+	require.Contains(t, message, "标签样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
+	require.Contains(t, message, "样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
 }

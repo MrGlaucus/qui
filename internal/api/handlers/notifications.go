@@ -284,11 +284,11 @@ func (h *NotificationsHandler) TestTarget(w http.ResponseWriter, r *http.Request
 
 	title := strings.TrimSpace(req.Title)
 	if title == "" {
-		title = "Test notification"
+		title = "测试通知"
 	}
 	message := strings.TrimSpace(req.Message)
 	if message == "" {
-		message = "This is a test notification from qui."
+		message = "这是一条来自 qui 的测试通知。"
 	}
 
 	target, err := h.store.GetByID(r.Context(), id)

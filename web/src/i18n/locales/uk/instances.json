@@ -11,7 +11,8 @@
       "enableInstance": "Увімкнути екземпляр",
       "moveUp": "Перемістити вгору",
       "moveDown": "Перемістити вниз",
-      "instanceSettings": "Налаштування екземпляра"
+      "instanceSettings": "Налаштування екземпляра",
+      "openInstance": "Відкрити екземпляр у новій вкладці"
     },
     "actions": {
       "edit": "Редагувати",
@@ -75,7 +76,9 @@
       "basicAuthUsername": "Базове ім'я користувача авторизації",
       "basicAuthPassword": "Базовий пароль авторизації",
       "authType": "Тип автентифікації",
-      "authTypeDescription": "Виберіть спосіб автентифікації qui для qBittorrent."
+      "authTypeDescription": "Виберіть спосіб автентифікації qui для qBittorrent.",
+      "dailyTrafficEnabled": "Відстеження щоденного трафіку",
+      "dailyTrafficEnabledDescription": "Записує щоденні підсумки завантаження/віддачі та пікові швидкості для цієї інстанції. Вимкнення зупиняє збір нових даних."
     },
     "placeholders": {
       "instanceName": "наприклад, Головний сервер або Домашній qBittorrent",
@@ -239,7 +242,9 @@
         "username": "Ім'я користувача",
         "password": "Пароль",
         "qbittorrentAuth": "Автентифікація qBittorrent",
-        "qbittorrentAuthDescription": "Виберіть спосіб автентифікації qui для qBittorrent."
+        "qbittorrentAuthDescription": "Виберіть спосіб автентифікації qui для qBittorrent.",
+        "dailyTrafficEnabled": "Відстеження щоденного трафіку",
+        "dailyTrafficEnabledDescription": "Записує щоденні підсумки завантаження/віддачі та пікові швидкості для цієї інстанції. Вимкнення зупиняє збір нових даних."
       },
       "placeholders": {
         "instanceName": "наприклад, Головний сервер",

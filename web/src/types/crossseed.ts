@@ -371,3 +371,13 @@ export interface SeasonPackRun {
   linkMode?: string
   createdAt: string
 }
+
+export interface CrossSeedLogEntry {
+  infoHash: string
+  instanceId: number
+  instanceName: string
+  torrentName: string
+  sourceIndexer: string
+  publishDate?: string
+  createdAt: string
+}

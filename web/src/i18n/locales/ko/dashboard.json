@@ -51,6 +51,7 @@
     "freeSpace": "여유 공간",
     "showMore": "더 보기",
     "showLess": "간략히 보기",
+    "openInstance": "새 탭에서 인스턴스 열기",
     "uptime": "가동 시간",
     "peerConnections": "피어 연결",
     "queuedIOJobs": "대기 중인 I/O 작업",
@@ -82,7 +83,9 @@
       "enable": "활성화",
       "disable": "비활성화",
       "cancel": "취소"
-    }
+    },
+    "todayDownloaded": "오늘 다운로드",
+    "todayUploaded": "오늘 업로드"
   },
   "mobileOverview": {
     "title": "개요",
@@ -91,7 +94,9 @@
     "torrents": "토렌트",
     "activeCount": "{{count}}개 활성",
     "download": "다운로드",
-    "upload": "업로드"
+    "upload": "업로드",
+    "todayDownload": "오늘 다운로드",
+    "todayUpload": "오늘 업로드"
   },
   "globalStats": {
     "instances": "인스턴스",
@@ -101,7 +106,10 @@
     "totalDownload": "전체 다운로드",
     "downloadingActive": "{{count}}개 활성 - {{size}} 남음",
     "totalUpload": "전체 업로드",
-    "seedingActive": "{{count}}개 활성 - {{size}} 시드 중"
+    "seedingActive": "{{count}}개 활성 - {{size}} 시드 중",
+    "todayTraffic": "오늘 트래픽",
+    "todayDownload": "다운로드",
+    "todayUpload": "업로드"
   },
   "serverStats": {
     "title": "서버 통계",
@@ -222,5 +230,23 @@
     "allDisabled": "모든 인스턴스가 비활성화되어 있습니다",
     "enableInstance": "설정 → 인스턴스에서 인스턴스를 활성화하면 대시보드 통계를 볼 수 있습니다.",
     "manageInstances": "인스턴스 관리"
+  },
+  "dailyTraffic": {
+    "loading": "트래픽 불러오는 중...",
+    "empty": "아직 기록된 트래픽이 없습니다.",
+    "date": "날짜",
+    "downloaded": "다운로드",
+    "uploaded": "업로드",
+    "download": "다운로드",
+    "upload": "업로드",
+    "peakDl": "최대 DL",
+    "peakUl": "최대 UL",
+    "baseline": "기준값",
+    "baselineAt": "기준 수집 시간",
+    "source": "출처",
+    "sourceSession": "세션",
+    "sourceAlltime": "전체",
+    "sourceRestart": "재시작",
+    "sourceReinstall": "재설치"
   }
 }

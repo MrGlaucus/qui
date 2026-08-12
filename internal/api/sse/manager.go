@@ -178,6 +178,11 @@ type StreamManager struct {
 	// to inject a known time without standing up a real pool.
 	lastSuccessfulSyncFn func(ctx context.Context, instanceID int) time.Time
 
+	// todayTrafficFn resolves an instance's current UI-timezone day totals for the
+	// single-instance Dashboard stream. nil disables the field entirely; set via
+	// SetTodayTrafficProvider before the manager starts serving subscribers.
+	todayTrafficFn func(ctx context.Context, instanceID int) (*qbittorrent.TodayTraffic, error)
+
 	// activityHub feeds qui-owned server events (backups, scans, cross-seed, etc.)
 	// onto connected SSE sessions. nil disables the activity channel entirely, in
 	// which case Serve/onSession behave exactly as before.
@@ -403,6 +408,16 @@ func (m *StreamManager) SetActivityHub(hub *activity.Hub) {
 	go m.activityHeartbeatLoop()
 }
 
+// SetTodayTrafficProvider wires the per-instance day-total lookup used to populate
+// TorrentResponse.TodayTraffic on single-instance Dashboard streams. Must be called
+// before the manager begins serving subscribers (it is safe to call once at startup).
+func (m *StreamManager) SetTodayTrafficProvider(fn func(ctx context.Context, instanceID int) (*qbittorrent.TodayTraffic, error)) {
+	if m == nil || fn == nil || m.todayTrafficFn != nil {
+		return
+	}
+	m.todayTrafficFn = fn
+}
+
 // StreamStats is a point-in-time snapshot of SSE subsystem activity. It is
 // exported so the metrics layer can surface it (e.g. as Prometheus gauges/counters).
 type StreamStats struct {
@@ -604,6 +619,11 @@ func (m *StreamManager) HandleMainData(instanceID int, data *qbt.MainData) {
 	}
 
 	m.markSyncSuccess(instanceID)
+
+	// Track peak speeds from this sync tick
+	if sm, ok := m.syncManager.(*qbittorrent.SyncManager); ok && data.Torrents != nil {
+		sm.UpdatePeakSpeeds(instanceID, data.Torrents)
+	}
 
 	meta := &StreamMeta{
 		InstanceID: instanceID,
@@ -1487,10 +1507,19 @@ func (m *StreamManager) materializeGroupResponse(opts StreamOptions, metaCopy *S
 		}
 	}
 
-	// Populate instance metadata for single-instance streams only. Cross-instance
-	// responses aggregate multiple instances and already carry per-instance data.
+	// Populate instance metadata and today's traffic for single-instance streams
+	// only. Cross-instance responses aggregate multiple instances and already carry
+	// per-instance data. A lookup failure leaves the field omitted rather than
+	// degrading the whole tick.
 	if !opts.isMultiInstance() {
 		response.InstanceMeta = m.buildInstanceMeta(ctx, opts.InstanceID)
+		if m.todayTrafficFn != nil {
+			if today, err := m.todayTrafficFn(ctx, opts.InstanceID); err == nil {
+				response.TodayTraffic = today
+			} else {
+				log.Warn().Err(err).Int("instanceID", opts.InstanceID).Msg("Failed to resolve today's traffic for SSE stream")
+			}
+		}
 	}
 
 	return response, nil

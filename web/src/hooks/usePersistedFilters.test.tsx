@@ -115,6 +115,8 @@ describe("usePersistedFilters", () => {
       excludeTags: ["stalled"],
       trackers: ["t1"],
       excludeTrackers: ["t2"],
+      instances: [],
+      excludeInstances: [],
       expr: "ratio < 1",
     })
 

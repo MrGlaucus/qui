@@ -149,10 +149,10 @@ describe("getTrackerTokens", () => {
 // round-tripping. Guarantees the duplicate gets a fresh name and ships
 // disabled, same as a clipboard import.
 describe("toDuplicateInput", () => {
-  it("round-trips through export -> import and produces a unique disabled copy", () => {
+  it("round-trips through export -> import and ships a disabled copy", () => {
     const original = makeAutomation({ name: "Source", enabled: true, dryRun: true })
     const result = toDuplicateInput(original, ["Source"])
-    expect(result.name).toBe("Source (copy)")
+    expect(result.name).toBe("Source")
     expect(result.enabled).toBe(false)
     expect(result.dryRun).toBe(true)
   })

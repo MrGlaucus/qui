@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -415,6 +416,9 @@ export function WorkflowsOverview({
   const [clearDaysMap, setClearDaysMap] = useState<Record<number, string>>({})
   const [displayLimitMap, setDisplayLimitMap] = useState<Record<number, number>>({})
   const [activityRunDialog, setActivityRunDialog] = useState<{ instanceId: number; activity: AutomationActivity } | null>(null)
+  const [copyOverwriteDialog, setCopyOverwriteDialog] = useState<number | null>(null)
+  const [copyOverwriteTargets, setCopyOverwriteTargets] = useState<number[]>([])
+  const [copyOverwriting, setCopyOverwriting] = useState(false)
 
   // Tracker customizations for display names and icons
   const { data: trackerCustomizations } = useTrackerCustomizations()
@@ -605,6 +609,40 @@ export function WorkflowsOverview({
     )
   }, [getExistingNames, createWorkflow, instances, t])
 
+  // Copy all rules from source instance to selected targets, overwriting by name.
+  const handleCopyOverwriteToSelected = async () => {
+    if (copyOverwriteDialog === null || copyOverwriteTargets.length === 0) return
+    const sourceId = copyOverwriteDialog
+    setCopyOverwriting(true)
+    let created = 0
+    let updated = 0
+    let failed = 0
+    for (const targetId of copyOverwriteTargets) {
+      try {
+        const result = await api.copyAutomationsToInstance(sourceId, targetId)
+        created += result.created
+        updated += result.updated
+      } catch {
+        failed++
+      }
+    }
+    if (failed > 0) {
+      toast.error(t("preferences.workflowsOverview.toast.copyOverwritePartialFailed", {
+        created, updated, failed,
+      }))
+    } else {
+      toast.success(t("preferences.workflowsOverview.toast.copyOverwriteSuccessAll", {
+        created, updated, count: copyOverwriteTargets.length,
+      }))
+    }
+    for (const targetId of copyOverwriteTargets) {
+      queryClient.invalidateQueries({ queryKey: ["automations", targetId] })
+    }
+    setCopyOverwriteDialog(null)
+    setCopyOverwriteTargets([])
+    setCopyOverwriting(false)
+  }
+
   // Open import dialog
   const openImportDialog = (instanceId: number) => {
     setImportInstanceId(instanceId)
@@ -699,7 +737,7 @@ export function WorkflowsOverview({
     { header: t("preferences.workflowDialog.csv.hash"), accessor: item => item.hash },
     { header: t("preferences.workflowDialog.csv.tracker"), accessor: item => item.tracker },
     { header: t("preferences.workflowDialog.csv.size"), accessor: item => formatBytes(item.size) },
-    { header: t("preferences.workflowDialog.csv.ratio"), accessor: item => item.ratio === -1 ? t("preferences.workflowDialog.infinity") : item.ratio.toFixed(2) },
+    { header: t("preferences.workflowDialog.csv.ratio"), accessor: item => item.ratio === -1 ? t("preferences.workflowDialog.infinity") : (item.ratio ?? 0).toFixed(2) },
     { header: t("preferences.workflowDialog.csv.seedingTimeSeconds"), accessor: item => item.seedingTime },
     { header: t("preferences.workflowDialog.csv.category"), accessor: item => item.category },
     { header: t("preferences.workflowDialog.csv.tags"), accessor: item => item.tags },
@@ -935,6 +973,22 @@ export function WorkflowsOverview({
                         <span className="text-xs text-muted-foreground hidden sm:block">
                           {formatRelativeTime(activityStats.lastActivity)}
                         </span>
+                      )}
+                      {sortedRules.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          className="h-6 text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            e.preventDefault()
+                            setCopyOverwriteTargets([])
+                            setCopyOverwriteDialog(instance.id)
+                          }}
+                        >
+                          <Send className="h-3 w-3 mr-1" />
+                          {t("preferences.workflowsOverview.copyOverwriteTo")}
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -1668,6 +1722,74 @@ export function WorkflowsOverview({
                   {t("preferences.workflowsOverview.importDialog.import")}
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={copyOverwriteDialog !== null} onOpenChange={(open) => !open && setCopyOverwriteDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("preferences.workflowsOverview.copyOverwriteDialogTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("preferences.workflowsOverview.copyOverwriteDialogDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={copyOverwriting}
+              onClick={() => {
+                const others = activeInstances.filter(i => i.id !== copyOverwriteDialog)
+                setCopyOverwriteTargets(others.map(i => i.id))
+              }}
+            >
+              {t("preferences.workflowsOverview.selectAll")}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={copyOverwriting}
+              onClick={() => setCopyOverwriteTargets([])}
+            >
+              {t("preferences.workflowsOverview.deselectAll")}
+            </Button>
+          </div>
+          <div className="space-y-1 max-h-60 overflow-y-auto">
+            {activeInstances
+              .filter(i => i.id !== copyOverwriteDialog)
+              .map(inst => (
+                <label
+                  key={inst.id}
+                  className="flex items-center gap-2 py-1 px-2 rounded hover:bg-accent/50 cursor-pointer"
+                >
+                  <Checkbox
+                    checked={copyOverwriteTargets.includes(inst.id)}
+                    disabled={copyOverwriting}
+                    onCheckedChange={(checked) => {
+                      setCopyOverwriteTargets(prev =>
+                        checked
+                          ? [...prev, inst.id]
+                          : prev.filter(id => id !== inst.id)
+                      )
+                    }}
+                  />
+                  <span className="text-sm">{inst.name}</span>
+                </label>
+              ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCopyOverwriteDialog(null)} disabled={copyOverwriting}>
+              {t("preferences.workflowsOverview.copyOverwriteCancel")}
+            </Button>
+            <Button
+              disabled={copyOverwriteTargets.length === 0 || copyOverwriting}
+              onClick={handleCopyOverwriteToSelected}
+            >
+              {copyOverwriting
+                ? t("preferences.workflowsOverview.copyOverwriting")
+                : t("preferences.workflowsOverview.copyOverwriteConfirm", { count: copyOverwriteTargets.length })}
             </Button>
           </DialogFooter>
         </DialogContent>

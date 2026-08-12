@@ -40,7 +40,8 @@
       "disable": "Vypnout TMM",
       "enable": "Povolit TMM"
     },
-    "delete": "Smazat"
+    "delete": "Smazat",
+    "report": "Report"
   },
   "contextMenu": {
     "viewDetails": "Zobrazit detaily",
@@ -913,7 +914,9 @@
       "trackerDown": "Tracker je nedostupný",
       "crossSeeds": "Křížové sdílení",
       "trackerError": "Tracker chyba"
-    }
+    },
+    "instances": "Instance",
+    "noInstances": "Žádné instance nejsou k dispozici"
   },
   "statusBar": {
     "selected": "{{count}} vybraných",
@@ -991,6 +994,7 @@
       "crossSeed": "Křížové sdílení"
     },
     "closePanel": "Zavřít detailní panel",
+    "openReport": "Zpráva o úloze",
     "unknownError": "Neznámá chyba",
     "toast": {
       "copied": "{{type}} zkopírováno do schránky",
@@ -1197,10 +1201,12 @@
     "uploaded": "Odesláno",
     "relevance": "Relevance",
     "copyIpAddress": "Kopírovat IP adresu",
+    "copyIsp": "Kopírovat ISP",
     "banPeer": "Zakázat peer",
     "noPeersConnected": "Žádné peerové připojení",
     "toast": {
-      "ipCopied": "IP adresa zkopírována do schránky"
+      "ipCopied": "IP adresa zkopírována do schránky",
+      "ispCopied": "ISP zkopírován do schránky"
     }
   },
   "routes": {
@@ -1563,5 +1569,42 @@
     "high": "Vysoká",
     "maximum": "Maximální",
     "mixed": "Smíšené"
+  },
+  "reportDialog": {
+    "title": "Task Report",
+    "category": "Category",
+    "tags": "Tags",
+    "tracker": "Tracker",
+    "size": "Size",
+    "downloaded": "Downloaded",
+    "uploaded": "Uploaded",
+    "ratio": "Ratio",
+    "addedOn": "Added on",
+    "completedOn": "Completed on",
+    "seedingTime": "Seeding time",
+    "speed": "Speed",
+    "speedType": "",
+    "download": "Download",
+    "upload": "Upload",
+    "current": "Current",
+    "average": "Average",
+    "peak": "Peak",
+    "connections": "Connections",
+    "seeds": "Seeds",
+    "peers": "Peers",
+    "countryDistribution": "Peer Distribution by Country",
+    "ispDistribution": "Peer ISP Distribution",
+    "copyImage": "Copy as image",
+    "copyImageSuccess": "Report copied to clipboard as image",
+    "copyImageFailed": "Failed to copy report as image",
+    "pause": "Pause",
+    "resume": "Resume",
+    "close": "Close",
+    "uncategorized": "Uncategorized",
+    "noTags": "No Tags",
+    "country": "Country",
+    "isp": "ISP",
+    "count": "Count",
+    "pct": "%"
   }
 }

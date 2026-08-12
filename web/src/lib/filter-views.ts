@@ -14,7 +14,9 @@ const FILTER_ARRAY_KEYS = [
   "excludeTags",
   "trackers",
   "excludeTrackers",
-] as const
+  "instances",
+  "excludeInstances",
+] as const satisfies ReadonlyArray<keyof TorrentFilters>
 
 /**
  * Normalizes a filter object into the snapshot a saved view stores: every array
@@ -25,11 +27,12 @@ const FILTER_ARRAY_KEYS = [
  * instead of merging with whatever was selected before.
  */
 export function toViewFilters(filters: Partial<TorrentFilters> | undefined): TorrentFilters {
-  const normalized = { expr: filters?.expr || "" } as TorrentFilters
+  const normalized = { expr: filters?.expr || "" } as unknown as Record<string, unknown>
   for (const key of FILTER_ARRAY_KEYS) {
-    normalized[key] = [...(filters?.[key] ?? [])].sort()
+    const value = filters?.[key]
+    normalized[key] = (value ? [...value] : []).sort()
   }
-  return normalized
+  return normalized as unknown as TorrentFilters
 }
 
 /** Deep-equality of two filter selections, ignoring array order and expanded* fields. */

@@ -335,19 +335,23 @@ func (h *JackettHandler) ListIndexers(w http.ResponseWriter, r *http.Request) {
 // @Router /api/torznab/indexers [post]
 func (h *JackettHandler) CreateIndexer(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name            string                          `json:"name"`
-		BaseURL         string                          `json:"base_url"`
-		IndexerID       string                          `json:"indexer_id"`
-		APIKey          string                          `json:"api_key"`
-		BasicUsername   *string                         `json:"basic_username,omitempty"`
-		BasicPassword   *string                         `json:"basic_password,omitempty"`
-		Backend         string                          `json:"backend"`
-		Enabled         *bool                           `json:"enabled"`
-		Priority        *int                            `json:"priority"`
-		TimeoutSeconds  *int                            `json:"timeout_seconds"`
-		Capabilities    []string                        `json:"capabilities,omitempty"`
-		Categories      []models.TorznabIndexerCategory `json:"categories,omitempty"`
-		SourceIndexerID *int                            `json:"source_indexer_id,omitempty"`
+		Name               string                          `json:"name"`
+		BaseURL            string                          `json:"base_url"`
+		IndexerID          string                          `json:"indexer_id"`
+		APIKey             string                          `json:"api_key"`
+		BasicUsername      *string                         `json:"basic_username,omitempty"`
+		BasicPassword      *string                         `json:"basic_password,omitempty"`
+		Backend            string                          `json:"backend"`
+		Enabled            *bool                           `json:"enabled"`
+		Priority           *int                            `json:"priority"`
+		TimeoutSeconds     *int                            `json:"timeout_seconds"`
+		UploadLimitBytes   *int64                          `json:"upload_limit_bytes"`
+		DownloadLimitBytes *int64                          `json:"download_limit_bytes"`
+		UploadLimitUnit    *string                         `json:"upload_limit_unit"`
+		DownloadLimitUnit  *string                         `json:"download_limit_unit"`
+		Capabilities       []string                        `json:"capabilities,omitempty"`
+		Categories         []models.TorznabIndexerCategory `json:"categories,omitempty"`
+		SourceIndexerID    *int                            `json:"source_indexer_id,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -435,6 +439,32 @@ func (h *JackettHandler) CreateIndexer(w http.ResponseWriter, r *http.Request) {
 
 	// Track warnings for partial failures
 	var warnings []string
+
+	// If upload/download limits were provided, update them
+	if req.UploadLimitBytes != nil || req.DownloadLimitBytes != nil {
+		up := int64(0)
+		down := int64(0)
+		if req.UploadLimitBytes != nil {
+			up = *req.UploadLimitBytes
+		}
+		if req.DownloadLimitBytes != nil {
+			down = *req.DownloadLimitBytes
+		}
+		if err := h.indexerStore.UpdateLimits(r.Context(), indexer.ID, up, down); err != nil {
+			log.Warn().Err(err).Int("indexer_id", indexer.ID).Msg("Failed to set indexer limits")
+		}
+		upUnit := "MB"
+		downUnit := "MB"
+		if req.UploadLimitUnit != nil {
+			upUnit = *req.UploadLimitUnit
+		}
+		if req.DownloadLimitUnit != nil {
+			downUnit = *req.DownloadLimitUnit
+		}
+		if err := h.indexerStore.UpdateLimitUnits(r.Context(), indexer.ID, upUnit, downUnit); err != nil {
+			log.Warn().Err(err).Int("indexer_id", indexer.ID).Msg("Failed to set indexer limit units")
+		}
+	}
 
 	// If capabilities or categories were provided in the request, store them directly
 	if len(req.Capabilities) > 0 || len(req.Categories) > 0 {
@@ -538,19 +568,23 @@ func (h *JackettHandler) UpdateIndexer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Name            string                          `json:"name"`
-		BaseURL         string                          `json:"base_url"`
-		IndexerID       *string                         `json:"indexer_id"`
-		APIKey          string                          `json:"api_key"`
-		BasicUsername   *string                         `json:"basic_username,omitempty"`
-		BasicPassword   *string                         `json:"basic_password,omitempty"`
-		Backend         *string                         `json:"backend"`
-		Enabled         *bool                           `json:"enabled"`
-		Priority        *int                            `json:"priority"`
-		TimeoutSeconds  *int                            `json:"timeout_seconds"`
-		Capabilities    []string                        `json:"capabilities,omitempty"`
-		Categories      []models.TorznabIndexerCategory `json:"categories,omitempty"`
-		SourceIndexerID *int                            `json:"source_indexer_id,omitempty"`
+		Name               string                          `json:"name"`
+		BaseURL            string                          `json:"base_url"`
+		IndexerID          *string                         `json:"indexer_id"`
+		APIKey             string                          `json:"api_key"`
+		BasicUsername      *string                         `json:"basic_username,omitempty"`
+		BasicPassword      *string                         `json:"basic_password,omitempty"`
+		Backend            *string                         `json:"backend"`
+		Enabled            *bool                           `json:"enabled"`
+		Priority           *int                            `json:"priority"`
+		TimeoutSeconds     *int                            `json:"timeout_seconds"`
+		UploadLimitBytes   *int64                          `json:"upload_limit_bytes"`
+		DownloadLimitBytes *int64                          `json:"download_limit_bytes"`
+		UploadLimitUnit    *string                         `json:"upload_limit_unit"`
+		DownloadLimitUnit  *string                         `json:"download_limit_unit"`
+		Capabilities       []string                        `json:"capabilities,omitempty"`
+		Categories         []models.TorznabIndexerCategory `json:"categories,omitempty"`
+		SourceIndexerID    *int                            `json:"source_indexer_id,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -578,6 +612,18 @@ func (h *JackettHandler) UpdateIndexer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		params.TimeoutSeconds = req.TimeoutSeconds
+	}
+	if req.UploadLimitBytes != nil {
+		params.UploadLimitBytes = req.UploadLimitBytes
+	}
+	if req.DownloadLimitBytes != nil {
+		params.DownloadLimitBytes = req.DownloadLimitBytes
+	}
+	if req.UploadLimitUnit != nil {
+		params.UploadLimitUnit = req.UploadLimitUnit
+	}
+	if req.DownloadLimitUnit != nil {
+		params.DownloadLimitUnit = req.DownloadLimitUnit
 	}
 
 	if req.IndexerID != nil {

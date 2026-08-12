@@ -40,6 +40,10 @@ const DEFAULT_FORM: TorznabIndexerFormData = {
   enabled: true,
   priority: 0,
   timeout_seconds: 30,
+  upload_limit_bytes: 0,
+  download_limit_bytes: 0,
+  upload_limit_unit: "MB",
+  download_limit_unit: "MB",
 }
 
 export function IndexerDialog({ open, onClose, mode, indexer }: IndexerDialogProps) {
@@ -47,6 +51,13 @@ export function IndexerDialog({ open, onClose, mode, indexer }: IndexerDialogPro
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<TorznabIndexerFormData>(DEFAULT_FORM)
   const [showBasicAuth, setShowBasicAuth] = useState(false)
+
+  const [upUnit, setUpUnit] = useState<"KB" | "MB" | "GB">("MB")
+  const [dlUnit, setDlUnit] = useState<"KB" | "MB" | "GB">("MB")
+  const displayVal = (bytes: number | undefined, unit: "KB" | "MB" | "GB"): number =>
+    bytes ? Math.round(bytes / (unit === "KB" ? 1024 : unit === "MB" ? 1024 * 1024 : 1024 * 1024 * 1024)) : 0
+  const toBytes = (val: number, unit: "KB" | "MB" | "GB"): number =>
+    val * (unit === "KB" ? 1024 : unit === "MB" ? 1024 * 1024 : 1024 * 1024 * 1024)
   const backend = formData.backend ?? "jackett"
   const baseUrlPlaceholder = backend === "prowlarr" ? "http://localhost:9696" : "http://localhost:9117"
   const requiresIndexerId = backend === "prowlarr"
@@ -65,7 +76,13 @@ export function IndexerDialog({ open, onClose, mode, indexer }: IndexerDialogPro
         enabled: indexer.enabled,
         priority: indexer.priority,
         timeout_seconds: indexer.timeout_seconds,
+        upload_limit_bytes: indexer.upload_limit_bytes,
+        download_limit_bytes: indexer.download_limit_bytes,
+        upload_limit_unit: indexer.upload_limit_unit,
+        download_limit_unit: indexer.download_limit_unit,
       })
+      setUpUnit((indexer.upload_limit_unit as "KB" | "MB" | "GB") || "MB")
+      setDlUnit((indexer.download_limit_unit as "KB" | "MB" | "GB") || "MB")
       setShowBasicAuth(hasBasic)
     } else {
       setFormData({ ...DEFAULT_FORM })
@@ -108,6 +125,10 @@ export function IndexerDialog({ open, onClose, mode, indexer }: IndexerDialogPro
           enabled: formData.enabled,
           priority: formData.priority,
           timeout_seconds: formData.timeout_seconds,
+          upload_limit_bytes: formData.upload_limit_bytes,
+          download_limit_bytes: formData.download_limit_bytes,
+          upload_limit_unit: upUnit,
+          download_limit_unit: dlUnit,
         }
         if (trimmedIndexerId) {
           createPayload.indexer_id = trimmedIndexerId
@@ -131,6 +152,10 @@ export function IndexerDialog({ open, onClose, mode, indexer }: IndexerDialogPro
           enabled: formData.enabled,
           priority: formData.priority,
           timeout_seconds: formData.timeout_seconds,
+          upload_limit_bytes: formData.upload_limit_bytes,
+          download_limit_bytes: formData.download_limit_bytes,
+          upload_limit_unit: upUnit,
+          download_limit_unit: dlUnit,
         }
 
         if (formData.indexer_id !== undefined) {
@@ -353,6 +378,60 @@ export function IndexerDialog({ open, onClose, mode, indexer }: IndexerDialogPro
                   data-1p-ignore
                   required
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label>{t("indexers.dialog.labels.uploadLimit")}</Label>
+                <div className="flex gap-1 max-w-sm">
+                  <Input
+                    type="number"
+                    value={displayVal(formData.upload_limit_bytes, upUnit)}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10)
+                      setFormData({ ...formData, upload_limit_bytes: isNaN(v) ? 0 : toBytes(v, upUnit) })
+                    }}
+                    min="0"
+                    className="flex-1 min-w-0"
+                    placeholder="0"
+                    autoComplete="off"
+                    data-1p-ignore
+                  />
+                  <select
+                    value={upUnit}
+                    onChange={(e) => setUpUnit(e.target.value as "KB" | "MB" | "GB")}
+                    className="h-10 w-24 shrink-0 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    <option value="KB">KB/s</option>
+                    <option value="MB">MB/s</option>
+                    <option value="GB">GB/s</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>{t("indexers.dialog.labels.downloadLimit")}</Label>
+                <div className="flex gap-1 max-w-sm">
+                  <Input
+                    type="number"
+                    value={displayVal(formData.download_limit_bytes, dlUnit)}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10)
+                      setFormData({ ...formData, download_limit_bytes: isNaN(v) ? 0 : toBytes(v, dlUnit) })
+                    }}
+                    min="0"
+                    className="flex-1 min-w-0"
+                    placeholder="0"
+                    autoComplete="off"
+                    data-1p-ignore
+                  />
+                  <select
+                    value={dlUnit}
+                    onChange={(e) => setDlUnit(e.target.value as "KB" | "MB" | "GB")}
+                    className="h-10 w-24 shrink-0 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    <option value="KB">KB/s</option>
+                    <option value="MB">MB/s</option>
+                    <option value="GB">GB/s</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div className="flex items-center justify-between">

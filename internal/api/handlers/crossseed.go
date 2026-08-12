@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
@@ -530,6 +531,8 @@ func (h *CrossSeedHandler) Routes(r chi.Router, authMiddleware func(http.Handler
 			r.Post("/", h.AddBlocklistEntry)
 			r.Delete("/{instanceID}/{infohash}", h.DeleteBlocklistEntry)
 		})
+		r.With(authMiddleware).Get("/log", h.ListCrossSeedLog)
+		r.With(authMiddleware).Post("/log/cleanup", h.CleanCrossSeedLog)
 		r.With(authMiddleware).Route("/search", func(r chi.Router) {
 			r.Get("/settings", h.GetSearchSettings)
 			r.Patch("/settings", h.PatchSearchSettings)
@@ -1323,6 +1326,58 @@ func (h *CrossSeedHandler) ListBlocklist(w http.ResponseWriter, r *http.Request)
 	}
 
 	RespondJSON(w, http.StatusOK, entries)
+}
+
+// ListCrossSeedLog returns paginated cross-seed log entries.
+// GET /api/cross-seed/log?limit=50&offset=0
+func (h *CrossSeedHandler) ListCrossSeedLog(w http.ResponseWriter, r *http.Request) {
+	limit := 50
+	offset := 0
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 && v <= 200 {
+			limit = v
+		}
+	}
+	if raw := r.URL.Query().Get("offset"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+
+	type logResponse struct {
+		Entries []crossseed.CrossSeedLogEntryView `json:"entries"`
+		Total   int                               `json:"total"`
+	}
+
+	entries, total, err := h.service.ListCrossSeedLog(r.Context(), limit, offset)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to list cross-seed log")
+		RespondError(w, http.StatusInternalServerError, "Failed to list cross-seed log")
+		return
+	}
+	if entries == nil {
+		entries = []crossseed.CrossSeedLogEntryView{}
+	}
+	RespondJSON(w, http.StatusOK, &logResponse{Entries: entries, Total: total})
+}
+
+// CleanCrossSeedLog deletes log entries older than the specified duration.
+// POST /api/cross-seed/log/cleanup  body: {"ageHours": 24}
+func (h *CrossSeedHandler) CleanCrossSeedLog(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		AgeHours int `json:"ageHours"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.AgeHours <= 0 {
+		RespondError(w, http.StatusBadRequest, "ageHours must be a positive number")
+		return
+	}
+	deleted, err := h.service.DeleteCrossSeedLogOlderThan(r.Context(), time.Duration(req.AgeHours)*time.Hour)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to clean cross-seed log")
+		RespondError(w, http.StatusInternalServerError, "Failed to clean cross-seed log")
+		return
+	}
+	RespondJSON(w, http.StatusOK, map[string]int64{"deleted": deleted})
 }
 
 // AddBlocklistEntry godoc

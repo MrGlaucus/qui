@@ -331,6 +331,11 @@ export function Torrents({ instanceId, instanceName, isAllInstancesView = false,
         transformedCounts[`tracker:${tracker}`] = count as number
       })
 
+      // Add per-instance counts (unified view)
+      Object.entries(counts.instances || {}).forEach(([instanceId, count]) => {
+        transformedCounts[`instance:${instanceId}`] = count as number
+      })
+
       // Add filtered total count for cross-seed display
       transformedCounts.filtered = _total
 

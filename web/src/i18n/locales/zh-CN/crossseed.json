@@ -41,7 +41,8 @@
     "scan": "扫描",
     "dirScan": "目录扫描",
     "rules": "规则",
-    "blocklist": "屏蔽列表"
+    "blocklist": "屏蔽列表",
+    "log": "辅种记录"
   },
   "automation": {
     "title": "RSS 自动化",
@@ -507,6 +508,26 @@
       "removedFromBlocklist": "已从屏蔽列表移除",
       "selectAnInstance": "请选择一个实例",
       "invalidInfohash": "Infohash 必须为 40 或 64 个十六进制字符"
+    }
+  },
+  "log": {
+    "title": "辅种记录",
+    "instance": "实例",
+    "infoHash": "InfoHash",
+    "torrentName": "种子名称",
+    "indexer": "索引器",
+    "createdAt": "辅种时间",
+    "publishDate": "发布时间",
+    "cleanup": {
+      "button": "清理",
+      "cancel": "取消",
+      "day1": "一天前",
+      "week1": "一周前",
+      "month1": "一个月前",
+      "confirmTitle": "清理辅种记录？",
+      "confirmDescription": "是否确认清理 {{age}} 的辅种记录？",
+      "success": "已清理 {{count}} 条记录",
+      "error": "清理失败"
     }
   },
   "dirScan": {

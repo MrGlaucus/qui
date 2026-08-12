@@ -202,11 +202,11 @@ func (s *Service) send(ctx context.Context, target *models.NotificationTarget, e
 	case "notifiarrapi":
 		return s.sendNotifiarrAPI(ctx, target.URL, event, title, message)
 	default:
-		return s.sendDefault(target.URL, title, message)
+		return s.sendDefault(target.URL, title, message, event)
 	}
 }
 
-func (s *Service) sendDefault(rawURL, title, message string) error {
+func (s *Service) sendDefault(rawURL, title, message string, event Event) error {
 	sender, err := router.New(nil, rawURL)
 	if err != nil {
 		return err
@@ -217,7 +217,12 @@ func (s *Service) sendDefault(rawURL, title, message string) error {
 		params.SetTitle(truncateMessage(trimmed, maxTitleLength))
 	}
 
-	trimmedMessage := truncateMessage(message, maxMessageLength)
+	maxMessage := maxMessageLength
+	switch event.Type {
+	case EventDailyTrafficReport, EventHourlyTrafficReport, EventBaselineReport:
+		maxMessage = dailyReportMaxMessageLength
+	}
+	trimmedMessage := truncateMessage(message, maxMessage)
 	results := sender.Send(trimmedMessage, &params)
 	var errs []error
 	for _, sendErr := range results {
@@ -300,9 +305,9 @@ func (s *Service) formatEvent(ctx context.Context, event Event, humanReadableMet
 
 	switch event.Type {
 	case EventTorrentAdded:
-		title := "Torrent added"
+		title := "种子已添加"
 		lines := []string{
-			formatLine("Torrent", fmt.Sprintf("%s%s", event.TorrentName, formatHashSuffix(event.TorrentHash))),
+			formatLine("种子", fmt.Sprintf("%s%s", event.TorrentName, formatHashSuffix(event.TorrentHash))),
 		}
 		if eta := formatETA(event.TorrentETASeconds); eta != "" {
 			lines = append(lines, formatLine("ETA", eta))
@@ -312,18 +317,18 @@ func (s *Service) formatEvent(ctx context.Context, event Event, humanReadableMet
 			lines = append(lines, formatLine("Tracker", tracker))
 		}
 		if category := strings.TrimSpace(event.Category); category != "" {
-			lines = append(lines, formatLine("Category", category))
+			lines = append(lines, formatLine("分类", category))
 		}
 		if len(event.Tags) > 0 {
 			tags := append([]string(nil), event.Tags...)
 			slices.Sort(tags)
-			lines = append(lines, formatLine("Tags", strings.Join(tags, ", ")))
+			lines = append(lines, formatLine("标签", strings.Join(tags, ", ")))
 		}
 		return title, buildMessage(instanceLabel, lines)
 	case EventTorrentCompleted:
-		title := "Torrent completed"
+		title := "种子已完成"
 		lines := []string{
-			formatLine("Torrent", fmt.Sprintf("%s%s", event.TorrentName, formatHashSuffix(event.TorrentHash))),
+			formatLine("种子", fmt.Sprintf("%s%s", event.TorrentName, formatHashSuffix(event.TorrentHash))),
 		}
 		if !humanReadableMetrics {
 			lines = append(lines, formatTorrentMetricLines(event, humanReadableMetrics)...)
@@ -332,90 +337,94 @@ func (s *Service) formatEvent(ctx context.Context, event Event, humanReadableMet
 			lines = append(lines, formatLine("Tracker", tracker))
 		}
 		if category := strings.TrimSpace(event.Category); category != "" {
-			lines = append(lines, formatLine("Category", category))
+			lines = append(lines, formatLine("分类", category))
 		}
 		if len(event.Tags) > 0 {
 			tags := append([]string(nil), event.Tags...)
 			slices.Sort(tags)
-			lines = append(lines, formatLine("Tags", strings.Join(tags, ", ")))
+			lines = append(lines, formatLine("标签", strings.Join(tags, ", ")))
 		}
 		return title, buildMessage(instanceLabel, lines)
 	case EventBackupSucceeded:
-		title := "Backup completed"
+		title := "备份已完成"
 		lines := []string{
-			formatLine("Backup", formatKind(event.BackupKind)),
-			formatLine("Run", strconv.FormatInt(event.BackupRunID, 10)),
-			formatLine("Torrents", strconv.Itoa(event.BackupTorrentCount)),
+			formatLine("备份", formatKind(event.BackupKind)),
+			formatLine("运行", strconv.FormatInt(event.BackupRunID, 10)),
+			formatLine("种子数", strconv.Itoa(event.BackupTorrentCount)),
 		}
 		return title, buildMessage(instanceLabel, lines)
 	case EventBackupFailed:
-		title := "Backup failed"
+		title := "备份失败"
 		lines := []string{
-			formatLine("Backup", formatKind(event.BackupKind)),
-			formatLine("Run", strconv.FormatInt(event.BackupRunID, 10)),
-			formatLine("Error", formatErrorMessage(event.ErrorMessage)),
+			formatLine("备份", formatKind(event.BackupKind)),
+			formatLine("运行", strconv.FormatInt(event.BackupRunID, 10)),
+			formatLine("错误", formatErrorMessage(event.ErrorMessage)),
 		}
 		return title, buildMessage(instanceLabel, lines)
 	case EventDirScanCompleted:
-		title := "Directory scan completed"
+		title := "目录扫描完成"
 		lines := []string{
-			formatLine("Run", strconv.FormatInt(event.DirScanRunID, 10)),
-			formatLine("Matches", strconv.Itoa(event.DirScanMatchesFound)),
-			formatLine("Torrents added", strconv.Itoa(event.DirScanTorrentsAdded)),
+			formatLine("运行", strconv.FormatInt(event.DirScanRunID, 10)),
+			formatLine("匹配数", strconv.Itoa(event.DirScanMatchesFound)),
+			formatLine("已添加种子", strconv.Itoa(event.DirScanTorrentsAdded)),
 		}
 		return title, buildMessage(instanceLabel, lines)
 	case EventDirScanFailed:
-		title := "Directory scan failed"
+		title := "目录扫描失败"
 		lines := []string{
-			formatLine("Run", strconv.FormatInt(event.DirScanRunID, 10)),
-			formatLine("Error", formatErrorMessage(event.ErrorMessage)),
+			formatLine("运行", strconv.FormatInt(event.DirScanRunID, 10)),
+			formatLine("错误", formatErrorMessage(event.ErrorMessage)),
 		}
 		return title, buildMessage(instanceLabel, lines)
 	case EventOrphanScanCompleted:
-		title := "Orphan scan completed"
+		title := "孤立文件扫描完成"
 		lines := []string{
-			formatLine("Run", strconv.FormatInt(event.OrphanScanRunID, 10)),
-			formatLine("Files deleted", strconv.Itoa(event.OrphanScanFilesDeleted)),
-			formatLine("Folders deleted", strconv.Itoa(event.OrphanScanFoldersDeleted)),
+			formatLine("运行", strconv.FormatInt(event.OrphanScanRunID, 10)),
+			formatLine("已删除文件", strconv.Itoa(event.OrphanScanFilesDeleted)),
+			formatLine("已删除文件夹", strconv.Itoa(event.OrphanScanFoldersDeleted)),
 		}
 		return title, buildMessage(instanceLabel, lines)
 	case EventOrphanScanFailed:
-		title := "Orphan scan failed"
+		title := "孤立文件扫描失败"
 		lines := []string{
-			formatLine("Run", strconv.FormatInt(event.OrphanScanRunID, 10)),
-			formatLine("Error", formatErrorMessage(event.ErrorMessage)),
+			formatLine("运行", strconv.FormatInt(event.OrphanScanRunID, 10)),
+			formatLine("错误", formatErrorMessage(event.ErrorMessage)),
 		}
 		return title, buildMessage(instanceLabel, lines)
 	case EventCrossSeedAutomationSucceeded:
-		title := "Cross-seed RSS automation completed"
+		title := "Cross-seed RSS 自动化完成"
 		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
 	case EventCrossSeedAutomationFailed:
-		title := "Cross-seed RSS automation failed"
+		title := "Cross-seed RSS 自动化失败"
 		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
 	case EventCrossSeedSearchSucceeded:
-		title := "Cross-seed seeded search completed"
+		title := "Cross-seed 做种搜索完成"
 		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
 	case EventCrossSeedSearchFailed:
-		title := "Cross-seed seeded search failed"
+		title := "Cross-seed 做种搜索失败"
 		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
 	case EventCrossSeedCompletionSucceeded:
-		title := "Cross-seed completion search completed"
+		title := "Cross-seed 完成搜索完成"
 		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
 	case EventCrossSeedCompletionFailed:
-		title := "Cross-seed completion search failed"
+		title := "Cross-seed 完成搜索失败"
 		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
 	case EventCrossSeedWebhookSucceeded:
-		title := "Cross-seed webhook check completed"
+		title := "Cross-seed Webhook 检查完成"
 		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
 	case EventCrossSeedWebhookFailed:
-		title := "Cross-seed webhook check failed"
+		title := "Cross-seed Webhook 检查失败"
 		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
 	case EventAutomationsActionsApplied:
-		title := "Automations actions applied"
+		title := "自动化操作已应用"
 		return formatAutomationsEvent(instanceLabel, title, event.Title, customMessage, humanReadableMetrics)
 	case EventAutomationsRunFailed:
-		title := "Automations run failed"
+		title := "自动化运行失败"
 		return formatAutomationsEvent(instanceLabel, title, event.Title, customMessage, humanReadableMetrics)
+	case EventDailyTrafficReport, EventHourlyTrafficReport, EventBaselineReport:
+		// The traffic reports carry their own fully-formatted title and message
+		// (built by the report schedulers); pass them through verbatim.
+		return strings.TrimSpace(event.Title), strings.TrimSpace(event.Message)
 	default:
 		return "", ""
 	}
@@ -426,15 +435,15 @@ func (s *Service) resolveInstanceLabel(ctx context.Context, event Event) string 
 		return event.InstanceName
 	}
 	if event.InstanceID <= 0 || s.instanceStore == nil {
-		return "Instance"
+		return "实例"
 	}
 
 	instance, err := s.instanceStore.Get(ctx, event.InstanceID)
 	if err != nil || instance == nil {
-		return fmt.Sprintf("Instance %d", event.InstanceID)
+		return fmt.Sprintf("实例 %d", event.InstanceID)
 	}
 	if strings.TrimSpace(instance.Name) == "" {
-		return fmt.Sprintf("Instance %d", event.InstanceID)
+		return fmt.Sprintf("实例 %d", event.InstanceID)
 	}
 
 	return instance.Name
@@ -467,29 +476,29 @@ func formatTorrentMetricLines(event Event, humanReadable bool) []string {
 	lines := make([]string, 0, 10)
 
 	if state := strings.TrimSpace(event.TorrentState); state != "" {
-		lines = append(lines, formatLine("State", state))
+		lines = append(lines, formatLine("状态", state))
 	}
 	progressPrecision := 4
 	if humanReadable {
 		progressPrecision = 2
 	}
-	lines = append(lines, formatLine("Progress", strconv.FormatFloat(event.TorrentProgress, 'f', progressPrecision, 64)))
-	lines = append(lines, formatLine("Ratio", strconv.FormatFloat(event.TorrentRatio, 'f', 4, 64)))
+	lines = append(lines, formatLine("进度", strconv.FormatFloat(event.TorrentProgress, 'f', progressPrecision, 64)))
+	lines = append(lines, formatLine("分享率", strconv.FormatFloat(event.TorrentRatio, 'f', 4, 64)))
 	if humanReadable {
-		lines = append(lines, formatLine("Total size", formatGigabytes(event.TorrentTotalSizeBytes)))
-		lines = append(lines, formatLine("Downloaded", formatGigabytes(event.TorrentDownloadedBytes)))
-		lines = append(lines, formatLine("Amount left", formatGigabytes(event.TorrentAmountLeftBytes)))
-		lines = append(lines, formatLine("DL speed", formatTransferSpeed(event.TorrentDlSpeedBps)))
-		lines = append(lines, formatLine("UP speed", formatTransferSpeed(event.TorrentUpSpeedBps)))
+		lines = append(lines, formatLine("总大小", formatGigabytes(event.TorrentTotalSizeBytes)))
+		lines = append(lines, formatLine("已下载", formatGigabytes(event.TorrentDownloadedBytes)))
+		lines = append(lines, formatLine("剩余", formatGigabytes(event.TorrentAmountLeftBytes)))
+		lines = append(lines, formatLine("下载速度", formatTransferSpeed(event.TorrentDlSpeedBps)))
+		lines = append(lines, formatLine("上传速度", formatTransferSpeed(event.TorrentUpSpeedBps)))
 	} else {
-		lines = append(lines, formatLine("Total size bytes", strconv.FormatInt(event.TorrentTotalSizeBytes, 10)))
-		lines = append(lines, formatLine("Downloaded bytes", strconv.FormatInt(event.TorrentDownloadedBytes, 10)))
-		lines = append(lines, formatLine("Amount left bytes", strconv.FormatInt(event.TorrentAmountLeftBytes, 10)))
-		lines = append(lines, formatLine("DL speed bps", strconv.FormatInt(event.TorrentDlSpeedBps, 10)))
-		lines = append(lines, formatLine("UP speed bps", strconv.FormatInt(event.TorrentUpSpeedBps, 10)))
+		lines = append(lines, formatLine("总大小（字节）", strconv.FormatInt(event.TorrentTotalSizeBytes, 10)))
+		lines = append(lines, formatLine("已下载（字节）", strconv.FormatInt(event.TorrentDownloadedBytes, 10)))
+		lines = append(lines, formatLine("剩余（字节）", strconv.FormatInt(event.TorrentAmountLeftBytes, 10)))
+		lines = append(lines, formatLine("下载速度 (bps)", strconv.FormatInt(event.TorrentDlSpeedBps, 10)))
+		lines = append(lines, formatLine("上传速度 (bps)", strconv.FormatInt(event.TorrentUpSpeedBps, 10)))
 	}
-	lines = append(lines, formatLine("Seeds", strconv.FormatInt(event.TorrentNumSeeds, 10)))
-	lines = append(lines, formatLine("Leechs", strconv.FormatInt(event.TorrentNumLeechs, 10)))
+	lines = append(lines, formatLine("做种", strconv.FormatInt(event.TorrentNumSeeds, 10)))
+	lines = append(lines, formatLine("下载", strconv.FormatInt(event.TorrentNumLeechs, 10)))
 
 	return lines
 }
@@ -533,7 +542,7 @@ func formatLine(label, value string) string {
 func buildMessage(instanceLabel string, lines []string) string {
 	payload := make([]string, 0, len(lines)+1)
 	if trimmed := strings.TrimSpace(instanceLabel); trimmed != "" {
-		payload = append(payload, formatLine("Instance", trimmed))
+		payload = append(payload, formatLine("实例", trimmed))
 	}
 	for _, line := range lines {
 		if trimmed := strings.TrimSpace(line); trimmed != "" {
@@ -625,8 +634,8 @@ func mergeAutomationSampleLines(lines []string) []string {
 	}
 
 	const (
-		tagPrefix    = "Tag samples:"
-		samplePrefix = "Samples:"
+		tagPrefix    = "标签样本:"
+		samplePrefix = "样本:"
 	)
 
 	tagLineIndex := -1
@@ -712,15 +721,16 @@ func parseSampleListLine(line, prefix string) []string {
 }
 
 const (
-	maxMessageLength          = 420
-	maxTitleLength            = 80
-	discordTitleLimit         = 256
-	discordDescriptionLimit   = 4096
-	discordFieldNameLimit     = 256
-	discordFieldValueLimit    = 1024
-	discordFieldsLimit        = 25
-	notifiarrTitleLimit       = 256
-	notifiarrDescriptionLimit = 4096
+	maxMessageLength            = 420
+	maxTitleLength              = 80
+	dailyReportMaxMessageLength = 8192
+	discordTitleLimit           = 256
+	discordDescriptionLimit     = 4096
+	discordFieldNameLimit       = 256
+	discordFieldValueLimit      = 1024
+	discordFieldsLimit          = 25
+	notifiarrTitleLimit         = 256
+	notifiarrDescriptionLimit   = 4096
 )
 
 const (
@@ -761,24 +771,24 @@ func buildStructuredMessage(message string) (string, []messageField) {
 				description = line
 			} else {
 				fields = append(fields, messageField{
-					Label:  "Details",
-					Value:  normalizeField("Details", line).Value,
+					Label:  "详情",
+					Value:  normalizeField("详情", line).Value,
 					Inline: false,
 				})
 			}
 			continue
 		}
 		lowerLabel := strings.ToLower(label)
-		if lowerLabel == "instance" {
+		if lowerLabel == "实例" {
 			fields = append(fields, normalizeField(label, value))
 			continue
 		}
 		if description == "" {
 			switch lowerLabel {
-			case "torrent":
+			case "种子":
 				description = value
-			case "run":
-				description = "Run " + value
+			case "运行":
+				description = "运行 " + value
 			default:
 				description = fmt.Sprintf("%s: %s", label, value)
 			}
@@ -823,7 +833,7 @@ func shouldInlineField(label, value string) bool {
 		return false
 	}
 	switch strings.ToLower(label) {
-	case "torrent", "samples", "errors", "error", "message", "tags":
+	case "种子", "样本", "错误", "消息", "标签":
 		return false
 	}
 	return utf8.RuneCountInString(value) <= 48
@@ -944,7 +954,7 @@ func truncateMessage(value string, limit int) string {
 func formatKind(kind models.BackupRunKind) string {
 	raw := strings.TrimSpace(string(kind))
 	if raw == "" {
-		return "backup"
+		return "备份"
 	}
 	return raw
 }
@@ -952,7 +962,7 @@ func formatKind(kind models.BackupRunKind) string {
 func formatErrorMessage(message string) string {
 	trimmed := strings.TrimSpace(message)
 	if trimmed == "" {
-		return "Unknown error"
+		return "未知错误"
 	}
 	return trimmed
 }

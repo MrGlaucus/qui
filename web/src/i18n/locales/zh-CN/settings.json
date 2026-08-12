@@ -52,12 +52,15 @@
     "addDialog": {
       "title": "添加实例",
       "description": "配置一个新的 qBittorrent 实例",
+      "cloneTitle": "复制实例",
+      "cloneDescription": "复制现有实例配置进行修改",
       "cancel": "取消",
       "submit": "添加实例",
       "adding": "添加中..."
     },
     "toasts": {
-      "reorderFailed": "重新排序实例失败"
+      "reorderFailed": "重新排序实例失败",
+      "copyAutomationsFailed": "复制自动化规则失败"
     }
   },
   "integrations": {
@@ -251,6 +254,7 @@
       "maintenance": "维护",
       "crossSeed": "辅种",
       "automations": "自动化",
+      "traffic": "流量统计",
       "other": "其他",
       "unknown": "未知"
     },
@@ -733,6 +737,8 @@
         "apiKey": "API 密钥",
         "priority": "优先级",
         "timeout": "超时时间（秒）",
+        "uploadLimit": "上传限制（0=不限速）",
+        "downloadLimit": "下载限制（0=不限速）",
         "enabled": "已启用",
         "basicAuth": "基本认证",
         "basicAuthDescription": "对反向代理后的 Torznab 使用 HTTP 基本认证。",
@@ -861,6 +867,9 @@
       "loading": "加载中...",
       "noIndexers": "尚未配置索引器。添加一个以开始使用。",
       "noMatch": "没有索引器匹配当前筛选条件",
+      "uploadLimit": "上传限制",
+      "downloadLimit": "下载限制",
+      "unlimited": "不限速",
       "noCapabilities": "无功能信息",
       "sync": "同步",
       "collapse": "折叠",

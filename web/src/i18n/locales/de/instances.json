@@ -11,7 +11,8 @@
       "enableInstance": "Instanz aktivieren",
       "moveUp": "Nach oben",
       "moveDown": "Nach unten",
-      "instanceSettings": "Instanz-Einstellungen"
+      "instanceSettings": "Instanz-Einstellungen",
+      "openInstance": "Instanz in neuem Tab öffnen"
     },
     "actions": {
       "edit": "Bearbeiten",
@@ -75,7 +76,9 @@
       "basicAuthUsername": "Basic-Auth-Benutzername",
       "basicAuthPassword": "Basic-Auth-Passwort",
       "authType": "Authentifizierungstyp",
-      "authTypeDescription": "Wähle aus, wie sich qui bei qBittorrent authentifizieren soll."
+      "authTypeDescription": "Wähle aus, wie sich qui bei qBittorrent authentifizieren soll.",
+      "dailyTrafficEnabled": "Tägliche Verkehrserfassung",
+      "dailyTrafficEnabledDescription": "Erfasst tägliche Upload-/Download-Summen und Spitzenwerte für diese Instanz. Deaktivieren stoppt die Datenerfassung."
     },
     "placeholders": {
       "instanceName": "z. B. Hauptserver oder Heim-qBittorrent",
@@ -239,7 +242,9 @@
         "username": "Benutzername",
         "password": "Passwort",
         "qbittorrentAuth": "qBittorrent-Authentifizierung",
-        "qbittorrentAuthDescription": "Wähle aus, wie qui sich bei qBittorrent authentifizieren soll."
+        "qbittorrentAuthDescription": "Wähle aus, wie qui sich bei qBittorrent authentifizieren soll.",
+        "dailyTrafficEnabled": "Tägliche Verkehrserfassung",
+        "dailyTrafficEnabledDescription": "Erfasst tägliche Upload-/Download-Summen und Spitzenwerte für diese Instanz. Deaktivieren stoppt die Datenerfassung."
       },
       "placeholders": {
         "instanceName": "z. B. Hauptserver",

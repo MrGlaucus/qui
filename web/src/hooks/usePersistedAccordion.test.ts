@@ -7,7 +7,7 @@ import { renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { usePersistedAccordion } from "./usePersistedAccordion"
 
-const DEFAULT_ITEMS = ["views", "status", "categories", "tags", "trackers"]
+const DEFAULT_ITEMS = ["views", "instances", "status", "categories", "tags", "trackers"]
 
 describe("usePersistedAccordion", () => {
   beforeEach(() => {
@@ -37,18 +37,26 @@ describe("usePersistedAccordion", () => {
     expect(result.current[0]).toEqual(DEFAULT_ITEMS)
   })
 
-  it("seeds views into a pre-views stored array exactly once", () => {
+  it("seeds views and instances into a pre-sections stored array exactly once", () => {
     localStorage.setItem("qui-accordion", JSON.stringify(["status", "tags"]))
     const { result } = renderHook(() => usePersistedAccordion())
-    expect(result.current[0]).toEqual(["views", "status", "tags"])
+    expect(result.current[0]).toEqual(["views", "instances", "status", "tags"])
     expect(localStorage.getItem("qui-accordion-views-seeded")).toBe("1")
+    expect(localStorage.getItem("qui-accordion-instances-seeded")).toBe("1")
   })
 
   it("respects a collapsed views section once seeded", () => {
     localStorage.setItem("qui-accordion", JSON.stringify(["status", "tags"]))
     localStorage.setItem("qui-accordion-views-seeded", "1")
     const { result } = renderHook(() => usePersistedAccordion())
-    expect(result.current[0]).toEqual(["status", "tags"])
+    expect(result.current[0]).toEqual(["instances", "status", "tags"])
+  })
+
+  it("seeds instances between views and the rest of the stored array", () => {
+    localStorage.setItem("qui-accordion", JSON.stringify(["views", "status", "tags"]))
+    localStorage.setItem("qui-accordion-views-seeded", "1")
+    const { result } = renderHook(() => usePersistedAccordion())
+    expect(result.current[0]).toEqual(["views", "instances", "status", "tags"])
   })
 
   it("survives blocked storage writes instead of taking the sidebar down", () => {
