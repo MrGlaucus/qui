@@ -52,6 +52,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog"
+import { FieldHelp } from "@/components/ui/field-help"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MultiSelect } from "@/components/ui/multi-select"
@@ -556,7 +557,7 @@ function RunRow({
             <DirectoryStatusBadge run={run} />
             {run.status === "failed" && run.errorMessage && (
               <Tooltip>
-                <TooltipTrigger className="cursor-default">
+                <TooltipTrigger className="cursor-default" aria-label={t("dirScan.showError")}>
                   <Info className="size-3.5 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-lg whitespace-pre-wrap">
@@ -939,7 +940,16 @@ function SettingsDialog({ open, onOpenChange, settings, instances }: SettingsDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90dvh] flex flex-col">
+      {/* The first focusable element is the Match Mode FieldHelp trigger; default auto-focus would open its tooltip on every dialog open.
+          Focus the dialog itself so the focus trap keeps an anchor. */}
+      <DialogContent
+        className="max-w-lg max-h-[90dvh] flex flex-col"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault()
+          const content = event.currentTarget as HTMLElement
+          content.focus()
+        }}
+      >
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{t("dirScan.settingsDialog.title")}</DialogTitle>
           <DialogDescription>
@@ -949,7 +959,10 @@ function SettingsDialog({ open, onOpenChange, settings, instances }: SettingsDia
 
         <div className="space-y-4 flex-1 overflow-y-auto min-h-0">
           <div className="space-y-2">
-            <Label htmlFor="match-mode">{t("dirScan.settingsDialog.matchModeLabel")}</Label>
+            <Label htmlFor="match-mode" className="flex items-center gap-1">
+              {t("dirScan.settingsDialog.matchModeLabel")}
+              <FieldHelp>{t("dirScan.settingsDialog.matchModeHelp")}</FieldHelp>
+            </Label>
             <Select
               value={form.matchMode}
               onValueChange={(value: DirScanMatchMode) =>
@@ -964,13 +977,13 @@ function SettingsDialog({ open, onOpenChange, settings, instances }: SettingsDia
                 <SelectItem value="flexible">{t("dirScan.settingsDialog.matchModeFlexible")}</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.settingsDialog.matchModeHelp")}
-            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="size-tolerance">{t("dirScan.settingsDialog.sizeToleranceLabel")}</Label>
+            <Label htmlFor="size-tolerance" className="flex items-center gap-1">
+              {t("dirScan.settingsDialog.sizeToleranceLabel")}
+              <FieldHelp>{t("dirScan.settingsDialog.sizeToleranceHelp")}</FieldHelp>
+            </Label>
             <Input
               id="size-tolerance"
               type="number"
@@ -985,13 +998,13 @@ function SettingsDialog({ open, onOpenChange, settings, instances }: SettingsDia
                 }))
               }
             />
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.settingsDialog.sizeToleranceHelp")}
-            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="min-piece-ratio">{t("dirScan.settingsDialog.minPieceRatioLabel")}</Label>
+            <Label htmlFor="min-piece-ratio" className="flex items-center gap-1">
+              {t("dirScan.settingsDialog.minPieceRatioLabel")}
+              <FieldHelp>{t("dirScan.settingsDialog.minPieceRatioHelp")}</FieldHelp>
+            </Label>
             <Input
               id="min-piece-ratio"
               type="number"
@@ -1005,13 +1018,13 @@ function SettingsDialog({ open, onOpenChange, settings, instances }: SettingsDia
                 }))
               }
             />
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.settingsDialog.minPieceRatioHelp")}
-            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="max-searchees-per-run">{t("dirScan.settingsDialog.maxSearcheesPerRunLabel")}</Label>
+            <Label htmlFor="max-searchees-per-run" className="flex items-center gap-1">
+              {t("dirScan.settingsDialog.maxSearcheesPerRunLabel")}
+              <FieldHelp>{t("dirScan.settingsDialog.maxSearcheesPerRunHelp")}</FieldHelp>
+            </Label>
             <Input
               id="max-searchees-per-run"
               type="number"
@@ -1028,9 +1041,6 @@ function SettingsDialog({ open, onOpenChange, settings, instances }: SettingsDia
                 })
               }
             />
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.settingsDialog.maxSearcheesPerRunHelp")}
-            </p>
           </div>
 
           <div className="space-y-2 rounded-lg border p-3">
@@ -1045,7 +1055,13 @@ function SettingsDialog({ open, onOpenChange, settings, instances }: SettingsDia
                   }))
                 }}
               />
-              <Label htmlFor="max-searchee-age-enabled">{t("dirScan.settingsDialog.maxAgeEnabled")}</Label>
+              <Label htmlFor="max-searchee-age-enabled" className="flex items-center gap-1">
+                {t("dirScan.settingsDialog.maxAgeEnabled")}
+                <FieldHelp>
+                  {t("dirScan.settingsDialog.maxAgeHelp")}{" "}
+                  {t("dirScan.settingsDialog.maxAgeWebhookHelp")}
+                </FieldHelp>
+              </Label>
             </div>
 
             {ageFilterEnabled && (
@@ -1085,116 +1101,78 @@ function SettingsDialog({ open, onOpenChange, settings, instances }: SettingsDia
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  {t("dirScan.settingsDialog.maxAgeHelp")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t("dirScan.settingsDialog.maxAgeWebhookHelp")}
-                </p>
-                <p className="text-xs text-muted-foreground">
                   {t("dirScan.settingsDialog.currentCutoff", { cutoff: ageFilterCutoffPreview })}
                 </p>
               </>
             )}
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="allow-partial"
-                checked={form.allowPartial}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({ ...prev, allowPartial: checked }))
-                }
-              />
-              <Label htmlFor="allow-partial" className="flex items-center gap-1">
-                {t("dirScan.settingsDialog.allowPartial")}
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="size-3.5 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    {t("dirScan.settingsDialog.allowPartialHelp")}
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.settingsDialog.allowPartialHelp")}
-            </p>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="allow-partial"
+              checked={form.allowPartial}
+              onCheckedChange={(checked) =>
+                setForm((prev) => ({ ...prev, allowPartial: checked }))
+              }
+            />
+            <Label htmlFor="allow-partial" className="flex items-center gap-1">
+              {t("dirScan.settingsDialog.allowPartial")}
+              <FieldHelp>{t("dirScan.settingsDialog.allowPartialHelp")}</FieldHelp>
+            </Label>
           </div>
 
           {form.allowPartial && (
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="download-missing-files"
-                  checked={form.downloadMissingFiles}
-                  onCheckedChange={(checked) =>
-                    setForm((prev) => ({ ...prev, downloadMissingFiles: checked }))
-                  }
-                />
-                <Label htmlFor="download-missing-files" className="flex items-center gap-1">
-                  {t("dirScan.settingsDialog.downloadMissingFiles")}
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="size-3.5 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      {t("dirScan.settingsDialog.downloadMissingFilesHelp")}
-                    </TooltipContent>
-                  </Tooltip>
-                </Label>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("dirScan.settingsDialog.downloadMissingFilesHelp")}
-              </p>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="download-missing-files"
+                checked={form.downloadMissingFiles}
+                onCheckedChange={(checked) =>
+                  setForm((prev) => ({ ...prev, downloadMissingFiles: checked }))
+                }
+              />
+              <Label htmlFor="download-missing-files" className="flex items-center gap-1">
+                {t("dirScan.settingsDialog.downloadMissingFiles")}
+                <FieldHelp>{t("dirScan.settingsDialog.downloadMissingFilesHelp")}</FieldHelp>
+              </Label>
             </div>
           )}
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="skip-piece-boundary"
-                checked={form.skipPieceBoundarySafetyCheck}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({ ...prev, skipPieceBoundarySafetyCheck: checked }))
-                }
-              />
-              <Label htmlFor="skip-piece-boundary" className="flex items-center gap-1">
-                {t("dirScan.settingsDialog.skipPieceBoundarySafetyCheck")}
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="size-3.5 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    {t("dirScan.settingsDialog.skipPieceBoundarySafetyCheckHelp")}
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.settingsDialog.skipPieceBoundarySafetyCheckDescription")}
-            </p>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="skip-piece-boundary"
+              checked={form.skipPieceBoundarySafetyCheck}
+              onCheckedChange={(checked) =>
+                setForm((prev) => ({ ...prev, skipPieceBoundarySafetyCheck: checked }))
+              }
+            />
+            <Label htmlFor="skip-piece-boundary" className="flex items-center gap-1">
+              {t("dirScan.settingsDialog.skipPieceBoundarySafetyCheck")}
+              <FieldHelp>
+                {t("dirScan.settingsDialog.skipPieceBoundarySafetyCheckHelp")}{" "}
+                {t("dirScan.settingsDialog.skipPieceBoundarySafetyCheckDescription")}
+              </FieldHelp>
+            </Label>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="start-paused"
-                checked={form.startPaused}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({ ...prev, startPaused: checked }))
-                }
-              />
-              <Label htmlFor="start-paused">{t("dirScan.settingsDialog.startPaused")}</Label>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.settingsDialog.startPausedHelp")}
-            </p>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="start-paused"
+              checked={form.startPaused}
+              onCheckedChange={(checked) =>
+                setForm((prev) => ({ ...prev, startPaused: checked }))
+              }
+            />
+            <Label htmlFor="start-paused" className="flex items-center gap-1">
+              {t("dirScan.settingsDialog.startPaused")}
+              <FieldHelp>{t("dirScan.settingsDialog.startPausedHelp")}</FieldHelp>
+            </Label>
           </div>
 
           <div className="space-y-2">
-            <Label>{t("dirScan.settingsDialog.defaultCategory")}</Label>
+            <Label className="flex items-center gap-1">
+              {t("dirScan.settingsDialog.defaultCategory")}
+              <FieldHelp>{t("dirScan.settingsDialog.defaultCategoryHelp")}</FieldHelp>
+            </Label>
             <MultiSelect
               options={categorySelectOptions}
               selected={form.category ? [form.category] : []}
@@ -1205,9 +1183,6 @@ function SettingsDialog({ open, onOpenChange, settings, instances }: SettingsDia
               creatable
               disabled={updateSettings.isPending}
             />
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.settingsDialog.defaultCategoryHelp")}
-            </p>
           </div>
 
           <div className="space-y-2">
@@ -1264,6 +1239,7 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
     enabled: directory?.enabled ?? true,
     targetInstanceId: directory?.targetInstanceId ?? defaultTargetInstanceId,
     scanIntervalMinutes: directory?.scanIntervalMinutes ?? 1440,
+    skipIndividualEpisodes: directory?.skipIndividualEpisodes ?? false,
   }))
 
   // Track acknowledgment of regular mode warning
@@ -1303,6 +1279,7 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
         enabled: directory.enabled,
         targetInstanceId: directory.targetInstanceId,
         scanIntervalMinutes: directory.scanIntervalMinutes,
+        skipIndividualEpisodes: directory.skipIndividualEpisodes,
       })
     } else {
       setForm({
@@ -1314,6 +1291,7 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
         enabled: true,
         targetInstanceId: defaultTargetInstanceId,
         scanIntervalMinutes: 1440,
+        skipIndividualEpisodes: false,
       })
     }
   }, [open, directory, defaultTargetInstanceId])
@@ -1381,14 +1359,7 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
           <div className="space-y-2">
             <Label htmlFor="qbit-path-prefix" className="flex items-center gap-1">
               {t("dirScan.directoryDialog.qbitPathPrefixLabel")}
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="size-3.5 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  {t("dirScan.directoryDialog.qbitPathPrefixHelp")}
-                </TooltipContent>
-              </Tooltip>
+              <FieldHelp>{t("dirScan.directoryDialog.qbitPathPrefixHelp")}</FieldHelp>
             </Label>
             <Input
               id="qbit-path-prefix"
@@ -1422,7 +1393,10 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
           </div>
 
           <div className="space-y-2">
-            <Label>{t("dirScan.directoryDialog.categoryOverrideLabel")}</Label>
+            <Label className="flex items-center gap-1">
+              {t("dirScan.directoryDialog.categoryOverrideLabel")}
+              <FieldHelp>{t("dirScan.directoryDialog.categoryOverrideHelp")}</FieldHelp>
+            </Label>
             <MultiSelect
               options={directoryCategoryOptions}
               selected={form.category ? [form.category] : []}
@@ -1440,13 +1414,22 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
                 {t("dirScan.directoryDialog.categoryLoadError")}
               </p>
             )}
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.directoryDialog.categoryOverrideHelp")}
-            </p>
           </div>
 
           <div className="space-y-2">
-            <Label>{t("dirScan.directoryDialog.additionalTagsLabel")}</Label>
+            <Label className="flex items-center gap-1">
+              {t("dirScan.directoryDialog.additionalTagsLabel")}
+              <FieldHelp>
+                <Trans
+                  ns="crossseed"
+                  i18nKey="dirScan.tagsDescription"
+                  components={{
+                    dirscan: <span className="font-mono" />,
+                    needsReview: <span className="font-mono" />,
+                  }}
+                />
+              </FieldHelp>
+            </Label>
             <MultiSelect
               options={directoryTagOptions}
               selected={form.tags ?? []}
@@ -1462,20 +1445,13 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
                 {t("dirScan.directoryDialog.tagsLoadError")}
               </p>
             )}
-            <p className="text-xs text-muted-foreground">
-              <Trans
-                ns="crossseed"
-                i18nKey="dirScan.tagsDescription"
-                components={{
-                  dirscan: <span className="font-mono" />,
-                  needsReview: <span className="font-mono" />,
-                }}
-              />
-            </p>
           </div>
 
           <div className="space-y-2">
-            <Label>{t("dirScan.directoryDialog.allowedDownloadClientsLabel")}</Label>
+            <Label className="flex items-center gap-1">
+              {t("dirScan.directoryDialog.allowedDownloadClientsLabel")}
+              <FieldHelp>{t("dirScan.directoryDialog.allowedDownloadClientsHelp")}</FieldHelp>
+            </Label>
             <MultiSelect
               options={(form.allowedDownloadClients ?? []).map((value) => ({ label: value, value }))}
               selected={form.allowedDownloadClients ?? []}
@@ -1486,13 +1462,13 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
               creatable
               disabled={isPending}
             />
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.directoryDialog.allowedDownloadClientsHelp")}
-            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="scan-interval">{t("dirScan.directoryDialog.intervalLabel")}</Label>
+            <Label htmlFor="scan-interval" className="flex items-center gap-1">
+              {t("dirScan.directoryDialog.intervalLabel")}
+              <FieldHelp>{t("dirScan.directoryDialog.intervalHelp")}</FieldHelp>
+            </Label>
             <Input
               id="scan-interval"
               type="number"
@@ -1506,9 +1482,20 @@ function DirectoryDialog({ open, onOpenChange, directory, instances }: Directory
                 }))
               }}
             />
-            <p className="text-xs text-muted-foreground">
-              {t("dirScan.directoryDialog.intervalHelp")}
-            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Switch
+              id="dir-skip-individual-episodes"
+              checked={form.skipIndividualEpisodes ?? false}
+              onCheckedChange={(checked) =>
+                setForm((prev) => ({ ...prev, skipIndividualEpisodes: checked }))
+              }
+            />
+            <Label htmlFor="dir-skip-individual-episodes" className="flex items-center gap-1">
+              {t("dirScan.directoryDialog.skipIndividualEpisodesLabel")}
+              <FieldHelp>{t("dirScan.directoryDialog.skipIndividualEpisodesHelp")}</FieldHelp>
+            </Label>
           </div>
 
           <div className="flex items-center gap-2">

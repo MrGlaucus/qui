@@ -1008,7 +1008,6 @@
       "autoCleanup": "Pulizia automatica",
       "autoCleanupLabel": "Pulizia automatica per le scansioni pianificate",
       "autoCleanupTooltip": "Se abilitata, le scansioni pianificate elimineranno automaticamente i file orfani senza richiedere conferma manuale. Le scansioni manuali mostreranno sempre prima un'anteprima.",
-      "autoCleanupDescription": "Elimina automaticamente i file orfani al termine delle scansioni pianificate",
       "autoDeleteWarningTitle": "L'eliminazione automatica rimuoverà i file in modo permanente",
       "autoDeleteWarningBody": "I file contrassegnati come orfani verranno eliminati automaticamente senza revisione manuale. Se la scansione delle cartelle è configurata in modalità normale, tutti i file nelle cartelle scansionate che <span class=\"font-medium\">non corrispondono a un torrent verranno contrassegnati come orfani</span> ed eliminati.",
       "autoDeleteWarningPaths": "Assicurati che i tuoi <span class=\"font-medium\">percorsi da ignorare</span> siano configurati correttamente oppure usa la modalità hardlink/reflink per la scansione delle cartelle.",
@@ -1016,12 +1015,10 @@
       "maxFilesThreshold": "Soglia massima di file",
       "maxFilesThresholdTooltip": "Limite di sicurezza: se una scansione trova più file di questa soglia, salterà la pulizia automatica e richiederà una revisione manuale. In questo modo vengono rilevate anomalie come percorsi da ignorare configurati male.",
       "files": "file",
-      "maxFilesThresholdDescription": "Se vengono trovati più file, sarà invece richiesta una revisione manuale",
       "exclusions": "Esclusioni",
       "ignorePaths": "Percorsi da ignorare",
       "ignorePathsTooltip": "Percorsi da escludere dalla scansione. I file in queste cartelle non verranno mai contrassegnati come orfani. Inserisci un percorso per riga.",
       "ignorePathsPlaceholder": "/downloads/preserve\n/downloads/manual\n/data/keep",
-      "ignorePathsDescription": "Un percorso per riga. I percorsi vengono confrontati come prefissi.",
       "saving": "Salvataggio...",
       "saveChanges": "Salva modifiche",
       "toast": {
@@ -1196,7 +1193,6 @@
         "maxRetries": "Tentativi massimi",
         "maxRetriesDescription": "Tentativi per torrent",
         "quickRetry": "Tentativo rapido",
-        "quickRetryDescription": "Usa l'intervallo tra i tentativi come pausa invece di 2 minuti",
         "quickRetryTooltip": "Usa l'intervallo tra i tentativi come pausa tra le scansioni invece dei 2 minuti predefiniti. Utile sui tracker lenti a registrare i nuovi caricamenti. qui attende sempre mentre un tracker si sta aggiornando e non invia mai richieste eccessive.",
         "scopeFiltering": "Ambito e filtraggio",
         "monitorAllStalled": "Monitora tutti i torrent in stallo",
@@ -1390,8 +1386,7 @@
         "skipIfCrossSeedExists": "Ignora se esiste un cross-seed nelle categorie",
         "aboutSkipping": "Informazioni sull'ignorare quando esistono cross-seed",
         "skipHelp": "Utile con le code di importazione *arr: impedisce all'automazione di spostare i torrent se almeno uno di essi è nella coda di importazione *arr.",
-        "selectCategories": "Seleziona le categorie...",
-        "skipDescription": "Ignora il cambio di categoria se un altro torrent che punta allo stesso contenuto su disco è già in una di queste categorie."
+        "selectCategories": "Seleziona le categorie..."
       },
       "externalProgram": {
         "program": "Programma",

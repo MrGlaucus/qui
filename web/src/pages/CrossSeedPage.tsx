@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { FieldHelp } from "@/components/ui/field-help"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MultiSelect } from "@/components/ui/multi-select"
@@ -65,7 +66,6 @@ import {
   ChevronDown,
   Clock,
   History,
-  Info,
   Loader2,
   Play,
   RefreshCw,
@@ -785,15 +785,15 @@ function HardlinkModeSettings() {
 
                           <div className="space-y-4">
                             <div className="space-y-2">
-                              <Label>{t("rules.baseDirectories")}</Label>
+                              <div className="flex items-center gap-1.5">
+                                <Label>{t("rules.baseDirectories")}</Label>
+                                <FieldHelp>{t("rules.baseDirectoriesDescription")}</FieldHelp>
+                              </div>
                               <Input
                                 placeholder={t("rules.baseDirectoriesPlaceholder")}
                                 value={form.hardlinkBaseDir}
                                 onChange={(e) => handleFormChange(instance.id, "hardlinkBaseDir", e.target.value, form)}
                               />
-                              <p className="text-xs text-muted-foreground">
-                                {t("rules.baseDirectoriesDescription")}
-                              </p>
                             </div>
 
                             <div className="space-y-2">
@@ -815,7 +815,7 @@ function HardlinkModeSettings() {
                               </Select>
                             </div>
 
-                            <div className="flex items-start gap-3">
+                            <div className="flex items-center gap-3">
                               <Checkbox
                                 id={`fallback-${instance.id}`}
                                 checked={form.fallbackToRegularMode}
@@ -823,13 +823,13 @@ function HardlinkModeSettings() {
                                   handleFormChange(instance.id, "fallbackToRegularMode", checked === true, form)
                                 }
                               />
-                              <div className="space-y-0.5 flex-1">
+                              <div className="flex items-center gap-1.5">
                                 <Label htmlFor={`fallback-${instance.id}`} className="font-medium cursor-pointer">
                                   {t("rules.fallbackToRegular")}
                                 </Label>
-                                <p className="text-xs text-muted-foreground">
+                                <FieldHelp>
                                   {t("rules.fallbackDescription", { mode: form.useReflinks ? t("rules.reflink") : t("rules.hardlink") })}
-                                </p>
+                                </FieldHelp>
                               </div>
                             </div>
                           </div>
@@ -2073,20 +2073,7 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="automation-interval">{t("automation.intervalLabel")}</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className="text-muted-foreground hover:text-foreground"
-                          aria-label={t("automation.intervalLabel")}
-                        >
-                          <Info className="h-4 w-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent align="start" className="max-w-xs text-xs">
-                        {t("automation.intervalTooltip", { min: MIN_RSS_INTERVAL_MINUTES })}
-                      </TooltipContent>
-                    </Tooltip>
+                    <FieldHelp>{t("automation.intervalTooltip", { min: MIN_RSS_INTERVAL_MINUTES })}</FieldHelp>
                   </div>
                   <Input
                     id="automation-interval"
@@ -2470,7 +2457,13 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-3">
-                  <Label htmlFor="search-interval">{t("scan.intervalLabel")}</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="search-interval">{t("scan.intervalLabel")}</Label>
+                    <FieldHelp>
+                      {t("scan.waitTimeDescription", { min: seededSearchIntervalMinimum })}
+                      {seededSearchGazelleOnlyMode && t("scan.gazelleOnlyNote")}
+                    </FieldHelp>
+                  </div>
                   <Input
                     id="search-interval"
                     type="number"
@@ -2502,13 +2495,12 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       </Button>
                     ))}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t("scan.waitTimeDescription", { min: seededSearchIntervalMinimum })}
-                    {seededSearchGazelleOnlyMode && t("scan.gazelleOnlyNote")}
-                  </p>
                 </div>
                 <div className="space-y-3">
-                  <Label htmlFor="search-cooldown">{t("scan.cooldownLabel")}</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="search-cooldown">{t("scan.cooldownLabel")}</Label>
+                    <FieldHelp>{t("scan.cooldownDescription", { min: MIN_SEEDED_SEARCH_COOLDOWN_MINUTES })}</FieldHelp>
+                  </div>
                   <Input
                     id="search-cooldown"
                     type="number"
@@ -2526,7 +2518,6 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                   {validationErrors.searchCooldownMinutes && (
                     <p className="text-sm text-destructive">{validationErrors.searchCooldownMinutes}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">{t("scan.cooldownDescription", { min: MIN_SEEDED_SEARCH_COOLDOWN_MINUTES })}</p>
                 </div>
               </div>
 
@@ -2628,11 +2619,13 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex items-center justify-between gap-3">
                   <div className="space-y-0.5">
-                    <Label htmlFor="skip-individual-episodes" className="font-medium">{t("scan.skipIndividualEpisodesLabel")}</Label>
-                    <p className="text-xs text-muted-foreground">
-                      {t("scan.skipIndividualEpisodesDescription")}
-                      {skipIndividualEpisodes && settings?.seasonPackAutomationEnabled === false && ` ${t("scan.skipIndividualEpisodesAutomationOff")}`}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="skip-individual-episodes" className="font-medium">{t("scan.skipIndividualEpisodesLabel")}</Label>
+                      <FieldHelp>{t("scan.skipIndividualEpisodesDescription")}</FieldHelp>
+                    </div>
+                    {skipIndividualEpisodes && settings?.seasonPackAutomationEnabled === false && (
+                      <p className="text-xs text-muted-foreground">{t("scan.skipIndividualEpisodesAutomationOff")}</p>
+                    )}
                   </div>
                   <Switch
                     id="skip-individual-episodes"
@@ -2641,7 +2634,10 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                   />
                 </div>
                 <div className="space-y-3">
-                  <Label htmlFor="max-added-age-days">{t("scan.maxAddedAgeLabel")}</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="max-added-age-days">{t("scan.maxAddedAgeLabel")}</Label>
+                    <FieldHelp>{t("scan.maxAddedAgeDescription")}</FieldHelp>
+                  </div>
                   <Input
                     id="max-added-age-days"
                     type="number"
@@ -2649,7 +2645,6 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     value={maxAddedAgeDays}
                     onChange={event => setMaxAddedAgeDays(parseNonNegativeInt(event.target.value))}
                   />
-                  <p className="text-xs text-muted-foreground">{t("scan.maxAddedAgeDescription")}</p>
                 </div>
               </div>
 
@@ -2879,9 +2874,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
-                  <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
                     <Label htmlFor="gazelle-enabled" className="font-medium">{t("rules.gazelle.enableMatching")}</Label>
-                    <p className="text-xs text-muted-foreground">{t("rules.gazelle.enableDescription")}</p>
+                    <FieldHelp>{t("rules.gazelle.enableDescription")}</FieldHelp>
                   </div>
                   <Switch
                     id="gazelle-enabled"
@@ -2892,7 +2887,10 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
 
                 <div className="grid gap-4 md:grid-cols-2 pt-3 border-t border-border/50">
                   <div className="space-y-2">
-                    <Label htmlFor="gazelle-red-api-key">{t("rules.gazelle.redactedApiKey")}</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="gazelle-red-api-key">{t("rules.gazelle.redactedApiKey")}</Label>
+                      <FieldHelp>{t("rules.gazelle.redDescription")}</FieldHelp>
+                    </div>
                     <Input
                       id="gazelle-red-api-key"
                       type="password"
@@ -2903,11 +2901,13 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       disabled={!globalSettings.gazelleEnabled}
                       autoComplete="off"
                     />
-                    <p className="text-xs text-muted-foreground">{t("rules.gazelle.redDescription")}</p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="gazelle-ops-api-key">{t("rules.gazelle.orpheusApiKey")}</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="gazelle-ops-api-key">{t("rules.gazelle.orpheusApiKey")}</Label>
+                      <FieldHelp>{t("rules.gazelle.opsDescription")}</FieldHelp>
+                    </div>
                     <Input
                       id="gazelle-ops-api-key"
                       type="password"
@@ -2918,7 +2918,6 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       disabled={!globalSettings.gazelleEnabled}
                       autoComplete="off"
                     />
-                    <p className="text-xs text-muted-foreground">{t("rules.gazelle.opsDescription")}</p>
                   </div>
                 </div>
               </div>
@@ -2930,9 +2929,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                   <p className="text-xs text-muted-foreground">{t("rules.matching.description")}</p>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
                     <Label htmlFor="global-find-individual-episodes" className="font-medium">{t("rules.matching.crossSeedEpisodes")}</Label>
-                    <p className="text-xs text-muted-foreground">{t("rules.matching.crossSeedEpisodesDescription")}</p>
+                    <FieldHelp>{t("rules.matching.crossSeedEpisodesDescription")}</FieldHelp>
                   </div>
                   <Switch
                     id="global-find-individual-episodes"
@@ -2949,9 +2948,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                   <p className="text-xs text-muted-foreground">{t("rules.seasonPack.description")}</p>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
                     <Label htmlFor="season-pack-enabled" className="font-medium">{t("rules.seasonPack.enable")}</Label>
-                    <p className="text-xs text-muted-foreground">{t("rules.seasonPack.enableDescription")}</p>
+                    <FieldHelp>{t("rules.seasonPack.enableDescription")}</FieldHelp>
                   </div>
                   <Switch
                     id="season-pack-enabled"
@@ -2960,9 +2959,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                   />
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
                     <Label htmlFor="season-pack-automation-enabled" className="font-medium">{t("rules.seasonPack.enableAutomation")}</Label>
-                    <p className="text-xs text-muted-foreground">{t("rules.seasonPack.enableAutomationDescription")}</p>
+                    <FieldHelp>{t("rules.seasonPack.enableAutomationDescription")}</FieldHelp>
                   </div>
                   <Switch
                     id="season-pack-automation-enabled"
@@ -2971,7 +2970,10 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                   />
                 </div>
                 <div className="space-y-2 pt-3 border-t border-border/50">
-                  <Label htmlFor="season-pack-threshold">{t("rules.seasonPack.coverageThreshold")}</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="season-pack-threshold">{t("rules.seasonPack.coverageThreshold")}</Label>
+                    <FieldHelp>{t("rules.seasonPack.coverageThresholdDescription")}</FieldHelp>
+                  </div>
                   <Input
                     id="season-pack-threshold"
                     type="number"
@@ -2989,9 +2991,6 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       }
                     }}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {t("rules.seasonPack.coverageThresholdDescription")}
-                  </p>
                 </div>
 
                 <div className="space-y-3 pt-3 border-t border-border/50">
@@ -3000,9 +2999,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     <p className="text-xs text-muted-foreground">{t("rules.seasonPack.matchingDescription")}</p>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
                       <Label htmlFor="season-pack-skip-repack-compare" className="font-medium">{t("rules.seasonPack.ignoreRepackProper")}</Label>
-                      <p className="text-xs text-muted-foreground">{t("rules.seasonPack.ignoreRepackProperDescription")}</p>
+                      <FieldHelp>{t("rules.seasonPack.ignoreRepackProperDescription")}</FieldHelp>
                     </div>
                     <Switch
                       id="season-pack-skip-repack-compare"
@@ -3012,9 +3011,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     />
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
                       <Label htmlFor="season-pack-simplify-hdr-compare" className="font-medium">{t("rules.seasonPack.simplifyHdr")}</Label>
-                      <p className="text-xs text-muted-foreground">{t("rules.seasonPack.simplifyHdrDescription")}</p>
+                      <FieldHelp>{t("rules.seasonPack.simplifyHdrDescription")}</FieldHelp>
                     </div>
                     <Switch
                       id="season-pack-simplify-hdr-compare"
@@ -3024,9 +3023,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     />
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
                       <Label htmlFor="season-pack-simplify-web-compare" className="font-medium">{t("rules.seasonPack.simplifyWeb")}</Label>
-                      <p className="text-xs text-muted-foreground">{t("rules.seasonPack.simplifyWebDescription")}</p>
+                      <FieldHelp>{t("rules.seasonPack.simplifyWebDescription")}</FieldHelp>
                     </div>
                     <Switch
                       id="season-pack-simplify-web-compare"
@@ -3036,9 +3035,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     />
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
                       <Label htmlFor="season-pack-skip-year-compare" className="font-medium">{t("rules.seasonPack.ignoreYear")}</Label>
-                      <p className="text-xs text-muted-foreground">{t("rules.seasonPack.ignoreYearDescription")}</p>
+                      <FieldHelp>{t("rules.seasonPack.ignoreYearDescription")}</FieldHelp>
                     </div>
                     <Switch
                       id="season-pack-skip-year-compare"
@@ -3089,7 +3088,12 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     disabled={!globalSettings.seasonPackEnabled && !globalSettings.seasonPackAutomationEnabled}
                   />
                   <div className="space-y-2">
-                    <Label htmlFor="season-pack-category">{t("rules.seasonPack.categoryRouting.fallbackLabel")}</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="season-pack-category">{t("rules.seasonPack.categoryRouting.fallbackLabel")}</Label>
+                      <FieldHelp>
+                        {t("rules.seasonPack.categoryRouting.fallbackDescriptionBefore")}<code>tv-hd</code>{t("rules.seasonPack.categoryRouting.fallbackDescriptionAfter")}
+                      </FieldHelp>
+                    </div>
                     <MultiSelect
                       options={seasonPackFallbackCategorySelectOptions}
                       selected={globalSettings.seasonPackCategory ? [globalSettings.seasonPackCategory] : []}
@@ -3100,9 +3104,6 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       creatable
                       disabled={!globalSettings.seasonPackEnabled && !globalSettings.seasonPackAutomationEnabled}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {t("rules.seasonPack.categoryRouting.fallbackDescriptionBefore")}<code>tv-hd</code>{t("rules.seasonPack.categoryRouting.fallbackDescriptionAfter")}
-                    </p>
                   </div>
                 </div>
                 <SeasonPackRunsPanel
@@ -3127,9 +3128,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                   onCheckedChange={rescueTitleMismatches => setGlobalSettings(prev => ({ ...prev, rescueTitleMismatches }))}
                 />
                 <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/50">
-                  <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
                     <Label htmlFor="skip-recheck" className="font-medium">{t("rules.safety.skipRecheck")}</Label>
-                    <p className="text-xs text-muted-foreground">{t("rules.safety.skipRecheckDescription")}</p>
+                    <FieldHelp>{t("rules.safety.skipRecheckDescription")}</FieldHelp>
                   </div>
                   <Switch
                     id="skip-recheck"
@@ -3178,16 +3179,7 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     <div className="space-y-0.5 flex-1">
                       <div className="flex items-center gap-1.5">
                         <Label htmlFor="category-reuse" className="font-medium cursor-pointer">{t("rules.categories.reuseCategory")}</Label>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={t("rules.categories.reuseCategory")}>
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent align="start" className="max-w-xs text-xs">
-                            {t("rules.categories.reuseCategoryHelp")}
-                          </TooltipContent>
-                        </Tooltip>
+                        <FieldHelp>{t("rules.categories.reuseCategoryHelp")}</FieldHelp>
                       </div>
                       <p className="text-xs text-muted-foreground">{t("rules.categories.reuseCategoryDescription")}</p>
                     </div>
@@ -3197,16 +3189,7 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     <div className="space-y-0.5 flex-1">
                       <div className="flex items-center gap-1.5">
                         <Label htmlFor="category-affix" className="font-medium cursor-pointer">{t("rules.categories.categoryAffix")}</Label>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={t("rules.categories.categoryAffix")}>
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent align="start" className="max-w-xs text-xs">
-                            {t("rules.categories.categoryAffixHelp")}
-                          </TooltipContent>
-                        </Tooltip>
+                        <FieldHelp>{t("rules.categories.categoryAffixHelp")}</FieldHelp>
                       </div>
                       <p className="text-xs text-muted-foreground">{t("rules.categories.categoryAffixDescription")}</p>
                       {getCategoryMode() === "affix" && (
@@ -3242,16 +3225,7 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     <div className="space-y-0.5 flex-1">
                       <div className="flex items-center gap-1.5">
                         <Label htmlFor="category-indexer" className="font-medium cursor-pointer">{t("rules.categories.indexerCategory")}</Label>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={t("rules.categories.indexerCategory")}>
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent align="start" className="max-w-xs text-xs">
-                            {t("rules.categories.indexerCategoryHelp")}
-                          </TooltipContent>
-                        </Tooltip>
+                        <FieldHelp>{t("rules.categories.indexerCategoryHelp")}</FieldHelp>
                       </div>
                       <p className="text-xs text-muted-foreground">{t("rules.categories.indexerCategoryDescription")}</p>
                     </div>
@@ -3261,16 +3235,7 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     <div className="space-y-0.5 flex-1">
                       <div className="flex items-center gap-1.5">
                         <Label htmlFor="category-custom" className="font-medium cursor-pointer">{t("rules.categories.customCategory")}</Label>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={t("rules.categories.customCategory")}>
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent align="start" className="max-w-xs text-xs">
-                            {t("rules.categories.customCategoryHelp")}
-                          </TooltipContent>
-                        </Tooltip>
+                        <FieldHelp>{t("rules.categories.customCategoryHelp")}</FieldHelp>
                       </div>
                       <p className="text-xs text-muted-foreground">{t("rules.categories.customCategoryDescription")}</p>
                       {globalSettings.useCustomCategory && (
@@ -3309,7 +3274,10 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="rss-automation-tags">{t("rules.tagging.rssAutomationTags")}</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="rss-automation-tags">{t("rules.tagging.rssAutomationTags")}</Label>
+                      <FieldHelp>{t("rules.tagging.rssTagsDescription")}</FieldHelp>
+                    </div>
                     <MultiSelect
                       options={[
                         { label: t("rules.tagging.tagCrossSeed"), value: "cross-seed" },
@@ -3321,11 +3289,13 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       creatable
                       onCreateOption={value => setGlobalSettings(prev => ({ ...prev, rssAutomationTags: normalizeStringList([...prev.rssAutomationTags, value]) }))}
                     />
-                    <p className="text-xs text-muted-foreground">{t("rules.tagging.rssTagsDescription")}</p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="seeded-search-tags">{t("rules.tagging.seededSearchTags")}</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="seeded-search-tags">{t("rules.tagging.seededSearchTags")}</Label>
+                      <FieldHelp>{t("rules.tagging.seededTagsDescription")}</FieldHelp>
+                    </div>
                     <MultiSelect
                       options={[
                         { label: t("rules.tagging.tagCrossSeed"), value: "cross-seed" },
@@ -3337,11 +3307,13 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       creatable
                       onCreateOption={value => setGlobalSettings(prev => ({ ...prev, seededSearchTags: normalizeStringList([...prev.seededSearchTags, value]) }))}
                     />
-                    <p className="text-xs text-muted-foreground">{t("rules.tagging.seededTagsDescription")}</p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="completion-search-tags">{t("rules.tagging.completionSearchTags")}</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="completion-search-tags">{t("rules.tagging.completionSearchTags")}</Label>
+                      <FieldHelp>{t("rules.tagging.completionTagsDescription")}</FieldHelp>
+                    </div>
                     <MultiSelect
                       options={[
                         { label: t("rules.tagging.tagCrossSeed"), value: "cross-seed" },
@@ -3353,11 +3325,13 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       creatable
                       onCreateOption={value => setGlobalSettings(prev => ({ ...prev, completionSearchTags: normalizeStringList([...prev.completionSearchTags, value]) }))}
                     />
-                    <p className="text-xs text-muted-foreground">{t("rules.tagging.completionTagsDescription")}</p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="webhook-tags">{t("rules.tagging.webhookTags")}</Label>
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="webhook-tags">{t("rules.tagging.webhookTags")}</Label>
+                      <FieldHelp>{t("rules.tagging.webhookTagsDescription")}</FieldHelp>
+                    </div>
                     <MultiSelect
                       options={[
                         { label: t("rules.tagging.tagCrossSeed"), value: "cross-seed" },
@@ -3370,7 +3344,6 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       creatable
                       onCreateOption={value => setGlobalSettings(prev => ({ ...prev, webhookTags: normalizeStringList([...prev.webhookTags, value]) }))}
                     />
-                    <p className="text-xs text-muted-foreground">{t("rules.tagging.webhookTagsDescription")}</p>
                   </div>
 
                   <div className="space-y-2">
@@ -3390,9 +3363,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                 </div>
 
                 <div className="flex items-center justify-between gap-3 pt-2">
-                  <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5">
                     <Label htmlFor="inherit-source-tags" className="font-medium">{t("rules.tagging.inheritSourceTags")}</Label>
-                    <p className="text-xs text-muted-foreground">{t("rules.tagging.inheritSourceTagsDescription")}</p>
+                    <FieldHelp>{t("rules.tagging.inheritSourceTagsDescription")}</FieldHelp>
                   </div>
                   <Switch
                     id="inherit-source-tags"
@@ -3420,10 +3393,7 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                   <p className="text-xs font-medium text-muted-foreground">{t("rules.postInjection.autoResumeNote")}</p>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="auto-resume-rss" className="font-medium">{t("rules.postInjection.rss")}</Label>
-                        <p className="text-xs text-muted-foreground">{t("rules.postInjection.rssDescription")}</p>
-                      </div>
+                      <Label htmlFor="auto-resume-rss" className="font-medium">{t("rules.postInjection.rss")}</Label>
                       <Switch
                         id="auto-resume-rss"
                         checked={!globalSettings.skipAutoResumeRss}
@@ -3432,9 +3402,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     </div>
 
                     <div className="flex items-center justify-between gap-3">
-                      <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5">
                         <Label htmlFor="auto-resume-seeded-search" className="font-medium">{t("rules.postInjection.seededSearch")}</Label>
-                        <p className="text-xs text-muted-foreground">{t("rules.postInjection.seededSearchDescription")}</p>
+                        <FieldHelp>{t("rules.postInjection.seededSearchDescription")}</FieldHelp>
                       </div>
                       <Switch
                         id="auto-resume-seeded-search"
@@ -3444,10 +3414,7 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     </div>
 
                     <div className="flex items-center justify-between gap-3">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="auto-resume-completion" className="font-medium">{t("rules.postInjection.completion")}</Label>
-                        <p className="text-xs text-muted-foreground">{t("rules.postInjection.completionDescription")}</p>
-                      </div>
+                      <Label htmlFor="auto-resume-completion" className="font-medium">{t("rules.postInjection.completion")}</Label>
                       <Switch
                         id="auto-resume-completion"
                         checked={!globalSettings.skipAutoResumeCompletion}
@@ -3456,9 +3423,9 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                     </div>
 
                     <div className="flex items-center justify-between gap-3">
-                      <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5">
                         <Label htmlFor="auto-resume-webhook" className="font-medium">{t("rules.postInjection.webhookLabel")}</Label>
-                        <p className="text-xs text-muted-foreground">{t("rules.postInjection.webhookDescription")}</p>
+                        <FieldHelp>{t("rules.postInjection.webhookDescription")}</FieldHelp>
                       </div>
                       <Switch
                         id="auto-resume-webhook"
@@ -3470,7 +3437,10 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                 </div>
 
                 <div className="space-y-2 pt-3 border-t border-border/50">
-                  <Label htmlFor="global-auto-resume-max-download">{t("rules.postInjection.maxAutoResumeDownload")}</Label>
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="global-auto-resume-max-download">{t("rules.postInjection.maxAutoResumeDownload")}</Label>
+                    <FieldHelp>{t("rules.postInjection.maxAutoResumeDownloadDescription")}</FieldHelp>
+                  </div>
                   <Input
                     id="global-auto-resume-max-download"
                     type="number"
@@ -3482,9 +3452,6 @@ export function CrossSeedPage({ activeTab, onTabChange }: CrossSeedPageProps) {
                       autoResumeMaxDownloadMb: parseNonNegativeInt(event.target.value),
                     }))}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {t("rules.postInjection.maxAutoResumeDownloadDescription")}
-                  </p>
                 </div>
 
                 <div className="space-y-2 pt-3 border-t border-border/50">

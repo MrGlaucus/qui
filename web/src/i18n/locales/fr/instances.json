@@ -1002,7 +1002,6 @@
       "autoCleanup": "Nettoyage automatique",
       "autoCleanupLabel": "Nettoyage automatique pour les analyses planifiées",
       "autoCleanupTooltip": "Si activé, les analyses planifiées supprimeront automatiquement les fichiers. Les analyses manuelles afficheront toujours un aperçu.",
-      "autoCleanupDescription": "Supprimer automatiquement après les analyses planifiées",
       "autoDeleteWarningTitle": "La suppression automatique effacera définitivement les fichiers",
       "autoDeleteWarningBody": "Les fichiers identifiés comme orphelins seront supprimés automatiquement sans examen manuel. Si l'analyse de répertoire est configurée en mode normal, tous les fichiers des répertoires analysés qui <span class='font-medium'>ne correspondent pas à un torrent seront signalés comme orphelins</span> et supprimés.",
       "autoDeleteWarningPaths": "Assurez-vous que vos <span class=\"font-medium\">chemins ignorés</span> soient corrects ou utilisez le mode hardlink.",
@@ -1010,12 +1009,10 @@
       "maxFilesThreshold": "Seuil maximum de fichiers",
       "maxFilesThresholdTooltip": "Limite de sécurité pour éviter la suppression automatique lors d'anomalies.",
       "files": "fichiers",
-      "maxFilesThresholdDescription": "Si plus de fichiers sont trouvés, une revue manuelle sera requise",
       "exclusions": "Exclusions",
       "ignorePaths": "Chemins ignorés",
       "ignorePathsTooltip": "Chemins à exclure de l'analyse (un par ligne).",
       "ignorePathsPlaceholder": "/downloads/conserver\n/downloads/manuel\n/data/garder",
-      "ignorePathsDescription": "Un chemin par ligne, correspondances par préfixes.",
       "saving": "Enregistrement...",
       "saveChanges": "Sauvegarder les modifications",
       "toast": {
@@ -1190,7 +1187,6 @@
         "maxRetries": "Réessais max",
         "maxRetriesDescription": "Tentatives de réessai par torrent",
         "quickRetry": "Réessai rapide",
-        "quickRetryDescription": "Utiliser l'intervalle de réessai comme délai au lieu de 2 minutes",
         "quickRetryTooltip": "Utilisez l'intervalle de réessai comme délai entre les analyses. Utile sur les trackers lents à s'actualiser.",
         "scopeFiltering": "Périmètre & Filtrage",
         "monitorAllStalled": "Surveiller tous les torrents bloqués",
@@ -1384,8 +1380,7 @@
         "skipIfCrossSeedExists": "Ignorer si le cross-seed existe dans des catégories",
         "aboutSkipping": "Ignorer quand les cross-seeds existent",
         "skipHelp": "Prévient le déplacement si les torrents sont dans la file d'attente *arr.",
-        "selectCategories": "Sélectionner les catégories...",
-        "skipDescription": "Ignore le changement si un autre torrent pointant sur le même contenu y est déjà."
+        "selectCategories": "Sélectionner les catégories..."
       },
       "externalProgram": {
         "program": "Programme",

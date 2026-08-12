@@ -1,9 +1,10 @@
-/*
+﻿/*
  * Copyright (c) 2025-2026, s0up and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 import { Button } from "@/components/ui/button"
+import { FieldHelp } from "@/components/ui/field-help"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -265,13 +266,11 @@ export function InstanceForm({ instance, defaultValues, onSuccess, onCancel, for
 
         <form.Field name="tlsSkipVerify">
           {(field) => (
-            <div className="flex items-start justify-between gap-4 rounded-lg border bg-muted/40 p-4">
-              <div className="space-y-1">
-                <Label htmlFor="tls-skip-verify">{t("form.labels.skipTlsVerification")}</Label>
-                <p className="text-sm text-muted-foreground max-w-prose">
-                  {t("form.labels.skipTlsDescription")}
-                </p>
-              </div>
+            <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/40 p-4">
+              <Label htmlFor="tls-skip-verify" className="flex items-center gap-2">
+                {t("form.labels.skipTlsVerification")}
+                <FieldHelp>{t("form.labels.skipTlsDescription")}</FieldHelp>
+              </Label>
               <Switch
                 id="tls-skip-verify"
                 checked={field.state.value}
@@ -283,13 +282,11 @@ export function InstanceForm({ instance, defaultValues, onSuccess, onCancel, for
 
         <form.Field name="hasLocalFilesystemAccess">
           {(field) => (
-            <div className="flex items-start justify-between gap-4 rounded-lg border bg-muted/40 p-4">
-              <div className="space-y-1">
-                <Label htmlFor="local-filesystem-access">{t("form.labels.localFilesystemAccess")}</Label>
-                <p className="text-sm text-muted-foreground max-w-prose">
-                  {t("form.labels.localFilesystemDescription")}
-                </p>
-              </div>
+            <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/40 p-4">
+              <Label htmlFor="local-filesystem-access" className="flex items-center gap-2">
+                {t("form.labels.localFilesystemAccess")}
+                <FieldHelp>{t("form.labels.localFilesystemDescription")}</FieldHelp>
+              </Label>
               <Switch
                 id="local-filesystem-access"
                 checked={field.state.value}
@@ -299,41 +296,21 @@ export function InstanceForm({ instance, defaultValues, onSuccess, onCancel, for
           )}
         </form.Field>
 
-        <form.Field name="dailyTrafficEnabled">
-          {(field) => (
-            <div className="flex items-start justify-between gap-4 rounded-lg border bg-muted/40 p-4">
-              <div className="space-y-1">
-                <Label htmlFor="daily-traffic-enabled">{t("form.labels.dailyTrafficEnabled")}</Label>
-                <p className="text-sm text-muted-foreground max-w-prose">
-                  {t("form.labels.dailyTrafficEnabledDescription")}
-                </p>
-              </div>
-              <Switch
-                id="daily-traffic-enabled"
-                checked={field.state.value}
-                onCheckedChange={(checked) => field.handleChange(checked)}
-              />
-            </div>
-          )}
-        </form.Field>
-
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="auth-type">{t("form.labels.authType")}</Label>
-            <select
-              id="auth-type"
-              value={authType}
-              onChange={(e) => setAuthType(e.target.value as InstanceAuthType)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-            >
-              <option value="none">{t("form.authType.none")}</option>
-              <option value="usernamePassword">{t("form.authType.usernamePassword")}</option>
-              <option value="apiKey">{t("form.authType.apiKey")}</option>
-            </select>
-            <p className="text-sm text-muted-foreground pr-2">
-              {t("form.labels.authTypeDescription")}
-            </p>
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="auth-type" className="flex items-center gap-2">
+            {t("form.labels.authType")}
+            <FieldHelp>{t("form.labels.authTypeDescription")}</FieldHelp>
+          </Label>
+          <select
+            id="auth-type"
+            value={authType}
+            onChange={(e) => setAuthType(e.target.value as InstanceAuthType)}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+          >
+            <option value="none">{t("form.authType.none")}</option>
+            <option value="usernamePassword">{t("form.authType.usernamePassword")}</option>
+            <option value="apiKey">{t("form.authType.apiKey")}</option>
+          </select>
         </div>
 
         {authType === "usernamePassword" && (
@@ -418,12 +395,10 @@ export function InstanceForm({ instance, defaultValues, onSuccess, onCancel, for
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="basic-auth-toggle">{t("form.labels.httpBasicAuth")}</Label>
-              <p className="text-sm text-muted-foreground">
-                {t("form.labels.httpBasicAuthDescription")}
-              </p>
-            </div>
+            <Label htmlFor="basic-auth-toggle" className="flex items-center gap-2">
+              {t("form.labels.httpBasicAuth")}
+              <FieldHelp>{t("form.labels.httpBasicAuthDescription")}</FieldHelp>
+            </Label>
             <Switch
               id="basic-auth-toggle"
               checked={showBasicAuth}

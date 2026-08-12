@@ -15,8 +15,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/anacrolix/torrent/metainfo"
 	qbt "github.com/autobrr/go-qbittorrent"
+	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/moistari/rls"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -27,6 +27,7 @@ import (
 	"github.com/autobrr/qui/pkg/hardlinktree"
 	"github.com/autobrr/qui/pkg/pathutil"
 	"github.com/autobrr/qui/pkg/reflinktree"
+	"github.com/autobrr/qui/pkg/releases"
 	"github.com/autobrr/qui/pkg/stringutils"
 )
 
@@ -80,7 +81,8 @@ type seasonPackLocalFile struct {
 
 type seasonPackPlanBuild struct {
 	plan              *hardlinktree.TreePlan
-	packDir           string // on-disk pack root folder (<RootDir>/<packName>); used for rollback cleanup
+	created           *hardlinktree.Created // what the link creator actually made; rollback removes only this
+	packDir           string                // on-disk pack root folder (<RootDir>/<packName>); used for rollback cleanup
 	materializedPaths map[string]struct{}
 	linkedBytes       int64
 	totalBytes        int64
@@ -423,7 +425,7 @@ func (s *Service) ApplySeasonPackWebhook(ctx context.Context, req *SeasonPackApp
 		opts["tags"] = strings.Join(tags, ",")
 	}
 	if _, err := s.syncManager.AddTorrent(ctx, inst.ID, torrentBytes, opts); err != nil {
-		if rollbackErr := rollbackSeasonPackTree(linkMode, planBuild.plan, planBuild.packDir); rollbackErr != nil {
+		if rollbackErr := rollbackSeasonPackTree(planBuild.created, planBuild.packDir); rollbackErr != nil {
 			log.Warn().Err(rollbackErr).Str("torrentName", req.TorrentName).Msg("season pack: failed to rollback after add failure")
 		}
 		s.recordApplyRun(ctx, req.TorrentName, "add_failed", err.Error(), winner.InstanceID, winner.MatchedEpisodes, prep.totalEpisodes, winner.Coverage, linkMode)
@@ -540,12 +542,14 @@ func (s *Service) assembleSeasonPack(
 	if createFn == nil {
 		createFn = linkCreatorForMode(linkMode)
 	}
-	if err := createFn(planBuild.plan); err != nil {
-		if rollbackErr := rollbackSeasonPackTree(linkMode, planBuild.plan, planBuild.packDir); rollbackErr != nil {
+	created, err := createFn(planBuild.plan)
+	if err != nil {
+		if rollbackErr := rollbackSeasonPackTree(created, planBuild.packDir); rollbackErr != nil {
 			return nil, nil, nil, fmt.Errorf("link_failed: %w", errors.Join(err, fmt.Errorf("rollback failed: %w", rollbackErr)))
 		}
 		return nil, nil, nil, fmt.Errorf("link_failed: %w", err)
 	}
+	planBuild.created = created
 
 	return planBuild, prep.torrentBytes, episodes, nil
 }
@@ -707,7 +711,7 @@ func seasonPackAddOptions(plan *hardlinktree.TreePlan, category string, paused b
 }
 
 // linkCreatorForMode returns the appropriate link-tree creator function.
-func linkCreatorForMode(mode string) func(*hardlinktree.TreePlan) error {
+func linkCreatorForMode(mode string) func(*hardlinktree.TreePlan) (*hardlinktree.Created, error) {
 	if mode == "reflink" {
 		return reflinktree.Create
 	}
@@ -1134,7 +1138,8 @@ func (s *Service) matchEpisodeCandidatesDetailed(
 		}
 
 		parsed := s.releaseCache.Parse(torrent.Name)
-		if !isTVEpisode(parsed) {
+		isRange := releases.IsEpisodeRange(parsed)
+		if !isTVEpisode(parsed) && !isRange {
 			continue
 		}
 
@@ -1152,6 +1157,12 @@ func (s *Service) matchEpisodeCandidatesDetailed(
 		// path for exactly the anime libraries this matching exists for.
 		resolved := parsed
 		id := episodeIdentity{series: parsed.Series, episode: parsed.Episode}
+		if isRange {
+			// A multi-episode range parses with Episode 0. Identify it by its
+			// first episode, the same identity its file carries inside the pack.
+			eps := parsed.SeriesEpisodes()
+			id = episodeIdentity{series: eps[0][0], episode: eps[0][1]}
+		}
 		if packEpisodes != nil {
 			localSeasonless := parsed.Series == 0
 			targetID := id
@@ -1527,26 +1538,14 @@ func safeSeasonPackJoin(rootDir, relativePath string) (string, bool) {
 	return candidatePath, true
 }
 
-// rollbackSeasonPackTree removes a created link tree on failure. packDir is the on-disk
-// pack root folder (<RootDir>/<packName>); it is removed only when empty so the parent
-// RootDir (a shared base/tracker/instance dir) is never touched.
-func rollbackSeasonPackTree(linkMode string, plan *hardlinktree.TreePlan, packDir string) error {
-	if plan == nil || plan.RootDir == "" {
-		return nil
-	}
-
+// rollbackSeasonPackTree removes a created link tree on failure. It only removes
+// what the creator recorded in the handle, never the whole plan (discussion #2282).
+// packDir is the on-disk pack root folder (<RootDir>/<packName>); it is removed only
+// when empty so the parent RootDir (a shared base/tracker/instance dir) is never touched.
+func rollbackSeasonPackTree(created *hardlinktree.Created, packDir string) error {
 	var errs []error
-	switch linkMode {
-	case "hardlink":
-		if err := hardlinktree.Rollback(plan); err != nil {
-			errs = append(errs, err)
-		}
-	case "reflink":
-		if err := reflinktree.Rollback(plan); err != nil {
-			errs = append(errs, err)
-		}
-	default:
-		return nil
+	if err := created.Rollback(); err != nil {
+		errs = append(errs, err)
 	}
 
 	if packDir != "" {
