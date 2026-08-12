@@ -890,7 +890,7 @@ function SwipeableCard({
               <div className="flex items-center gap-2">
                 {/* ETA */}
                 {torrent.eta > 0 && torrent.eta !== 8640000 && (
-                  <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
                     <Clock className="h-3 w-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">{formatEta(torrent.eta)}</span>
                   </div>
@@ -2160,9 +2160,9 @@ export function TorrentCardsMobile({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground md:hidden"
+                    className="h-7 px-1.5 text-xs font-medium text-muted-foreground hover:text-foreground md:hidden"
                   >
-                    {t("mobileCards.sort")}: {currentSortOption.label}
+                    {currentSortOption.label}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 max-h-100 overflow-y-auto">
