@@ -467,9 +467,28 @@ export const TaskReportDialog = memo(function TaskReportDialog({
     }
   }, [capturedBlob, t])
 
-  const handleDownloadFromCapture = useCallback(() => {
-    if (!captureDataUrl) return
+  const handleDownloadFromCapture = useCallback(async () => {
+    if (!captureDataUrl || !capturedBlob) return
     setShowCaptureDialog(false)
+
+    // On mobile, offer the native share sheet so the image can be saved to the
+    // gallery/photos app. Browsers cannot silently write to the photo library.
+    if (isMobile) {
+      const file = new File([capturedBlob], "torrent-report.png", { type: "image/png" })
+      if (navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: "Torrent report" })
+          toast.success(t("reportDialog.saveImageSuccess"))
+          return
+        } catch (err) {
+          // AbortError = user dismissed; fall through to download for other failures
+          if ((err as DOMException)?.name === "AbortError") return
+        }
+      }
+      toast.error(t("reportDialog.saveImageFailed"))
+      return
+    }
+
     const link = document.createElement("a")
     link.href = captureDataUrl
     link.download = "torrent-report.png"
@@ -477,7 +496,7 @@ export const TaskReportDialog = memo(function TaskReportDialog({
     link.click()
     document.body.removeChild(link)
     toast.success(t("reportDialog.downloadImageSuccess"))
-  }, [captureDataUrl, t])
+  }, [captureDataUrl, capturedBlob, isMobile, t])
 
   const handleTogglePause = useCallback(() => {
     setPaused((prev) => !prev)
@@ -513,7 +532,7 @@ export const TaskReportDialog = memo(function TaskReportDialog({
             {t("reportDialog.copy")}
           </AlertDialogAction>
           <AlertDialogAction onClick={handleDownloadFromCapture}>
-            {t("reportDialog.downloadImage")}
+            {isMobile ? t("reportDialog.saveImage") : t("reportDialog.downloadImage")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
