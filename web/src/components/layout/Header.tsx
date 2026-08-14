@@ -65,7 +65,7 @@ import { useQueries, useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useSearch } from "@tanstack/react-router"
 import { navigateWithSearch } from "@/lib/router-search"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
-import { Archive, Check, ChevronsUpDown, Cog, Columns3, Download, ExternalLink, FileEdit, FileText, FunnelPlus, FunnelX, GitBranch, Globe, HardDrive, Heart, Home, Info, ListTodo, Loader2, LogOut, Menu, Plus, Rss, Search, SearchCode, Server, Settings, X, Zap } from "lucide-react"
+import { Archive, ArrowRightLeft, Check, ChevronsUpDown, Cog, Download, ExternalLink, FileEdit, FileText, FunnelPlus, FunnelX, GitBranch, Globe, HardDrive, Heart, Home, Info, ListTodo, Loader2, LogOut, Menu, Plus, Rss, Search, SearchCode, Server, Settings, X, Zap } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useTranslation } from "react-i18next"
@@ -648,6 +648,23 @@ export function Header({
                     <TooltipContent>{t("header.instanceSettings")}</TooltipContent>
                   </Tooltip>
                 )}
+                {/* Sync column settings to other instances */}
+                {isInstanceRoute && (currentInstance || isAllInstancesRoute) && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="hidden md:inline-flex"
+                        onClick={() => setColumnSyncOpen(true)}
+                        aria-label={t("header.syncColumns")}
+                      >
+                        <ArrowRightLeft className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{t("header.syncColumns")}</TooltipContent>
+                  </Tooltip>
+                )}
                 {/* Open instance in new tab */}
                 {isInstanceRoute && currentInstance?.host && (
                   <Tooltip>
@@ -663,23 +680,6 @@ export function Header({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>{t("header.openInstance")}</TooltipContent>
-                  </Tooltip>
-                )}
-                {/* Sync column settings to other instances */}
-                {isInstanceRoute && (currentInstance || isAllInstancesRoute) && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="hidden md:inline-flex"
-                        onClick={() => setColumnSyncOpen(true)}
-                        aria-label={t("header.syncColumns")}
-                      >
-                        <Columns3 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{t("header.syncColumns")}</TooltipContent>
                   </Tooltip>
                 )}
               </>
