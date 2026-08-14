@@ -56,20 +56,23 @@ function getInstanceFormDefaults(instance?: Instance): InstanceFormData {
   }
 }
 
-function getAuthValidationError(data: InstanceFormData, authType: InstanceAuthType, instance?: Instance) {
+function getAuthValidationError(data: InstanceFormData, authType: InstanceAuthType, instance?: Instance, isCloneMode = false) {
   if (authType === "usernamePassword") {
     if (!data.username?.trim()) {
       return "Username is required for username/password authentication"
     }
 
-    if (!data.password?.trim() && !instance?.username) {
+    // Password can be left empty when editing (keeps the existing one) or when
+    // cloning (the backend copies the source instance's credentials).
+    if (!data.password?.trim() && !instance?.username && !isCloneMode) {
       return "Password is required for username/password authentication"
     }
   }
 
   if (authType === "apiKey") {
     const hasPreservedAPIKey = instance?.hasApiKey && data.apiKey === "<redacted>"
-    if (!hasPreservedAPIKey && !data.apiKey?.trim()) {
+    const hasCloneAPIKey = isCloneMode && data.apiKey === "<redacted>"
+    if (!hasPreservedAPIKey && !hasCloneAPIKey && !data.apiKey?.trim()) {
       return "API key is required for API key authentication"
     }
   }
@@ -84,7 +87,8 @@ export function InstanceForm({ instance, defaultValues, onSuccess, onCancel, for
   const [authType, setAuthType] = useState<InstanceAuthType>(() => getInstanceAuthType(instance, defaultValues))
 
   const handleSubmit = (data: InstanceFormData) => {
-    const authValidationError = getAuthValidationError(data, authType, instance)
+    const isCloneMode = defaultValues?.cloneInstanceId != null
+    const authValidationError = getAuthValidationError(data, authType, instance, isCloneMode)
     if (authValidationError) {
       toast.error(t("form.toast.missingCredentialsTitle"), {
         description: authValidationError,
