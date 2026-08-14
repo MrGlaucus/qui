@@ -672,7 +672,9 @@ func (h *InstancesHandler) CreateInstance(w http.ResponseWriter, r *http.Request
 			if req.Password == "" {
 				req.Password = source.PasswordEncrypted
 			}
-			if req.APIKey == "" {
+			// A redacted placeholder means the clone form left the API key
+			// untouched — copy the source's encrypted key.
+			if req.APIKey == "" || domain.IsRedactedString(req.APIKey) {
 				req.APIKey = source.APIKeyEncrypted
 			}
 			if (req.BasicPassword == nil || *req.BasicPassword == "") && source.BasicPasswordEncrypted != nil {
