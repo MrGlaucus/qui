@@ -1629,5 +1629,17 @@
   "country.BE": "比利时",
   "country.IE": "爱尔兰",
   "country.IL": "以色列",
-  "country.ZA": "南非"
+  "country.ZA": "南非",
+  "columnSync": {
+    "title": "同步列设置到其它实例",
+    "description": "将此实例的列显示、排序、列宽和列顺序复制到选中的实例。",
+    "selectAll": "全选",
+    "deselectAll": "全不选",
+    "noOtherInstances": "没有其他已配置的实例",
+    "cancel": "取消",
+    "confirm": "同步（{{count}} 个实例）",
+    "copying": "同步中…",
+    "success": "已同步列设置到 {{count}} 个实例",
+    "failed": "同步列设置失败"
+  }
 }

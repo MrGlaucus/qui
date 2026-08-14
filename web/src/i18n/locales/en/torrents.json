@@ -1692,5 +1692,17 @@
   "country.BE": "Belgium",
   "country.IE": "Ireland",
   "country.IL": "Israel",
-  "country.ZA": "South Africa"
+  "country.ZA": "South Africa",
+  "columnSync": {
+    "title": "Sync column settings to other instances",
+    "description": "Copy column visibility, sorting, sizing and order from this instance to the selected instances.",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "noOtherInstances": "No other instances configured",
+    "cancel": "Cancel",
+    "confirm": "Sync ({{count}} instances)",
+    "copying": "Syncing…",
+    "success": "Column settings synced to {{count}} instances",
+    "failed": "Failed to sync column settings"
+  }
 }

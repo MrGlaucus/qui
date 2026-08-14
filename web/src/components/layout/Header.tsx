@@ -7,6 +7,7 @@ import { InstancePreferencesDialog } from "@/components/instances/preferences/In
 import { UnifiedScopeDropdownSection } from "@/components/layout/UnifiedScopeDropdownSection"
 import { SpreadsheetRibbonTabs } from "@/components/spreadsheet/SpreadsheetRibbonTabs"
 import { AddTorrentDialog } from "@/components/torrents/AddTorrentDialog"
+import { SyncColumnSettingsDialog } from "@/components/torrents/SyncColumnSettingsDialog"
 import { TorrentCreationTasks } from "@/components/torrents/TorrentCreationTasks"
 import { TorrentCreatorDialog } from "@/components/torrents/TorrentCreatorDialog"
 import {
@@ -64,7 +65,7 @@ import { useQueries, useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useSearch } from "@tanstack/react-router"
 import { navigateWithSearch } from "@/lib/router-search"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
-import { Archive, Check, ChevronsUpDown, Cog, Download, ExternalLink, FileEdit, FileText, FunnelPlus, FunnelX, GitBranch, Globe, HardDrive, Heart, Home, Info, ListTodo, Loader2, LogOut, Menu, Plus, Rss, Search, SearchCode, Server, Settings, X, Zap } from "lucide-react"
+import { Archive, Check, ChevronsUpDown, Cog, Columns3, Download, ExternalLink, FileEdit, FileText, FunnelPlus, FunnelX, GitBranch, Globe, HardDrive, Heart, Home, Info, ListTodo, Loader2, LogOut, Menu, Plus, Rss, Search, SearchCode, Server, Settings, X, Zap } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useTranslation } from "react-i18next"
@@ -383,6 +384,7 @@ export function Header({
   const [unifiedCreateTorrentInstanceId, setUnifiedCreateTorrentInstanceId] = useState<number | null>(null)
   const [unifiedTasksInstanceId, setUnifiedTasksInstanceId] = useState<number | null>(null)
   const [unifiedSettingsInstanceId, setUnifiedSettingsInstanceId] = useState<number | null>(null)
+  const [columnSyncOpen, setColumnSyncOpen] = useState(false)
 
   // Derived at render time — avoids a cleanup Effect for stale IDs
   const validUnifiedIds = useMemo(
@@ -661,6 +663,23 @@ export function Header({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>{t("header.openInstance")}</TooltipContent>
+                  </Tooltip>
+                )}
+                {/* Sync column settings to other instances */}
+                {isInstanceRoute && (currentInstance || isAllInstancesRoute) && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="hidden md:inline-flex"
+                        onClick={() => setColumnSyncOpen(true)}
+                        aria-label={t("header.syncColumns")}
+                      >
+                        <Columns3 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{t("header.syncColumns")}</TooltipContent>
                   </Tooltip>
                 )}
               </>
@@ -1083,6 +1102,13 @@ export function Header({
       })()}
 
       <SupportDialog open={showSupport} onOpenChange={setShowSupport} />
+      {isInstanceRoute && (
+        <SyncColumnSettingsDialog
+          open={columnSyncOpen}
+          onOpenChange={setColumnSyncOpen}
+          sourceInstanceId={currentInstance?.id ?? 0}
+        />
+      )}
     </header>
   )
 

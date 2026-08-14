@@ -40,6 +40,7 @@
     "torrentCreationTasks": "Torrent creation tasks",
     "instanceSettings": "Instance settings",
     "openInstance": "Open instance in new tab",
+  "syncColumns": "Sync column settings to other instances",
     "addToInstance": "Add to instance",
     "createForInstance": "Create for instance",
     "tasksForInstance": "Tasks for instance",

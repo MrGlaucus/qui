@@ -40,6 +40,7 @@
     "torrentCreationTasks": "种子创建任务",
     "instanceSettings": "实例设置",
     "openInstance": "在新标签页中打开实例",
+  "syncColumns": "同步列设置到其它实例",
     "addToInstance": "添加到实例",
     "createForInstance": "为实例创建",
     "tasksForInstance": "实例任务",
