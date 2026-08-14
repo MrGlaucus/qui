@@ -1698,7 +1698,7 @@
     "description": "Copy column visibility, sorting, sizing and order from this instance to the selected instances.",
     "selectAll": "Select all",
     "deselectAll": "Deselect all",
-    "unifiedView": "All Instances",
+    "unifiedView": "Unified view",
     "noOtherInstances": "No other instances configured",
     "cancel": "Cancel",
     "confirm": "Sync ({{count}} instances)",
