@@ -121,6 +121,7 @@ const (
 	FieldSeedingOnOtherInstance = models.FieldSeedingOnOtherInstance
 	FieldExistsOnSameInstance   = models.FieldExistsOnSameInstance
 	FieldSeedingOnSameInstance  = models.FieldSeedingOnSameInstance
+	FieldCrossSeedTags          = models.FieldCrossSeedTags
 
 	// Enum-like fields
 	FieldHardlinkScope      = models.FieldHardlinkScope
