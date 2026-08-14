@@ -439,7 +439,7 @@ export const TaskReportDialog = memo(function TaskReportDialog({
       }
 
       const dataUrl = await toPng(contentRef.current, {
-        pixelRatio: isMobile ? 1 : 2,
+        pixelRatio: 2,
         cacheBust: true,
         backgroundColor,
       })
