@@ -38,6 +38,11 @@ export function SyncColumnSettingsDialog({
 
   const otherInstances = (instances ?? []).filter(i => i.id !== sourceInstanceId)
 
+  // Unified view (id 0) is a valid target so a single instance's layout can be
+  // pushed to the All Instances view. Exclude it when the source IS the unified
+  // view (handled by the dedicated toolbar button there).
+  const hasUnifiedTarget = sourceInstanceId !== 0
+
   const copySettings = () => {
     if (targets.length === 0) return
     setCopying(true)
@@ -78,7 +83,7 @@ export function SyncColumnSettingsDialog({
             variant="outline"
             size="sm"
             disabled={copying}
-            onClick={() => setTargets(otherInstances.map(i => i.id))}
+            onClick={() => setTargets(otherInstances.map(i => i.id).concat(hasUnifiedTarget ? [0] : []))}
           >
             {t("columnSync.selectAll")}
           </Button>
@@ -92,7 +97,21 @@ export function SyncColumnSettingsDialog({
           </Button>
         </div>
         <div className="space-y-1 max-h-60 overflow-y-auto">
-          {otherInstances.length === 0 ? (
+          {hasUnifiedTarget && (
+            <label className="flex items-center gap-2 py-1 px-2 rounded hover:bg-accent/50 cursor-pointer">
+              <Checkbox
+                checked={targets.includes(0)}
+                disabled={copying}
+                onCheckedChange={checked => {
+                  setTargets(prev =>
+                    checked ? [...prev, 0] : prev.filter(id => id !== 0)
+                  )
+                }}
+              />
+              <span className="text-sm">{t("columnSync.unifiedView")}</span>
+            </label>
+          )}
+          {otherInstances.length === 0 && !hasUnifiedTarget ? (
             <p className="text-sm text-muted-foreground px-2 py-1">
               {t("columnSync.noOtherInstances")}
             </p>

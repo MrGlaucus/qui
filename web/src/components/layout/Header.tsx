@@ -567,6 +567,21 @@ export function Header({
                   instances={unifiedManageableInstances}
                   onSelectInstance={setUnifiedSettingsInstanceId}
                 />
+                {/* Sync unified column settings to instances */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="hidden md:inline-flex"
+                      onClick={() => setColumnSyncOpen(true)}
+                      aria-label={t("header.syncColumns")}
+                    >
+                      <ArrowRightLeft className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t("header.syncColumns")}</TooltipContent>
+                </Tooltip>
               </>
             )}
             {canManageSelectedInstance && (
