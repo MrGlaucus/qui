@@ -72,7 +72,6 @@
     "portInfo": ". Port: {{port}}",
     "connectionStatus": "qBittorrent connection status: {{status}}",
     "streamStatus": {
-      "live": "Live stream connected",
       "cached": "Showing cached dashboard snapshot while refreshing",
       "fallback": "Refreshing dashboard stats",
       "error": "Stream issue; using fallback refresh"
@@ -106,7 +105,6 @@
     "sourceReinstall": "Reinstall"
   },
   "mobileOverview": {
-    "title": "Overview",
     "instances": "Instances",
     "connected": "Connected",
     "torrents": "Torrents",
@@ -179,6 +177,8 @@
     "mergeIntoGroup": "Merge into group",
     "addToMerge": "Add to merge",
     "rename": "Rename",
+    "edit": "Edit",
+    "delete": "Delete",
     "pagination": {
       "range": "{{start}}-{{end}} of {{total}} trackers",
       "previous": "Previous",

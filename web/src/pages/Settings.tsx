@@ -1656,6 +1656,7 @@ export function Settings({ search, onSearchChange }: SettingsProps) {
 
           {activeTab === "themes" && (
             <SettingsScrollPanel contentClassName={scrollPanelContentClassName}>
+              <ThemeSelector />
               <div id="license-manager">
                 <LicenseManager
                   checkoutStatus={search.checkout}
@@ -1663,7 +1664,6 @@ export function Settings({ search, onSearchChange }: SettingsProps) {
                   onCheckoutConsumed={() => onSearchChange({ tab: "themes" })}
                 />
               </div>
-              <ThemeSelector />
             </SettingsScrollPanel>
           )}
 

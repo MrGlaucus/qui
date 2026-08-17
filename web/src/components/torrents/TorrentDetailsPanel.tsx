@@ -474,6 +474,13 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
 
   // Fetch torrent peers with optimized refetch
   const isPeersTabActive = activeTab === "peers"
+
+  // flag-icons inlines 400 flags as data URIs, 73% of the boot stylesheet; load it with the tab.
+  useEffect(() => {
+    // offline PWA: the CSS is not precached, flags just render unstyled
+    if (isPeersTabActive) void import("flag-icons/css/flag-icons.min.css").catch(() => {})
+  }, [isPeersTabActive])
+
   const peersQueryKey = ["torrent-peers", instanceId, torrent?.hash] as const
 
   const { data: peersData, isLoading: loadingPeers } = useQuery<SortedPeersResponse>({

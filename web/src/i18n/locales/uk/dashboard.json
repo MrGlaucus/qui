@@ -70,7 +70,6 @@
     "portInfo": ". Порт: {{port}}",
     "connectionStatus": "Статус з'єднання qBittorrent: {{status}}",
     "streamStatus": {
-      "live": "Живий потік підключено",
       "cached": "Показується кешований знімок панелі під час оновлення",
       "fallback": "Оновлення статистики панелі",
       "error": "Проблема з потоком; використовується резервне оновлення"
@@ -88,7 +87,6 @@
     "todayUploaded": "Віддано сьогодні"
   },
   "mobileOverview": {
-    "title": "Огляд",
     "instances": "Екземпляри",
     "connected": "Підключено",
     "torrents": "Торенти",
@@ -161,6 +159,8 @@
     "mergeIntoGroup": "Об'єднати в групу",
     "addToMerge": "Додати до об'єднання",
     "rename": "Перейменувати",
+    "edit": "Редагувати",
+    "delete": "Видалити",
     "pagination": {
       "range": "{{start}}-{{end}} з {{total}} трекерів",
       "previous": "Попередня",

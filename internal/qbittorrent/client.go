@@ -5,11 +5,13 @@ package qbittorrent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -97,17 +99,26 @@ type Client struct {
 	healthMu             sync.RWMutex
 	appInfoMu            sync.RWMutex
 	preferencesCache     *qbt.AppPreferences
+	preferencesJSON      json.RawMessage
 	preferencesFetchedAt time.Time
 	preferencesMu        sync.RWMutex
 	syncEventSink        SyncEventSink
-	completionMu         sync.Mutex
-	completionState      map[string]bool
-	completionHandler    TorrentCompletionHandler
-	completionInit       bool
-	addedMu              sync.Mutex
-	addedState           map[string]struct{}
-	addedHandler         TorrentAddedHandler
-	addedInit            bool
+
+	// countsGen versions every client-owned input of the sidebar counts: it
+	// moves on each applied sync and on tracker-exclusion changes, so the
+	// countsCache entry stays valid exactly while the generations it recorded
+	// hold.
+	countsGen   atomic.Uint64
+	countsCache atomic.Pointer[cachedInstanceCounts]
+
+	completionMu      sync.Mutex
+	completionState   map[string]bool
+	completionHandler TorrentCompletionHandler
+	completionInit    bool
+	addedMu           sync.Mutex
+	addedState        map[string]struct{}
+	addedHandler      TorrentAddedHandler
+	addedInit         bool
 
 	// activeTaskCount caches the number of running/queued torrent-creation tasks.
 	// It is refreshed at most once per activeTaskCountTTL with single-flight, so the
@@ -190,6 +201,7 @@ func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiK
 
 	// Set up health check callbacks
 	syncOpts.OnUpdate = func(data *qbt.MainData) {
+		client.countsGen.Add(1)
 		client.updateHealthStatus(true)
 		client.updateServerState(data)
 		client.handleCompletionUpdates(data)
@@ -955,6 +967,8 @@ func (c *Client) addTrackerExclusions(domain string, hashes []string) {
 	}
 
 	c.mu.Lock()
+	// LIFO: the bump runs after the unlock; the counts path loads the generation before the data it guards.
+	defer c.countsGen.Add(1)
 	defer c.mu.Unlock()
 
 	set, ok := c.trackerExclusions[domain]
@@ -979,6 +993,8 @@ func (c *Client) removeTrackerExclusions(domain string, hashes []string) {
 	}
 
 	c.mu.Lock()
+	// LIFO: the bump runs after the unlock; the counts path loads the generation before the data it guards.
+	defer c.countsGen.Add(1)
 	defer c.mu.Unlock()
 
 	if len(hashes) == 0 {
@@ -1027,6 +1043,8 @@ func (c *Client) clearTrackerExclusions(domains []string) {
 	}
 
 	c.mu.Lock()
+	// LIFO: the bump runs after the unlock; the counts path loads the generation before the data it guards.
+	defer c.countsGen.Add(1)
 	defer c.mu.Unlock()
 
 	for _, domain := range domains {
