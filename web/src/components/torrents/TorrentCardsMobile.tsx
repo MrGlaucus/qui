@@ -115,8 +115,9 @@ import { usePersistedCompactViewState, type ViewMode } from "@/hooks/usePersiste
 import { getLinuxCategory, getLinuxIsoName, getLinuxRatio, getLinuxTags, getLinuxTracker, useIncognitoMode } from "@/lib/incognito"
 import { formatSpeedWithUnit, useSpeedUnits, type SpeedUnit } from "@/lib/speedUnits"
 import { getStateLabel } from "@/lib/torrent-state-utils"
+import { flagClass } from "@/lib/countryFlags"
 import { cn, formatBytes, getRatioColor } from "@/lib/utils"
-import type { Category, CrossInstanceTorrent, Torrent, TorrentCounts, TorrentFilters, TorrentStreamPayload } from "@/types"
+import type { Category, CrossInstanceTorrent, Instance, Torrent, TorrentCounts, TorrentFilters, TorrentStreamPayload } from "@/types"
 import { useQuery } from "@tanstack/react-query"
 import { getDefaultSortOrder, TORRENT_SORT_OPTIONS, type TorrentSortOptionValue } from "./torrentSortOptions"
 
@@ -646,6 +647,7 @@ function SwipeableCard({
   supportsTrackerHealth,
   trackerIcons,
   trackerCustomizationLookup,
+  instanceBadge,
 }: {
   torrent: Torrent
   isSelected: boolean
@@ -659,6 +661,7 @@ function SwipeableCard({
   supportsTrackerHealth: boolean
   trackerIcons?: Record<string, string>
   trackerCustomizationLookup?: TrackerCustomizationLookup
+  instanceBadge?: { name: string; countryCode?: string } | null
 }) {
   const { t } = useTranslation("torrents")
 
@@ -979,8 +982,16 @@ function SwipeableCard({
             )}
           </div>
 
-          {/* Right side: Percentage and Speeds */}
+          {/* Right side: Instance badge, Percentage and Speeds */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            {instanceBadge && (
+              <span className="flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground flex-shrink-0" title={instanceBadge.name}>
+                {flagClass(instanceBadge.countryCode) && (
+                  <span className={`${flagClass(instanceBadge.countryCode)} rounded-sm text-[10px]`} />
+                )}
+                {instanceBadge.name}
+              </span>
+            )}
             <span className="text-muted-foreground">
               {torrent.progress >= 0.99 && torrent.progress < 1 ? (
                 (Math.floor(torrent.progress * 1000) / 10).toFixed(1)
@@ -1029,17 +1040,27 @@ function SwipeableCard({
             )}
           </div>
 
-          {/* Tags - aligned to the right */}
-          {displayTags && (
-            <div className="flex items-center gap-1 flex-wrap justify-end ml-auto overflow-hidden max-h-4">
-              <Tag className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-              {(Array.isArray(displayTags) ? displayTags : displayTags.split(",")).map((tag, i) => (
-                <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
-                  {tag.trim()}
-                </Badge>
-              ))}
-            </div>
-          )}
+          {/* Instance badge + Tags - aligned to the right */}
+          <div className="flex items-center gap-1 flex-wrap justify-end ml-auto overflow-hidden max-h-4">
+            {instanceBadge && (
+              <span className="flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground flex-shrink-0" title={instanceBadge.name}>
+                {flagClass(instanceBadge.countryCode) && (
+                  <span className={`${flagClass(instanceBadge.countryCode)} rounded-sm text-[10px]`} />
+                )}
+                {instanceBadge.name}
+              </span>
+            )}
+            {displayTags && (
+              <>
+                <Tag className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                {(Array.isArray(displayTags) ? displayTags : displayTags.split(",")).map((tag, i) => (
+                  <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                    {tag.trim()}
+                  </Badge>
+                ))}
+              </>
+            )}
+          </div>
         </div>
       ) : null /* Ultra-compact has no bottom row */}
     </div>
@@ -1272,6 +1293,13 @@ export function TorrentCardsMobile({
   // Get instance info for cross-seed warning
   const { instances } = useInstances()
   const instance = useMemo(() => instances?.find(i => i.id === instanceId), [instances, instanceId])
+  const instancesById = useMemo(() => {
+    const map = new Map<number, Instance>()
+    for (const inst of instances ?? []) {
+      map.set(inst.id, inst)
+    }
+    return map
+  }, [instances])
 
   const { data: metadata } = useInstanceMetadata(instanceId, { fallbackDelayMs: 1500 })
   const availableTags = metadata?.tags || []
@@ -2247,6 +2275,13 @@ export function TorrentCardsMobile({
             const torrent = torrents[virtualItem.index]
             const selectionIdentity = getSelectionIdentity(torrent)
             const isSelected = isAllSelected ? !excludedFromSelectAll.has(selectionIdentity) : selectedHashes.has(selectionIdentity)
+            const crossInstance = torrent as Partial<CrossInstanceTorrent>
+            const instanceBadge = isAllInstancesView && typeof crossInstance.instanceId === "number" && crossInstance.instanceId > 0
+              ? (() => {
+                  const inst = instancesById.get(crossInstance.instanceId!)
+                  return inst ? { name: inst.name, countryCode: inst.countryCode } : { name: crossInstance.instanceName ?? "" }
+                })()
+              : null
 
             return (
               <div
@@ -2275,6 +2310,7 @@ export function TorrentCardsMobile({
                   supportsTrackerHealth={supportsTrackerHealth}
                   trackerIcons={trackerIcons}
                   trackerCustomizationLookup={trackerCustomizationLookup}
+                  instanceBadge={instanceBadge}
                 />
               </div>
             )

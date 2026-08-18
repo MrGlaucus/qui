@@ -47,6 +47,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TrackerIconImage } from "@/components/ui/tracker-icon"
 import { useDelayedVisibility } from "@/hooks/useDelayedVisibility"
+import { useIsMobile } from "@/hooks/useMediaQuery"
 import { useInstancePreferences } from "@/hooks/useInstancePreferences"
 import { useInstances } from "@/hooks/useInstances"
 import { usePersistedTitleBarSpeeds } from "@/hooks/usePersistedTitleBarSpeeds"
@@ -771,6 +772,12 @@ function InstanceCard({
   setIsAdvancedMetricsOpen: (open: boolean) => void
 }) {
   const { t } = useTranslation("dashboard")
+  // On mobile, each card expands independently; on desktop the shared
+  // dashboard state expands/collapses all instance cards together.
+  const isMobile = useIsMobile()
+  const [localAdvancedMetricsOpen, setLocalAdvancedMetricsOpen] = useState(false)
+  const advancedMetricsOpen = isMobile ? localAdvancedMetricsOpen : isAdvancedMetricsOpen
+  const setAdvancedMetricsOpen = isMobile ? setLocalAdvancedMetricsOpen : setIsAdvancedMetricsOpen
   const {
     instance,
     stats,
@@ -1248,14 +1255,14 @@ function InstanceCard({
                 </div>
               )}
 
-              <Collapsible open={isAdvancedMetricsOpen} onOpenChange={setIsAdvancedMetricsOpen}>
+              <Collapsible open={advancedMetricsOpen} onOpenChange={setAdvancedMetricsOpen}>
                 <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
-                  {isAdvancedMetricsOpen ? (
+                  {advancedMetricsOpen ? (
                     <ChevronDown className="h-3 w-3" />
                   ) : (
                     <ChevronRight className="h-3 w-3" />
                   )}
-                  <span>{isAdvancedMetricsOpen ? t("instanceCard.showLess") : t("instanceCard.showMore")}</span>
+                  <span>{advancedMetricsOpen ? t("instanceCard.showLess") : t("instanceCard.showMore")}</span>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2 mt-2">
                   {instance.dailyTrafficEnabled !== false && dailyTrafficData && dailyTrafficData.items.length > 0 && (
