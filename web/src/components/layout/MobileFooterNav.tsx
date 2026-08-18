@@ -289,8 +289,8 @@ export function MobileFooterNav() {
                   className="block max-w-[7.5rem] truncate text-center flex items-center justify-center gap-1"
                   title={currentInstanceLabel ?? t("mobileNav.clients")}
                 >
-                  {flagClass(currentInstance?.countryCode ?? activeInstances[0]?.countryCode) && (
-                    <span className={`${flagClass(currentInstance?.countryCode ?? activeInstances[0]?.countryCode)} rounded-sm text-sm shrink-0`} />
+                  {flagClass(currentInstance?.countryCode) && (
+                    <span className={`${flagClass(currentInstance?.countryCode)} rounded-sm text-sm shrink-0`} />
                   )}
                   {currentInstanceLabel ?? t("mobileNav.clients")}
                 </span>
