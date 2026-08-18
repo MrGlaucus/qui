@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useInstances } from "@/hooks/useInstances"
+import { getCountryOptions } from "@/lib/countryFlags"
 import { useIncognitoMode } from "@/lib/incognito"
 import { DEFAULT_REANNOUNCE_SETTINGS, instanceUrlSchema } from "@/lib/instance-validation"
 import { formatErrorMessage } from "@/lib/utils"
@@ -127,6 +128,7 @@ export function InstanceSettingsPanel({ instance, onSuccess }: InstanceSettingsP
       tlsSkipVerify: instance?.tlsSkipVerify ?? false,
       hasLocalFilesystemAccess: instance?.hasLocalFilesystemAccess ?? false,
       dailyTrafficEnabled: instance?.dailyTrafficEnabled ?? true,
+      countryCode: instance?.countryCode ?? "",
       reannounceSettings: instance?.reannounceSettings ?? DEFAULT_REANNOUNCE_SETTINGS,
     },
     onSubmit: ({ value }) => {
@@ -150,6 +152,7 @@ export function InstanceSettingsPanel({ instance, onSuccess }: InstanceSettingsP
         tlsSkipVerify: instance?.tlsSkipVerify ?? false,
         hasLocalFilesystemAccess: instance?.hasLocalFilesystemAccess ?? false,
         dailyTrafficEnabled: instance?.dailyTrafficEnabled ?? true,
+        countryCode: instance?.countryCode ?? "",
         reannounceSettings: instance?.reannounceSettings ?? DEFAULT_REANNOUNCE_SETTINGS,
       })
       setShowBasicAuth(!!instance?.basicUsername)
@@ -309,6 +312,27 @@ export function InstanceSettingsPanel({ instance, onSuccess }: InstanceSettingsP
                   aria-describedby="daily-traffic-enabled-desc"
                 />
               </label>
+            )}
+          </form.Field>
+
+          <form.Field name="countryCode">
+            {(field) => (
+              <div className="space-y-2">
+                <Label htmlFor="country-code">{t("form.labels.country")}</Label>
+                <select
+                  id="country-code"
+                  value={field.state.value ?? ""}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                >
+                  <option value="">—</option>
+                  {getCountryOptions().map(c => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </form.Field>
         </div>
