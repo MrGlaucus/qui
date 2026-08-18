@@ -47,6 +47,8 @@ type Instance struct {
 	FallbackToRegularMode bool `json:"fallbackToRegularMode"`
 	// Collect and record daily traffic statistics for this instance
 	DailyTrafficEnabled bool `json:"dailyTrafficEnabled"`
+	// Optional ISO 3166-1 alpha-2 country code (lowercase) for flag display
+	CountryCode string `json:"countryCode"`
 }
 
 func (i Instance) MarshalJSON() ([]byte, error) {
@@ -69,6 +71,7 @@ func (i Instance) MarshalJSON() ([]byte, error) {
 		UseReflinks              bool       `json:"useReflinks"`
 		FallbackToRegularMode    bool       `json:"fallbackToRegularMode"`
 		DailyTrafficEnabled      bool       `json:"dailyTrafficEnabled"`
+		CountryCode              string     `json:"countryCode"`
 		LastConnectedAt          *time.Time `json:"last_connected_at,omitempty"`
 		CreatedAt                time.Time  `json:"created_at"`
 		UpdatedAt                time.Time  `json:"updated_at"`
@@ -97,6 +100,7 @@ func (i Instance) MarshalJSON() ([]byte, error) {
 		UseReflinks:              i.UseReflinks,
 		FallbackToRegularMode:    i.FallbackToRegularMode,
 		DailyTrafficEnabled:      i.DailyTrafficEnabled,
+		CountryCode:              i.CountryCode,
 	})
 }
 
@@ -459,7 +463,7 @@ func (s *InstanceStore) Create(ctx context.Context, name, rawHost, username, pas
 
 func (s *InstanceStore) Get(ctx context.Context, id int) (*Instance, error) {
 	query := `
-		SELECT id, name, host, username, password_encrypted, api_key_encrypted, basic_username, basic_password_encrypted, tls_skip_verify, sort_order, is_active, has_local_filesystem_access, use_hardlinks, hardlink_base_dir, hardlink_dir_preset, use_reflinks, fallback_to_regular_mode, daily_traffic_enabled
+		SELECT id, name, host, username, password_encrypted, api_key_encrypted, basic_username, basic_password_encrypted, tls_skip_verify, sort_order, is_active, has_local_filesystem_access, use_hardlinks, hardlink_base_dir, hardlink_dir_preset, use_reflinks, fallback_to_regular_mode, daily_traffic_enabled, country_code
 		FROM instances_view
 		WHERE id = ?
 	`
@@ -476,6 +480,7 @@ func (s *InstanceStore) Get(ctx context.Context, id int) (*Instance, error) {
 	var useReflinks int
 	var fallbackToRegularMode int
 	var dailyTrafficEnabled int
+	var countryCode string
 
 	err := s.db.QueryRowContext(ctx, query, id).Scan(
 		&instanceID,
@@ -496,6 +501,7 @@ func (s *InstanceStore) Get(ctx context.Context, id int) (*Instance, error) {
 		&useReflinks,
 		&fallbackToRegularMode,
 		&dailyTrafficEnabled,
+		&countryCode,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -521,6 +527,7 @@ func (s *InstanceStore) Get(ctx context.Context, id int) (*Instance, error) {
 		UseReflinks:              SQLiteIntToBool(useReflinks),
 		FallbackToRegularMode:    SQLiteIntToBool(fallbackToRegularMode),
 		DailyTrafficEnabled:      SQLiteIntToBool(dailyTrafficEnabled),
+		CountryCode:              countryCode,
 	}
 
 	if basicUsername.Valid {
@@ -540,7 +547,7 @@ func (s *InstanceStore) List(ctx context.Context) ([]*Instance, error) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, name, host, username, password_encrypted, api_key_encrypted, basic_username, basic_password_encrypted, tls_skip_verify, sort_order, is_active, has_local_filesystem_access, use_hardlinks, hardlink_base_dir, hardlink_dir_preset, use_reflinks, fallback_to_regular_mode, daily_traffic_enabled
+		SELECT id, name, host, username, password_encrypted, api_key_encrypted, basic_username, basic_password_encrypted, tls_skip_verify, sort_order, is_active, has_local_filesystem_access, use_hardlinks, hardlink_base_dir, hardlink_dir_preset, use_reflinks, fallback_to_regular_mode, daily_traffic_enabled, country_code
 		FROM instances_view
 		ORDER BY sort_order ASC, %s ASC, id ASC
 	`, orderByName)
@@ -565,6 +572,7 @@ func (s *InstanceStore) List(ctx context.Context) ([]*Instance, error) {
 		var useReflinks int
 		var fallbackToRegularMode int
 		var dailyTrafficEnabled int
+		var countryCode string
 
 		err := rows.Scan(
 			&id,
@@ -585,6 +593,7 @@ func (s *InstanceStore) List(ctx context.Context) ([]*Instance, error) {
 			&useReflinks,
 			&fallbackToRegularMode,
 			&dailyTrafficEnabled,
+			&countryCode,
 		)
 		if err != nil {
 			return nil, err
@@ -607,6 +616,7 @@ func (s *InstanceStore) List(ctx context.Context) ([]*Instance, error) {
 			UseReflinks:              SQLiteIntToBool(useReflinks),
 			FallbackToRegularMode:    SQLiteIntToBool(fallbackToRegularMode),
 			DailyTrafficEnabled:      SQLiteIntToBool(dailyTrafficEnabled),
+			CountryCode:              countryCode,
 		}
 
 		if basicUsername.Valid {
@@ -636,6 +646,7 @@ type InstanceUpdateParams struct {
 	UseReflinks              *bool
 	FallbackToRegularMode    *bool
 	DailyTrafficEnabled      *bool
+	CountryCode              *string
 }
 
 func (s *InstanceStore) Update(ctx context.Context, id int, name, rawHost, username, password string, basicUsername, basicPassword *string, params *InstanceUpdateParams, apiKey ...*string) (*Instance, error) {
@@ -787,6 +798,11 @@ func (s *InstanceStore) Update(ctx context.Context, id int, name, rawHost, usern
 		if params.DailyTrafficEnabled != nil {
 			query += ", daily_traffic_enabled = ?"
 			args = append(args, BoolToSQLite(*params.DailyTrafficEnabled))
+		}
+
+		if params.CountryCode != nil {
+			query += ", country_code = ?"
+			args = append(args, *params.CountryCode)
 		}
 	}
 

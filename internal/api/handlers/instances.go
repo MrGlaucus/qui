@@ -315,6 +315,7 @@ func (h *InstancesHandler) buildInstanceResponse(ctx context.Context, instance *
 		UseReflinks:              instance.UseReflinks,
 		FallbackToRegularMode:    instance.FallbackToRegularMode,
 		DailyTrafficEnabled:      instance.DailyTrafficEnabled,
+		CountryCode:              instance.CountryCode,
 		Connected:                healthy,
 		HasDecryptionError:       hasDecryptionError,
 		ConnectionStatus:         connectionStatus,
@@ -359,6 +360,7 @@ func (h *InstancesHandler) buildQuickInstanceResponse(instance *models.Instance)
 		UseReflinks:              instance.UseReflinks,
 		FallbackToRegularMode:    instance.FallbackToRegularMode,
 		DailyTrafficEnabled:      instance.DailyTrafficEnabled,
+		CountryCode:              instance.CountryCode,
 		Connected:                false, // Will be updated asynchronously
 		HasDecryptionError:       false,
 		SortOrder:                instance.SortOrder,
@@ -460,6 +462,7 @@ type UpdateInstanceRequest struct {
 	UseReflinks              *bool                              `json:"useReflinks,omitempty"`
 	FallbackToRegularMode    *bool                              `json:"fallbackToRegularMode,omitempty"`
 	DailyTrafficEnabled      *bool                              `json:"dailyTrafficEnabled,omitempty"`
+	CountryCode              *string                            `json:"countryCode,omitempty"`
 	ReannounceSettings       *InstanceReannounceSettingsPayload `json:"reannounceSettings,omitempty"`
 }
 
@@ -483,6 +486,7 @@ type InstanceResponse struct {
 	UseReflinks              bool                              `json:"useReflinks"`
 	FallbackToRegularMode    bool                              `json:"fallbackToRegularMode"`
 	DailyTrafficEnabled      bool                              `json:"dailyTrafficEnabled"`
+	CountryCode              string                            `json:"countryCode"`
 	Connected                bool                              `json:"connected"`
 	HasDecryptionError       bool                              `json:"hasDecryptionError"`
 	RecentErrors             []models.InstanceError            `json:"recentErrors,omitempty"`
@@ -817,6 +821,7 @@ func (h *InstancesHandler) UpdateInstance(w http.ResponseWriter, r *http.Request
 		UseReflinks:              req.UseReflinks,
 		FallbackToRegularMode:    req.FallbackToRegularMode,
 		DailyTrafficEnabled:      req.DailyTrafficEnabled,
+		CountryCode:              req.CountryCode,
 	}
 	instance, err := h.instanceStore.Update(r.Context(), instanceID, req.Name, req.Host, req.Username, req.Password, req.BasicUsername, req.BasicPassword, updateParams, req.APIKey)
 	if err != nil {
