@@ -55,6 +55,7 @@ function makeInstance(overrides: Partial<InstanceResponse> = {}): InstanceRespon
     useReflinks: false,
     fallbackToRegularMode: true,
     dailyTrafficEnabled: true,
+    countryCode: "",
     sortOrder: 0,
     isActive: true,
     reannounceSettings: {

@@ -22,8 +22,10 @@ import { useCrossSeedInstanceState } from "@/hooks/useCrossSeedInstanceState"
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
 import { useTheme } from "@/hooks/useTheme"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
+import "flag-icons/css/flag-icons.min.css"
 import { api } from "@/lib/api"
 import { getAppVersion } from "@/lib/build-info"
+import { flagClass } from "@/lib/countryFlags"
 import { normalizeUnifiedInstanceIds } from "@/lib/instances"
 import { cn } from "@/lib/utils"
 import { useQuery } from "@tanstack/react-query"
@@ -248,7 +250,12 @@ export function Sidebar() {
                 )}
               >
                 <HardDrive className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate max-w-36" title={instance.name}>{instance.name}</span>
+                <span className="truncate max-w-36 flex items-center gap-1.5" title={instance.name}>
+                  {flagClass(instance.countryCode) && (
+                    <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+                  )}
+                  {instance.name}
+                </span>
                 <span className="ml-auto flex items-center gap-1.5">
                   {hasRss && (
                     <Tooltip>

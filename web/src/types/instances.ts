@@ -22,6 +22,7 @@ export interface Instance {
   fallbackToRegularMode: boolean
   // Collect and record daily traffic statistics for this instance
   dailyTrafficEnabled: boolean
+  countryCode: string
   sortOrder: number
   isActive: boolean
   reannounceSettings: InstanceReannounceSettings
@@ -46,6 +47,7 @@ export interface InstanceFormData {
   // Fallback to regular mode when reflink/hardlink fails
   fallbackToRegularMode?: boolean
   dailyTrafficEnabled?: boolean
+  countryCode?: string
   reannounceSettings: InstanceReannounceSettings
   /** When set, creating the instance copies credentials from this source. */
   cloneInstanceId?: number

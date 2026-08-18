@@ -78,7 +78,8 @@
       "authType": "인증 유형",
       "authTypeDescription": "qui가 qBittorrent에 인증하는 방식을 선택하세요.",
       "dailyTrafficEnabled": "일일 트래픽 기록",
-      "dailyTrafficEnabledDescription": "이 인스턴스의 일별 업로드/다운로드 합계와 최대 속도를 기록합니다. 비활성화하면 새 데이터 수집을 중단합니다."
+      "dailyTrafficEnabledDescription": "이 인스턴스의 일별 업로드/다운로드 합계와 최대 속도를 기록합니다. 비활성화하면 새 데이터 수집을 중단합니다.",
+      "country": "Country / Region"
     },
     "placeholders": {
       "instanceName": "예: 메인 서버 또는 홈 qBittorrent",
@@ -244,7 +245,8 @@
         "qbittorrentAuth": "qBittorrent 인증",
         "qbittorrentAuthDescription": "qui가 qBittorrent에 인증하는 방식을 선택하세요.",
         "dailyTrafficEnabled": "일일 트래픽 기록",
-        "dailyTrafficEnabledDescription": "이 인스턴스의 일별 업로드/다운로드 합계와 최대 속도를 기록합니다. 비활성화하면 새 데이터 수집을 중단합니다."
+        "dailyTrafficEnabledDescription": "이 인스턴스의 일별 업로드/다운로드 합계와 최대 속도를 기록합니다. 비활성화하면 새 데이터 수집을 중단합니다.",
+      "country": "Country / Region"
       },
       "placeholders": {
         "instanceName": "예: 메인 서버",

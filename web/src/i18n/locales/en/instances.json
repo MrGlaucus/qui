@@ -70,6 +70,7 @@
       "localFilesystemDescription": "Enable if qui can access this instance's download paths (required for hardlink detection in automations).",
       "dailyTrafficEnabled": "Daily Traffic Tracking",
       "dailyTrafficEnabledDescription": "Record per-day upload/download totals and peak speeds for this instance. Disable to stop collecting new data.",
+      "country": "Country / Region",
       "authBypass": "Authentication Bypass",
       "authBypassDescription": "Enable when qBittorrent bypasses authentication for localhost or whitelisted IPs",
       "username": "Username",

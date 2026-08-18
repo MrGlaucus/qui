@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/tooltip"
 import { useInstances } from "@/hooks/useInstances"
 import { useIncognitoMode } from "@/lib/incognito"
+import { flagClass } from "@/lib/countryFlags"
 import { cn, formatErrorMessage } from "@/lib/utils"
 import type { InstanceResponse } from "@/types"
 import {
@@ -162,7 +163,12 @@ export function InstanceCard({
         <CardHeader className="flex flex-row items-center justify-between pr-2 space-y-0">
           <div className="flex-1 min-w-0 overflow-hidden">
             <CardTitle className="text-base font-medium truncate" title={instance.name}>
-              {instance.name}
+              <span className="flex items-center gap-1.5">
+                {flagClass(instance.countryCode) && (
+                  <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+                )}
+                {instance.name}
+              </span>
             </CardTitle>
           </div>
           <div className="flex items-center gap-1 shrink-0">

@@ -78,7 +78,8 @@
       "authType": "Tipo di autenticazione",
       "authTypeDescription": "Seleziona come qui deve autenticarsi con qBittorrent.",
       "dailyTrafficEnabled": "Monitoraggio traffico giornaliero",
-      "dailyTrafficEnabledDescription": "Registra i totali giornalieri di upload/download e le velocità di picco per questa istanza. Disattiva per interrompere la raccolta."
+      "dailyTrafficEnabledDescription": "Registra i totali giornalieri di upload/download e le velocità di picco per questa istanza. Disattiva per interrompere la raccolta.",
+      "country": "Country / Region"
     },
     "placeholders": {
       "instanceName": "es. Server principale o qBittorrent di casa",
@@ -244,7 +245,8 @@
         "qbittorrentAuth": "Autenticazione qBittorrent",
         "qbittorrentAuthDescription": "Seleziona come qui deve autenticarsi su qBittorrent.",
         "dailyTrafficEnabled": "Monitoraggio traffico giornaliero",
-        "dailyTrafficEnabledDescription": "Registra i totali giornalieri di upload/download e le velocità di picco per questa istanza. Disattiva per interrompere la raccolta."
+        "dailyTrafficEnabledDescription": "Registra i totali giornalieri di upload/download e le velocità di picco per questa istanza. Disattiva per interrompere la raccolta.",
+      "country": "Country / Region"
       },
       "placeholders": {
         "instanceName": "es. Server principale",

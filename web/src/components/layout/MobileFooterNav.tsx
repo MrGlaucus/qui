@@ -33,6 +33,7 @@ import { useHasPremiumAccess } from "@/hooks/useLicense"
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
 import { api } from "@/lib/api"
 import { getAppVersion } from "@/lib/build-info"
+import { flagClass } from "@/lib/countryFlags"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
 import { canSwitchToPremiumTheme } from "@/lib/license-entitlement"
 import { normalizeUnifiedInstanceIds } from "@/lib/instances"
@@ -327,7 +328,12 @@ export function MobileFooterNav() {
                             className="flex-1 min-w-0 truncate"
                             title={instance.name}
                           >
-                            {instance.name}
+                            <span className="flex items-center gap-1.5">
+                              {flagClass(instance.countryCode) && (
+                                <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+                              )}
+                              {instance.name}
+                            </span>
                           </span>
                           <span className="flex items-center gap-1.5">
                             {hasRss && (

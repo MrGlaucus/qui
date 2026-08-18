@@ -78,7 +78,8 @@
       "authType": "Typ autentizace",
       "authTypeDescription": "Vyberte, jak qui se má autentizovat k qBittorrentu.",
       "dailyTrafficEnabled": "Sledování denního provozu",
-      "dailyTrafficEnabledDescription": "Zaznamenává denní součty upload/download a špičkové rychlosti pro tuto instanci. Vypnutím zastavíte sběr nových dat."
+      "dailyTrafficEnabledDescription": "Zaznamenává denní součty upload/download a špičkové rychlosti pro tuto instanci. Vypnutím zastavíte sběr nových dat.",
+      "country": "Country / Region"
     },
     "placeholders": {
       "instanceName": "např. Hlavní server nebo Domácí qBittorrent",
@@ -244,7 +245,8 @@
         "qbittorrentAuth": "qBittorrent Autentizace",
         "qbittorrentAuthDescription": "Vyberte, jak se má qui autentizovat k qBittorrentu.",
         "dailyTrafficEnabled": "Sledování denního provozu",
-        "dailyTrafficEnabledDescription": "Zaznamenává denní součty upload/download a špičkové rychlosti pro tuto instanci. Vypnutím zastavíte sběr nových dat."
+        "dailyTrafficEnabledDescription": "Zaznamenává denní součty upload/download a špičkové rychlosti pro tuto instanci. Vypnutím zastavíte sběr nových dat.",
+      "country": "Country / Region"
       },
       "placeholders": {
         "instanceName": "např. Hlavní server",

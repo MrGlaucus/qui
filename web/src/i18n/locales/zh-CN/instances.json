@@ -79,7 +79,8 @@
       "authType": "认证方式",
       "authTypeDescription": "选择 qui 连接 qBittorrent 时使用的认证方式。",
       "dailyTrafficEnabled": "每日流量统计",
-      "dailyTrafficEnabledDescription": "记录此实例每日的上传/下载总量与峰值速度。关闭后将停止收集新的数据。"
+      "dailyTrafficEnabledDescription": "记录此实例每日的上传/下载总量与峰值速度。关闭后将停止收集新的数据。",
+      "country": "国家/地区"
     },
     "placeholders": {
       "instanceName": "例如：主服务器 或 家用 qBittorrent",

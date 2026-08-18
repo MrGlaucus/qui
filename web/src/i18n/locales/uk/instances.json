@@ -78,7 +78,8 @@
       "authType": "Тип автентифікації",
       "authTypeDescription": "Виберіть спосіб автентифікації qui для qBittorrent.",
       "dailyTrafficEnabled": "Відстеження щоденного трафіку",
-      "dailyTrafficEnabledDescription": "Записує щоденні підсумки завантаження/віддачі та пікові швидкості для цієї інстанції. Вимкнення зупиняє збір нових даних."
+      "dailyTrafficEnabledDescription": "Записує щоденні підсумки завантаження/віддачі та пікові швидкості для цієї інстанції. Вимкнення зупиняє збір нових даних.",
+      "country": "Country / Region"
     },
     "placeholders": {
       "instanceName": "наприклад, Головний сервер або Домашній qBittorrent",
@@ -244,7 +245,8 @@
         "qbittorrentAuth": "Автентифікація qBittorrent",
         "qbittorrentAuthDescription": "Виберіть спосіб автентифікації qui для qBittorrent.",
         "dailyTrafficEnabled": "Відстеження щоденного трафіку",
-        "dailyTrafficEnabledDescription": "Записує щоденні підсумки завантаження/віддачі та пікові швидкості для цієї інстанції. Вимкнення зупиняє збір нових даних."
+        "dailyTrafficEnabledDescription": "Записує щоденні підсумки завантаження/віддачі та пікові швидкості для цієї інстанції. Вимкнення зупиняє збір нових даних.",
+      "country": "Country / Region"
       },
       "placeholders": {
         "instanceName": "наприклад, Головний сервер",

@@ -53,6 +53,7 @@ import { usePersistedFilterSidebarState } from "@/hooks/usePersistedFilterSideba
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
 import { useTheme } from "@/hooks/useTheme"
 import { api } from "@/lib/api"
+import { flagClass } from "@/lib/countryFlags"
 import {
   ALL_INSTANCES_ID,
   isAllInstancesScope,
@@ -434,6 +435,9 @@ export function Header({
                   <Logo className="h-5 w-5" />
                 )}
                 <span className="flex items-center max-w-32">
+                  {flagClass(currentInstance?.countryCode) && (
+                    <span className={`${flagClass(currentInstance?.countryCode)} rounded-sm text-sm shrink-0 mr-1.5`} />
+                  )}
                   <span className="truncate">{instanceName}</span>
                   <ChevronsUpDown className="h-3 w-3 text-muted-foreground ml-1 mt-0.5 opacity-60 flex-shrink-0" />
                 </span>

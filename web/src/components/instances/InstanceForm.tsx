@@ -8,6 +8,7 @@ import { FieldHelp } from "@/components/ui/field-help"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { getCountryOptions } from "@/lib/countryFlags"
 import { useInstances } from "@/hooks/useInstances"
 import { DEFAULT_REANNOUNCE_SETTINGS, instanceUrlSchema } from "@/lib/instance-validation"
 import { formatErrorMessage } from "@/lib/utils"
@@ -464,6 +465,27 @@ export function InstanceForm({ instance, defaultValues, onSuccess, onCancel, for
             </div>
           )}
         </div>
+
+        <form.Field name="countryCode">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor="country-code">{t("form.labels.country")}</Label>
+              <select
+                id="country-code"
+                value={field.state.value ?? ""}
+                onChange={(e) => field.handleChange(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              >
+                <option value="">—</option>
+                {getCountryOptions().map(c => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </form.Field>
 
         {!formId && (
           <div className="flex gap-2">
