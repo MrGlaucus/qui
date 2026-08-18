@@ -53,6 +53,7 @@ import { usePersistedTitleBarSpeeds } from "@/hooks/usePersistedTitleBarSpeeds"
 import { useQBittorrentAppInfo } from "@/hooks/useQBittorrentAppInfo"
 import { useTitleBarSpeeds } from "@/hooks/useTitleBarSpeeds"
 import { api } from "@/lib/api"
+import { flagClass } from "@/lib/countryFlags"
 import {
   DASHBOARD_STATS_FALLBACK_ORDER,
   DASHBOARD_STATS_FALLBACK_SORT,
@@ -912,9 +913,12 @@ function InstanceCard({
               className="flex items-center gap-2 hover:underline overflow-hidden flex-1 min-w-0"
             >
               <CardTitle
-                className="text-lg truncate min-w-0 sm:max-w-[130px] md:max-w-[160px] lg:max-w-[190px]"
+                className="text-lg truncate min-w-0 sm:max-w-[130px] md:max-w-[160px] lg:max-w-[190px] flex items-center gap-1.5"
                 title={instance.name}
               >
+                {flagClass(instance.countryCode) && (
+                  <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+                )}
                 {instance.name}
               </CardTitle>
               <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

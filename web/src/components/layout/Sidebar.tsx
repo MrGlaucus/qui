@@ -39,7 +39,6 @@ import {
   FileText,
   GitBranch,
   Globe,
-  HardDrive,
   Home,
   Loader2,
   LogOut,
@@ -249,7 +248,6 @@ export function Sidebar() {
                   isActive? "bg-sidebar-primary text-sidebar-primary-foreground": "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
               >
-                <HardDrive className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate max-w-36 flex items-center gap-1.5" title={instance.name}>
                   {flagClass(instance.countryCode) && (
                     <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />

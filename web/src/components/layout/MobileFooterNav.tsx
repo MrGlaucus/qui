@@ -286,9 +286,12 @@ export function MobileFooterNav() {
                   </Badge>
                 </div>
                 <span
-                  className="block max-w-[7.5rem] truncate text-center"
+                  className="block max-w-[7.5rem] truncate text-center flex items-center justify-center gap-1"
                   title={currentInstanceLabel ?? t("mobileNav.clients")}
                 >
+                  {flagClass(currentInstance?.countryCode ?? activeInstances[0]?.countryCode) && (
+                    <span className={`${flagClass(currentInstance?.countryCode ?? activeInstances[0]?.countryCode)} rounded-sm text-sm shrink-0`} />
+                  )}
                   {currentInstanceLabel ?? t("mobileNav.clients")}
                 </span>
               </button>
@@ -323,7 +326,6 @@ export function MobileFooterNav() {
                           params={{ instanceId: instance.id.toString() }}
                           className="flex items-center gap-2 min-w-0"
                         >
-                          <HardDrive className="h-4 w-4" />
                           <span
                             className="flex-1 min-w-0 truncate"
                             title={instance.name}

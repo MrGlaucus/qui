@@ -5,6 +5,7 @@
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { DropdownMenuCheckboxItem, DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { flagClass } from "@/lib/countryFlags"
 import { cn } from "@/lib/utils"
 import type { InstanceResponse } from "@/types"
 import { Link } from "@tanstack/react-router"
@@ -169,7 +170,12 @@ export function UnifiedScopeDropdownSection({
                       checked ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:bg-sidebar-accent focus-visible:text-sidebar-accent-foreground"
                     )}
                   >
-                    <span className="truncate">{instance.name}</span>
+                    <span className="flex items-center gap-1.5 truncate">
+                      {flagClass(instance.countryCode) && (
+                        <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+                      )}
+                      {instance.name}
+                    </span>
                     <span
                       className={cn(
                         "h-2 w-2 rounded-full flex-shrink-0",
@@ -206,7 +212,12 @@ export function UnifiedScopeDropdownSection({
                     className="cursor-pointer"
                   >
                     <span className="flex w-full items-center justify-between gap-2">
-                      <span className="truncate">{instance.name}</span>
+                      <span className="flex items-center gap-1.5 truncate">
+                        {flagClass(instance.countryCode) && (
+                          <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+                        )}
+                        {instance.name}
+                      </span>
                       <span
                         className={cn(
                           "h-2 w-2 rounded-full flex-shrink-0",

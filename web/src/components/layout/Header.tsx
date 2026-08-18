@@ -80,7 +80,7 @@ interface UnifiedActionDropdownProps {
   icon: ReactNode
   tooltip: string
   label: string
-  instances: Array<{ id: number; name: string; connected: boolean }>
+  instances: Array<{ id: number; name: string; connected: boolean; countryCode?: string }>
   onSelectInstance: (id: number) => void
 }
 
@@ -113,8 +113,12 @@ function UnifiedActionDropdown({ icon, tooltip, label, instances, onSelectInstan
             onSelect={() => onSelectInstance(instance.id)}
             className="cursor-pointer"
           >
-            <HardDrive className="mr-2 h-4 w-4 flex-shrink-0" />
-            <span className="flex-1 truncate">{instance.name}</span>
+            <span className="flex items-center gap-1.5 flex-1 min-w-0">
+              {flagClass(instance.countryCode) && (
+                <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+              )}
+              <span className="flex-1 truncate">{instance.name}</span>
+            </span>
             <span
               className={cn(
                 "ml-2 h-2 w-2 rounded-full flex-shrink-0",
