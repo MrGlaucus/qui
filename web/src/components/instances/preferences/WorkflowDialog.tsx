@@ -1708,6 +1708,9 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
   const dryRunNowMutation = useMutation({
     mutationFn: async (input: FormState) => {
       const payload = buildPayload(input)
+      console.log("[workflow-dryrun] actionCondition =", JSON.stringify(input.actionCondition, null, 2))
+      console.log("[workflow-dryrun] speedLimits condition =", JSON.stringify(payload.conditions?.speedLimits?.condition ?? null, null, 2))
+      console.log("[workflow-dryrun] full payload =", JSON.stringify(payload, null, 2))
       return api.dryRunAutomation(instanceId, {
         ...payload,
         enabled: true,
