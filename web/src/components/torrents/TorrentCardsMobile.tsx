@@ -1041,7 +1041,7 @@ function SwipeableCard({
           </div>
 
           {/* Instance badge + Tags - aligned to the right */}
-          <div className="flex items-center gap-1 flex-wrap justify-end ml-auto overflow-hidden max-h-4">
+          <div className="flex items-center gap-1 flex-wrap justify-end ml-auto overflow-hidden max-h-5">
             {instanceBadge && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground" title={instanceBadge.name}>
                 {flagClass(instanceBadge.countryCode) && (
