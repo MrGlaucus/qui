@@ -514,7 +514,6 @@ func evaluateLeaf(cond *RuleCondition, torrent qbt.Torrent, ctx *EvalContext) bo
 	case FieldUpSpeed:
 		return compareInt64(torrent.UpSpeed, cond)
 	case FieldDlLimit:
-		log.Debug().Str("field", "DL_LIMIT").Str("op", string(cond.Operator)).Str("value", cond.Value).Int64("torrentDlLimit", torrent.DlLimit).Int64("torrentUpLimit", torrent.UpLimit).Msg("automations: evaluate DL_LIMIT")
 		if cond.Operator == models.OperatorIs {
 			return torrent.DlLimit <= 0
 		}
@@ -523,7 +522,6 @@ func evaluateLeaf(cond *RuleCondition, torrent qbt.Torrent, ctx *EvalContext) bo
 		}
 		return compareInt64(torrent.DlLimit, cond)
 	case FieldUpLimit:
-		log.Debug().Str("field", "UP_LIMIT").Str("op", string(cond.Operator)).Str("value", cond.Value).Int64("torrentUpLimit", torrent.UpLimit).Msg("automations: evaluate UP_LIMIT")
 		if cond.Operator == models.OperatorIs {
 			return torrent.UpLimit <= 0
 		}
