@@ -27,6 +27,7 @@
     "setTags": "Imposta tag",
     "setCategory": "Imposta categoria",
     "setLocation": "Imposta posizione",
+    "transfer": "Trasferisci su un'altra istanza",
     "queuePriority": "Priorità in coda",
     "topPriority": "Priorità massima",
     "increasePriority": "Aumenta priorità",
@@ -61,6 +62,7 @@
     "setLocation": "Imposta posizione",
     "setShareLimits": "Imposta limiti di condivisione",
     "setSpeedLimits": "Imposta limiti di velocità",
+    "transferToAnotherInstance": "Trasferisci su un'altra istanza",
     "enableTmm": "Abilita TMM",
     "disableTmm": "Disabilita TMM",
     "externalPrograms": "Programmi esterni",
@@ -439,11 +441,26 @@
       "placeholder": "Inserisci il nome della categoria",
       "cancel": "Annulla",
       "confirm": "Crea e assegna"
+    },
+    "transfer": {
+      "title": "Trasferisci {{count}} torrent su un'altra istanza",
+      "description": "I torrent verranno spostati sull'istanza di destinazione mantenendo categoria, tag, posizione, limiti di condivisione e commento. Dopo il trasferimento riuscito, i torrent di origine e i loro file vengono eliminati dall'istanza corrente.",
+      "noTargets": "Nessuna altra istanza attiva disponibile.",
+      "cancel": "Annulla",
+      "confirm": "Trasferisci",
+      "transferring": "Trasferimento in corso..."
     }
   },
   "dropZone": {
     "overlayMessage": "Trascina file .torrent o link magnet per aggiungerli",
     "unsupportedDrop": "Trascina un file .torrent o link magnet per aggiungerlo"
+  },
+  "transfer": {
+    "toast": {
+      "success": "{{count}} torrent trasferiti",
+      "partial": "Trasferiti {{succeeded}}, non riusciti {{failed}}",
+      "failed": "Trasferimento dei torrent non riuscito"
+    }
   },
   "creatorDialog": {
     "title": "Crea torrent",

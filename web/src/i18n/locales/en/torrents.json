@@ -27,6 +27,7 @@
     "setTags": "Set Tags",
     "setCategory": "Set Category",
     "setLocation": "Set Location",
+    "transfer": "Transfer to Another Instance",
     "queuePriority": "Queue Priority",
     "topPriority": "Top Priority",
     "increasePriority": "Increase Priority",
@@ -61,6 +62,7 @@
     "setLocation": "Set Location",
     "setShareLimits": "Set Share Limits",
     "setSpeedLimits": "Set Speed Limits",
+    "transferToAnotherInstance": "Transfer to Another Instance",
     "enableTmm": "Enable TMM",
     "disableTmm": "Disable TMM",
     "externalPrograms": "External Programs",
@@ -439,11 +441,26 @@
       "placeholder": "Enter category name",
       "cancel": "Cancel",
       "confirm": "Create and Assign"
+    },
+    "transfer": {
+      "title": "Transfer {{count}} torrent(s) to another instance",
+      "description": "The torrents will be moved to the target instance, keeping their category, tags, save path, share limits and comment. Once the transfer succeeds, the source torrents and their files are deleted from the current instance.",
+      "noTargets": "No other active instances available.",
+      "cancel": "Cancel",
+      "confirm": "Transfer",
+      "transferring": "Transferring..."
     }
   },
   "dropZone": {
     "overlayMessage": "Drop .torrent files or magnet links to add",
     "unsupportedDrop": "Drop a .torrent file or magnet link to add it"
+  },
+  "transfer": {
+    "toast": {
+      "success": "{{count}} torrent(s) transferred",
+      "partial": "Transferred {{succeeded}}, failed {{failed}}",
+      "failed": "Failed to transfer torrents"
+    }
   },
   "creatorDialog": {
     "title": "Create Torrent",

@@ -44,6 +44,7 @@ vi.mock("@/components/torrents/TorrentDialogs", () => ({
   ShareLimitDialog: stub("ShareLimitDialog"),
   SpeedLimitsDialog: stub("SpeedLimitsDialog"),
   TmmConfirmDialog: stub("TmmConfirmDialog"),
+  TransferDialog: stub("TransferDialog"),
 }))
 
 afterEach(cleanup)

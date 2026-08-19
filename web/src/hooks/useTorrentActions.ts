@@ -46,6 +46,7 @@ export type TorrentActionComplete =
   | "renameTorrent"
   | "renameTorrentFile"
   | "renameTorrentFolder"
+  | "transfer"
 
 interface UseTorrentActionsProps {
   instanceId: number
@@ -200,6 +201,7 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
   const [showTmmDialog, setShowTmmDialog] = useState(false)
   const [pendingTmmEnable, setPendingTmmEnable] = useState(false)
   const [showLocationWarningDialog, setShowLocationWarningDialog] = useState(false)
+  const [showTransferDialog, setShowTransferDialog] = useState(false)
 
   // Context state for dialogs
   const [contextHashes, setContextHashes] = useState<string[]>([])
@@ -985,6 +987,13 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
     setShowSpeedLimitDialog(true)
   }, [])
 
+  const prepareTransferAction = useCallback((hashes: string[], torrents?: Torrent[]) => {
+    if (hashes.length === 0) return
+    setContextHashes(hashes)
+    if (torrents) setContextTorrents(torrents)
+    setShowTransferDialog(true)
+  }, [])
+
   const prepareRenameTorrentAction = useCallback((hashes: string[], torrents?: Torrent[]) => {
     if (hashes.length === 0) return
     setContextHashes(hashes)
@@ -1007,6 +1016,36 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
   }, [])
 
   const isPending = mutation.isPending || updateTagsMutation.isPending || renameTorrentMutation.isPending || renameFileMutation.isPending || renameFolderMutation.isPending
+
+  const transferMutation = useMutation({
+    mutationFn: (targetInstanceId: number) =>
+      api.transferTorrents(instanceId, targetInstanceId, contextHashes),
+    onSuccess: (data) => {
+      setShowTransferDialog(false)
+      setContextHashes([])
+      setContextTorrents([])
+      // Refresh both the source and target list views.
+      scheduleListRefetches(1500)
+      scheduleListRefetches(5000)
+      if (data.failed > 0) {
+        toast.error(t("transfer.toast.partial", { succeeded: data.succeeded, failed: data.failed }))
+      } else {
+        toast.success(t("transfer.toast.success", { count: data.succeeded }))
+      }
+      onActionComplete?.("transfer")
+    },
+    onError: (error: Error) => {
+      toast.error(t("transfer.toast.failed"), {
+        description: error.message || t("actionToasts.unexpectedError"),
+      })
+    },
+  })
+
+  const handleTransfer = useCallback((targetInstanceId: number) => {
+    transferMutation.mutate(targetInstanceId)
+  }, [transferMutation])
+
+  const isTransferPending = transferMutation.isPending
 
 
   return {
@@ -1089,6 +1128,12 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
     prepareTmmAction,
     handleTmmConfirm,
     proceedToLocationDialog,
+    // Transfer
+    showTransferDialog,
+    setShowTransferDialog,
+    prepareTransferAction,
+    handleTransfer,
+    isTransferPending,
   }
 }
 

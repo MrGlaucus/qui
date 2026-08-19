@@ -380,6 +380,10 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
     pendingTmmEnable,
     showLocationWarningDialog,
     setShowLocationWarningDialog,
+    showTransferDialog,
+    setShowTransferDialog,
+    handleTransfer,
+    isTransferPending,
     contextHashes,
     contextTorrents,
     isPending,
@@ -407,6 +411,7 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
     prepareSpeedLimitAction,
     prepareLocationAction,
     prepareRenameTorrentAction,
+    prepareTransferAction,
     prepareRecheckAction,
     prepareReannounceAction,
     prepareTmmAction,
@@ -1321,6 +1326,7 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
     onPrepareSpeedLimits: prepareSpeedLimitAction,
     onPrepareLocation: prepareLocationAction,
     onPrepareRenameTorrent: prepareRenameTorrentAction,
+    onPrepareTransfer: prepareTransferAction,
     onPrepareRecheck: prepareRecheckAction,
     onPrepareReannounce: prepareReannounceAction,
     onPrepareTmm: prepareTmmAction,
@@ -1336,7 +1342,7 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
     isCrossSeedSearching,
     onFilterChange,
     onFetchTorrentField: fetchTorrentField,
-  }), [instanceId, isReadOnly, isAllSelected, selectedHashes, selectedTorrents, effectiveSelectionCount, onTorrentSelect, runAction, prepareDeleteAction, prepareTagsAction, prepareCommentAction, prepareCategoryAction, prepareCreateCategoryAction, prepareShareLimitAction, prepareSpeedLimitAction, prepareLocationAction, prepareRenameTorrentAction, prepareRecheckAction, prepareReannounceAction, prepareTmmAction, availableCategories, handleSetCategoryDirect, isPending, handleExportWrapper, isExportingTorrent, capabilities, allowSubcategories, canCrossSeedSearch, onCrossSeedSearch, isCrossSeedSearching, onFilterChange, fetchTorrentField])
+  }), [instanceId, isReadOnly, isAllSelected, selectedHashes, selectedTorrents, effectiveSelectionCount, onTorrentSelect, runAction, prepareDeleteAction, prepareTagsAction, prepareCommentAction, prepareCategoryAction, prepareCreateCategoryAction, prepareShareLimitAction, prepareSpeedLimitAction, prepareLocationAction, prepareRenameTorrentAction, prepareTransferAction, prepareRecheckAction, prepareReannounceAction, prepareTmmAction, availableCategories, handleSetCategoryDirect, isPending, handleExportWrapper, isExportingTorrent, capabilities, allowSubcategories, canCrossSeedSearch, onCrossSeedSearch, isCrossSeedSearching, onFilterChange, fetchTorrentField])
 
   const showCompactCheckbox = table.getColumn("select")?.getIsVisible() !== false
   const compactRowProps = useMemo<CompactRowSharedProps>(() => ({
@@ -1939,6 +1945,10 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
           pendingTmmEnable={pendingTmmEnable}
           showLocationWarningDialog={showLocationWarningDialog}
           setShowLocationWarningDialog={setShowLocationWarningDialog}
+          showTransferDialog={showTransferDialog}
+          setShowTransferDialog={setShowTransferDialog}
+          handleTransfer={handleTransfer}
+          isTransferPending={isTransferPending}
           deleteFiles={deleteFiles}
           setDeleteFiles={setDeleteFiles}
           isDeleteFilesLocked={isDeleteFilesLocked}

@@ -318,6 +318,18 @@ export interface AddTorrentResponse {
   failedFiles?: AddTorrentFailedFile[]
 }
 
+export interface TorrentTransferResult {
+  hash: string
+  success: boolean
+  error?: string
+}
+
+export interface TransferTorrentsResponse {
+  results: TorrentTransferResult[]
+  succeeded: number
+  failed: number
+}
+
 export interface CrossInstanceTorrent extends Torrent {
   instanceId: number
   instanceName: string

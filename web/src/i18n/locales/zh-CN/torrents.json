@@ -27,6 +27,7 @@
     "setTags": "设置标签",
     "setCategory": "设置分类",
     "setLocation": "设置位置",
+    "transfer": "转移到其它实例",
     "queuePriority": "队列优先级",
     "topPriority": "最高优先级",
     "increasePriority": "提高优先级",
@@ -61,6 +62,7 @@
     "setLocation": "设置位置",
     "setShareLimits": "设置分享限制",
     "setSpeedLimits": "设置速度限制",
+    "transferToAnotherInstance": "转移到其它实例",
     "enableTmm": "启用自动种子管理",
     "disableTmm": "禁用自动种子管理",
     "externalPrograms": "外部程序",
@@ -391,11 +393,26 @@
       "placeholder": "输入分类名称",
       "cancel": "取消",
       "confirm": "创建并分配"
+    },
+    "transfer": {
+      "title": "将 {{count}} 个种子转移到其它实例",
+      "description": "种子将转移到目标实例，并保留其分类、标签、保存路径、分享限制和备注。转移成功后，源实例中的种子及其文件会被删除。",
+      "noTargets": "没有其它可用的活动实例。",
+      "cancel": "取消",
+      "confirm": "转移",
+      "transferring": "正在转移..."
     }
   },
   "dropZone": {
     "overlayMessage": "拖放 .torrent 文件或磁力链接以添加",
     "unsupportedDrop": "拖放 .torrent 文件或磁力链接以添加"
+  },
+  "transfer": {
+    "toast": {
+      "success": "已转移 {{count}} 个种子",
+      "partial": "已转移 {{succeeded}} 个，失败 {{failed}} 个",
+      "failed": "转移种子失败"
+    }
   },
   "creatorDialog": {
     "title": "创建种子",

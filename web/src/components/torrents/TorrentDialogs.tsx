@@ -29,6 +29,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { api } from "@/lib/api"
+import { flagClass } from "@/lib/countryFlags"
+import { useInstances } from "@/hooks/useInstances"
 import {
   buildTagEditorItems,
   buildTagUpdatePlan,
@@ -42,7 +44,7 @@ import { cn } from "@/lib/utils"
 import { usePathAutocomplete } from "@/hooks/usePathAutocomplete"
 import type { Category, InstanceCapabilities, Torrent, TorrentFilters } from "@/types"
 import { useVirtualizer } from "@tanstack/react-virtual"
-import { AlertTriangle, Loader2, Plus } from "lucide-react"
+import { AlertTriangle, HardDrive, Loader2, Plus } from "lucide-react"
 import type { ChangeEvent, KeyboardEvent } from "react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -2447,6 +2449,102 @@ export const LocationWarningDialog = memo(function LocationWarningDialog({
           </Button>
           <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={onConfirm} disabled={isPending}>
             {t("dialogs.locationWarning.continue")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+})
+
+interface TransferDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  instanceId: number
+  hashCount: number
+  onConfirm: (targetInstanceId: number) => void
+  isPending?: boolean
+}
+
+export const TransferDialog = memo(function TransferDialog({
+  open,
+  onOpenChange,
+  instanceId,
+  hashCount,
+  onConfirm,
+  isPending = false,
+}: TransferDialogProps) {
+  const { t } = useTranslation("torrents")
+  const { instances } = useInstances()
+  const [selected, setSelected] = useState<number | null>(null)
+
+  // Only active instances other than the source can be a target.
+  const targets = useMemo(
+    () => (instances ?? []).filter(instance => instance.isActive && instance.id !== instanceId),
+    [instances, instanceId]
+  )
+
+  // Reset the selection each time the dialog opens.
+  useEffect(() => {
+    if (open) {
+      setSelected(null)
+    }
+  }, [open])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("dialogs.transfer.title", { count: hashCount })}</DialogTitle>
+          <DialogDescription>
+            {t("dialogs.transfer.description")}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-2 space-y-1">
+          {targets.map((instance) => (
+            <button
+              key={instance.id}
+              type="button"
+              onClick={() => setSelected(instance.id)}
+              className={cn(
+                "flex items-center gap-2 w-full rounded-md border px-3 py-2 text-sm cursor-pointer",
+                selected === instance.id
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:bg-muted"
+              )}
+            >
+              {flagClass(instance.countryCode) ? (
+                <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+              ) : (
+                <HardDrive className="h-4 w-4 flex-shrink-0" />
+              )}
+              <span className="flex-1 truncate text-left">{instance.name}</span>
+              <span
+                className={cn(
+                  "ml-2 h-2 w-2 rounded-full flex-shrink-0",
+                  instance.connected ? "bg-green-500" : "bg-red-500"
+                )}
+              />
+            </button>
+          ))}
+          {targets.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {t("dialogs.transfer.noTargets")}
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+            {t("dialogs.transfer.cancel")}
+          </Button>
+          <Button
+            onClick={() => {
+              if (selected !== null) {
+                onConfirm(selected)
+              }
+            }}
+            disabled={isPending || selected === null}
+          >
+            {isPending ? t("dialogs.transfer.transferring") : t("dialogs.transfer.confirm")}
           </Button>
         </DialogFooter>
       </DialogContent>

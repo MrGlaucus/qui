@@ -27,6 +27,7 @@
     "setTags": "Nastavit tagy",
     "setCategory": "Nastavit kategorii",
     "setLocation": "Nastavit místo",
+    "transfer": "Přesunout na jinou instanci",
     "queuePriority": "Priorita ve frontě",
     "topPriority": "Nejvyšší priorita",
     "increasePriority": "Zvýšit prioritu",
@@ -61,6 +62,7 @@
     "setLocation": "Nastavit místo",
     "setShareLimits": "Nastavit limit sdílení",
     "setSpeedLimits": "Nastavit limit rychlosti",
+    "transferToAnotherInstance": "Přesunout na jinou instanci",
     "enableTmm": "Povolit TMM",
     "disableTmm": "Vypnout TMM",
     "externalPrograms": "Externí programy",
@@ -439,11 +441,26 @@
       "placeholder": "Zadejte název kategorie",
       "cancel": "Zrušit",
       "confirm": "Vytvořit a přiřadit"
+    },
+    "transfer": {
+      "title": "Přesunout {{count}} torrentů na jinou instanci",
+      "description": "Torrenty budou přesunuty na cílovou instanci se zachováním kategorie, tagů, umístění, limitů sdílení a komentáře. Po úspěšném přesunu budou zdrojové torrenty i jejich soubory odstraněny z aktuální instance.",
+      "noTargets": "Žádné další aktivní instance nejsou k dispozici.",
+      "cancel": "Zrušit",
+      "confirm": "Přesunout",
+      "transferring": "Přesun probíhá..."
     }
   },
   "dropZone": {
     "overlayMessage": "Pro přidání vložte soubory .torrent nebo magnetové odkazy",
     "unsupportedDrop": "Pro přidání vložte soubor .torrent nebo magnetový odkaz"
+  },
+  "transfer": {
+    "toast": {
+      "success": "Přesunuto {{count}} torrentů",
+      "partial": "Přesunuto {{succeeded}}, selhalo {{failed}}",
+      "failed": "Přesun torrentů se nezdařil"
+    }
   },
   "creatorDialog": {
     "title": "Vytvořit torrent",

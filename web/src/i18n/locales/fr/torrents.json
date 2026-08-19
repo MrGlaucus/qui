@@ -27,6 +27,7 @@
     "setTags": "Définir les tags",
     "setCategory": "Définir la catégorie",
     "setLocation": "Définir l'emplacement",
+    "transfer": "Transférer vers une autre instance",
     "queuePriority": "Priorité dans la file d'attente",
     "topPriority": "Priorité maximale",
     "increasePriority": "Augmenter la priorité",
@@ -61,6 +62,7 @@
     "setLocation": "Définir l'emplacement",
     "setShareLimits": "Définir les limites de partage",
     "setSpeedLimits": "Définir les limites de vitesse",
+    "transferToAnotherInstance": "Transférer vers une autre instance",
     "enableTmm": "Activer TMM",
     "disableTmm": "Désactiver TMM",
     "externalPrograms": "Programmes externes",
@@ -439,11 +441,26 @@
       "placeholder": "Entrez le nom de la catégorie",
       "cancel": "Annuler",
       "confirm": "Créer et assigner"
+    },
+    "transfer": {
+      "title": "Transférer {{count}} torrent(s) vers une autre instance",
+      "description": "Les torrents seront déplacés vers l'instance cible en conservant leur catégorie, tags, emplacement, limites de partage et commentaire. Une fois le transfert réussi, les torrents sources et leurs fichiers sont supprimés de l'instance actuelle.",
+      "noTargets": "Aucune autre instance active disponible.",
+      "cancel": "Annuler",
+      "confirm": "Transférer",
+      "transferring": "Transfert en cours..."
     }
   },
   "dropZone": {
     "overlayMessage": "Déposez des fichiers .torrent ou des liens magnet pour les ajouter",
     "unsupportedDrop": "Déposez un fichier .torrent ou un lien magnet pour l'ajouter"
+  },
+  "transfer": {
+    "toast": {
+      "success": "{{count}} torrent(s) transféré(s)",
+      "partial": "Transférés : {{succeeded}}, échecs : {{failed}}",
+      "failed": "Échec du transfert des torrents"
+    }
   },
   "creatorDialog": {
     "title": "Créer un torrent",

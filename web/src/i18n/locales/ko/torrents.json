@@ -27,6 +27,7 @@
     "setTags": "태그 설정",
     "setCategory": "카테고리 설정",
     "setLocation": "위치 설정",
+    "transfer": "다른 인스턴스로 전송",
     "queuePriority": "대기열 우선순위",
     "topPriority": "최상위 우선순위",
     "increasePriority": "우선순위 높이기",
@@ -61,6 +62,7 @@
     "setLocation": "위치 설정",
     "setShareLimits": "공유 제한 설정",
     "setSpeedLimits": "속도 제한 설정",
+    "transferToAnotherInstance": "다른 인스턴스로 전송",
     "enableTmm": "TMM 활성화",
     "disableTmm": "TMM 비활성화",
     "externalPrograms": "외부 프로그램",
@@ -391,11 +393,26 @@
       "placeholder": "카테고리 이름 입력",
       "cancel": "취소",
       "confirm": "생성 및 할당"
+    },
+    "transfer": {
+      "title": "토렌트 {{count}}개를 다른 인스턴스로 전송",
+      "description": "토렌트가 카테고리, 태그, 저장 경로, 공유 제한 및 메모를 유지한 채 대상 인스턴스로 이동됩니다. 전송에 성공하면 현재 인스턴스에서 원본 토렌트와 해당 파일이 삭제됩니다.",
+      "noTargets": "사용 가능한 다른 활성 인스턴스가 없습니다.",
+      "cancel": "취소",
+      "confirm": "전송",
+      "transferring": "전송 중..."
     }
   },
   "dropZone": {
     "overlayMessage": ".torrent 파일 또는 마그넷 링크를 끌어다 놓아 추가하세요",
     "unsupportedDrop": ".torrent 파일 또는 마그넷 링크를 끌어다 놓아 추가하세요"
+  },
+  "transfer": {
+    "toast": {
+      "success": "토렌트 {{count}}개 전송됨",
+      "partial": "{{succeeded}}개 전송됨, {{failed}}개 실패",
+      "failed": "토렌트 전송 실패"
+    }
   },
   "creatorDialog": {
     "title": "토렌트 생성",

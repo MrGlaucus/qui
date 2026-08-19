@@ -27,6 +27,7 @@
     "setTags": "Tags festlegen",
     "setCategory": "Kategorie festlegen",
     "setLocation": "Speicherort festlegen",
+    "transfer": "Auf andere Instanz übertragen",
     "queuePriority": "Warteschlangen-Priorität",
     "topPriority": "Höchste Priorität",
     "increasePriority": "Priorität erhöhen",
@@ -61,6 +62,7 @@
     "setLocation": "Speicherort setzen",
     "setShareLimits": "Share-Limits setzen",
     "setSpeedLimits": "Geschwindigkeitsbegrenzungen setzen",
+    "transferToAnotherInstance": "Auf andere Instanz übertragen",
     "enableTmm": "TMM aktivieren",
     "disableTmm": "TMM deaktivieren",
     "externalPrograms": "Externe Programme",
@@ -439,11 +441,26 @@
       "placeholder": "Kategorienamen eingeben",
       "cancel": "Abbrechen",
       "confirm": "Erstellen und zuweisen"
+    },
+    "transfer": {
+      "title": "{{count}} Torrent(s) auf eine andere Instanz übertragen",
+      "description": "Die Torrents werden auf die Zielinstanz verschoben, wobei Kategorie, Tags, Speicherort, Share-Limits und Kommentar erhalten bleiben. Nach erfolgreicher Übertragung werden die Quell-Torrents und ihre Dateien aus der aktuellen Instanz gelöscht.",
+      "noTargets": "Keine anderen aktiven Instanzen verfügbar.",
+      "cancel": "Abbrechen",
+      "confirm": "Übertragen",
+      "transferring": "Übertragung läuft..."
     }
   },
   "dropZone": {
     "overlayMessage": ".torrent-Dateien oder Magnet-Links zum Hinzufügen ablegen",
     "unsupportedDrop": "Lege eine .torrent-Datei oder einen Magnet-Link ab, um sie hinzuzufügen"
+  },
+  "transfer": {
+    "toast": {
+      "success": "{{count}} Torrent(s) übertragen",
+      "partial": "Übertragen: {{succeeded}}, fehlgeschlagen: {{failed}}",
+      "failed": "Übertragung der Torrents fehlgeschlagen"
+    }
   },
   "creatorDialog": {
     "title": "Torrent erstellen",

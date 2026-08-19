@@ -110,6 +110,7 @@ import type {
   TorrentProperties,
   TorrentResponse,
   TorrentTracker,
+  TransferTorrentsResponse,
   TorznabIndexer,
   TorznabIndexerError,
   TorznabIndexerFormData,
@@ -1077,6 +1078,13 @@ class ApiClient {
     return this.request(`/instances/${instanceId}/torrents/bulk-action`, {
       method: "POST",
       body: JSON.stringify(data),
+    })
+  }
+
+  async transferTorrents(instanceId: number, targetInstanceId: number, hashes: string[]): Promise<TransferTorrentsResponse> {
+    return this.request(`/instances/${instanceId}/torrents/transfer`, {
+      method: "POST",
+      body: JSON.stringify({ hashes, targetInstanceId }),
     })
   }
 

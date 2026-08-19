@@ -34,7 +34,8 @@ import {
   SetCommentDialog,
   ShareLimitDialog,
   SpeedLimitsDialog,
-  TmmConfirmDialog
+  TmmConfirmDialog,
+  TransferDialog
 } from "../TorrentDialogs"
 
 type Wrappers = ReturnType<typeof useBulkActionWrappers>
@@ -79,6 +80,10 @@ export interface TorrentTableDialogsProps {
   pendingTmmEnable: boolean
   showLocationWarningDialog: boolean
   setShowLocationWarningDialog: Dispatch<SetStateAction<boolean>>
+  showTransferDialog: boolean
+  setShowTransferDialog: Dispatch<SetStateAction<boolean>>
+  handleTransfer: (targetInstanceId: number) => void
+  isTransferPending: boolean
 
   // Delete-dialog options
   deleteFiles: boolean
@@ -175,6 +180,10 @@ export function TorrentTableDialogs({
   pendingTmmEnable,
   showLocationWarningDialog,
   setShowLocationWarningDialog,
+  showTransferDialog,
+  setShowTransferDialog,
+  handleTransfer,
+  isTransferPending,
   deleteFiles,
   setDeleteFiles,
   isDeleteFilesLocked,
@@ -355,6 +364,15 @@ export function TorrentTableDialogs({
         torrents={contextTorrents}
         onConfirm={handleSetSpeedLimitsWrapper}
         isPending={isPending}
+      />
+
+      <TransferDialog
+        open={showTransferDialog}
+        onOpenChange={setShowTransferDialog}
+        instanceId={instanceId}
+        hashCount={isAllSelected ? effectiveSelectionCount : contextHashes.length}
+        onConfirm={handleTransfer}
+        isPending={isTransferPending}
       />
 
       {/* Set Location Dialog */}

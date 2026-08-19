@@ -31,6 +31,7 @@ import { formatBytes } from "@/lib/utils"
 import type { Category, CrossInstanceTorrent, Torrent, TorrentFilters } from "@/types"
 import {
   ArrowDown,
+  ArrowRightLeft,
   ArrowUp,
   BarChart3,
   Blocks,
@@ -61,7 +62,8 @@ import {
   TagEditorDialog,
   ShareLimitDialog,
   SpeedLimitsDialog,
-  TmmConfirmDialog
+  TmmConfirmDialog,
+  TransferDialog
 } from "./TorrentDialogs"
 
 interface TorrentManagementBarProps {
@@ -205,6 +207,11 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
     prepareRecheckAction,
     prepareReannounceAction,
     prepareTmmAction,
+    showTransferDialog,
+    setShowTransferDialog,
+    prepareTransferAction,
+    handleTransfer,
+    isTransferPending,
   } = useTorrentActions({
     instanceId: actionInstanceId,
     instanceIds,
@@ -643,6 +650,22 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
             <TooltipContent>{t("managementBar.setLocation")}</TooltipContent>
           </Tooltip>
 
+          {actionInstanceId > 0 && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => prepareTransferAction(selectedHashes, selectedTorrents)}
+                  disabled={isPending || isTransferPending || isDisabled}
+                >
+                  <ArrowRightLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("managementBar.transfer")}</TooltipContent>
+            </Tooltip>
+          )}
+
           {/* Queue Priority */}
           <DropdownMenu>
             <Tooltip>
@@ -875,6 +898,17 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
         onConfirm={handleSetSpeedLimitsWrapper}
         isPending={isPending}
       />
+
+      {actionInstanceId > 0 && (
+        <TransferDialog
+          open={showTransferDialog}
+          onOpenChange={setShowTransferDialog}
+          instanceId={actionInstanceId}
+          hashCount={totalSelectionCount || selectedHashes.length}
+          onConfirm={handleTransfer}
+          isPending={isTransferPending}
+        />
+      )}
 
       {/* Force Recheck Confirmation Dialog */}
       <Dialog open={showRecheckDialog} onOpenChange={setShowRecheckDialog}>

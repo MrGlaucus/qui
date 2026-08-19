@@ -43,7 +43,8 @@ import {
   Sprout,
   Tag,
   Terminal,
-  Trash2
+  Trash2,
+  ArrowRightLeft
 } from "lucide-react"
 import { memo, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -76,6 +77,7 @@ export interface TorrentContextMenuProps {
   onPrepareLocation: (hashes: string[], torrents?: Torrent[], count?: number) => void
   onPrepareTmm?: (hashes: string[], count: number, enable: boolean) => void
   onPrepareRenameTorrent: (hashes: string[], torrents?: Torrent[]) => void
+  onPrepareTransfer?: (hashes: string[], torrents?: Torrent[]) => void
   availableCategories?: Record<string, Category>
   onSetCategory?: (category: string, hashes: string[], targets?: Array<{ instanceId: number; hash: string }>) => void
   isPending?: boolean
@@ -114,6 +116,7 @@ export const TorrentContextMenu = memo(function TorrentContextMenu({
   onPrepareReannounce,
   onPrepareLocation,
   onPrepareRenameTorrent,
+  onPrepareTransfer,
   onPrepareTmm,
   availableCategories = {},
   onSetCategory,
@@ -646,6 +649,18 @@ export const TorrentContextMenu = memo(function TorrentContextMenu({
                 </ContextMenuItem>
               </ContextMenuSubContent>
             </ContextMenuSub>
+            {onPrepareTransfer && supportsInstanceScopedActions && (
+              <>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  onClick={() => onPrepareTransfer(hashes, torrents)}
+                  disabled={isPending}
+                >
+                  <ArrowRightLeft className="mr-2 h-4 w-4" />
+                  {t("contextMenu.transferToAnotherInstance")} {count > 1 ? `(${count})` : ""}
+                </ContextMenuItem>
+              </>
+            )}
             <ContextMenuSeparator />
             <ContextMenuItem
               onClick={() => onPrepareDelete(hashes, torrents)}
