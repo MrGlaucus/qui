@@ -107,7 +107,8 @@ func TestTransferTorrents_Success(t *testing.T) {
 	addOpts := ops.addCalls[0].options
 	assert.Equal(t, 2, ops.addCalls[0].instanceID)
 	assert.Equal(t, "false", addOpts["autoTMM"])
-	assert.Equal(t, "/data/movies", addOpts["savepath"])
+	_, hasSavePath := addOpts["savepath"]
+	assert.False(t, hasSavePath, "savepath must not be carried over to the target instance")
 	assert.Equal(t, "movies", addOpts["category"])
 	assert.Equal(t, "tag-a,tag-b", addOpts["tags"])
 	assert.Equal(t, "100", addOpts["upLimit"])
@@ -119,9 +120,9 @@ func TestTransferTorrents_Success(t *testing.T) {
 	assert.Equal(t, []string{"hash1"}, ops.comments)
 }
 
-func TestTransferTorrents_EmptySavePathUsesTargetDefault(t *testing.T) {
+func TestTransferTorrents_SavePathNeverCarriedOver(t *testing.T) {
 	ops := transferTestOps()
-	ops.torrents["hash1"] = qbt.Torrent{Hash: "hash1", Name: "Torrent One"}
+	ops.torrents["hash1"] = qbt.Torrent{Hash: "hash1", Name: "Torrent One", SavePath: "/data/movies"}
 
 	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"})
 
@@ -129,7 +130,7 @@ func TestTransferTorrents_EmptySavePathUsesTargetDefault(t *testing.T) {
 	assert.True(t, resp.Results[0].Success)
 	require.Len(t, ops.addCalls, 1)
 	_, hasSavePath := ops.addCalls[0].options["savepath"]
-	assert.False(t, hasSavePath, "savepath must be omitted when the source save path is empty")
+	assert.False(t, hasSavePath, "savepath must be omitted even when the source has one")
 }
 
 func TestTransferTorrents_TorrentNotFoundOnSource(t *testing.T) {

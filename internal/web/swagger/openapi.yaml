@@ -1769,7 +1769,7 @@ paths:
       tags:
         - Torrents
       summary: Transfer torrents to another instance
-      description: Moves torrents to another instance, carrying over category, tags, save path, share limits and comment. Each torrent is handled as its own transaction; once the target instance accepts it, the source torrent and its files are deleted.
+      description: Moves torrents to another instance, carrying over category, tags, share limits, upload/download speed limits and comment. Each torrent is handled as its own transaction; once the target instance accepts it, the source torrent and its files are deleted.
       parameters:
         - $ref: '#/components/parameters/instanceID'
       requestBody:

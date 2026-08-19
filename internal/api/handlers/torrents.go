@@ -1717,7 +1717,7 @@ func transferTorrents(ctx context.Context, ops torrentTransferOps, sourceInstanc
 		transferredHashes = append(transferredHashes, hash)
 	}
 
-	// Remove successfully transferred torrents from the source instance, keeping files.
+	// Remove successfully transferred torrents from the source instance, along with their files.
 	if len(transferredHashes) > 0 {
 		if err := ops.BulkAction(ctx, sourceInstanceID, transferredHashes, "deleteWithFiles"); err != nil {
 			log.Warn().Err(err).Int("instanceID", sourceInstanceID).Int("count", len(transferredHashes)).
@@ -1744,8 +1744,8 @@ func transferTorrents(ctx context.Context, ops torrentTransferOps, sourceInstanc
 }
 
 // transferSingleTorrent moves a single torrent to another instance, carrying over
-// its category, tags, save path, share limits and comment. The source torrent is
-// left untouched until the target has accepted it.
+// its category, tags, share limits, speed limits and comment. The source torrent
+// is left untouched until the target has accepted it.
 func transferSingleTorrent(ctx context.Context, ops torrentTransferOps, sourceInstanceID, targetInstanceID int, hash string) error {
 	torrents, err := ops.GetTorrents(ctx, sourceInstanceID, qbt.TorrentFilterOptions{Hashes: []string{hash}})
 	if err != nil {
@@ -1776,9 +1776,6 @@ func transferSingleTorrent(ctx context.Context, ops torrentTransferOps, sourceIn
 		"paused":        "false",
 		"stopped":       "false",
 		"skip_checking": "false",
-	}
-	if source.SavePath != "" {
-		options["savepath"] = source.SavePath
 	}
 	if source.Category != "" {
 		options["category"] = source.Category
