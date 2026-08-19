@@ -444,7 +444,7 @@
     },
     "transfer": {
       "title": "Trasferisci {{count}} torrent su un'altra istanza",
-      "description": "I torrent verranno spostati sull'istanza di destinazione mantenendo categoria, tag, posizione, limiti di condivisione e commento. Dopo il trasferimento riuscito, i torrent di origine e i loro file vengono eliminati dall'istanza corrente.",
+      "description": "I torrent verranno spostati sull'istanza di destinazione mantenendo categoria, tag, limiti di condivisione, limiti di velocità di upload/download e commento. Dopo il trasferimento riuscito, i torrent di origine e i loro file vengono eliminati dall'istanza corrente.",
       "noTargets": "Nessuna altra istanza attiva disponibile.",
       "cancel": "Annulla",
       "confirm": "Trasferisci",

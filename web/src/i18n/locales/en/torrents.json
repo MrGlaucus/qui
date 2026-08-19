@@ -444,7 +444,7 @@
     },
     "transfer": {
       "title": "Transfer {{count}} torrent(s) to another instance",
-      "description": "The torrents will be moved to the target instance, keeping their category, tags, save path, share limits and comment. Once the transfer succeeds, the source torrents and their files are deleted from the current instance.",
+      "description": "The torrents will be moved to the target instance, keeping their category, tags, share limits, upload/download speed limits and comment. Once the transfer succeeds, the source torrents and their files are deleted from the current instance.",
       "noTargets": "No other active instances available.",
       "cancel": "Cancel",
       "confirm": "Transfer",

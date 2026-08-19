@@ -444,7 +444,7 @@
     },
     "transfer": {
       "title": "Transférer {{count}} torrent(s) vers une autre instance",
-      "description": "Les torrents seront déplacés vers l'instance cible en conservant leur catégorie, tags, emplacement, limites de partage et commentaire. Une fois le transfert réussi, les torrents sources et leurs fichiers sont supprimés de l'instance actuelle.",
+      "description": "Les torrents seront déplacés vers l'instance cible en conservant leur catégorie, tags, limites de partage, limites de vitesse de téléchargement et d'envoi et commentaire. Une fois le transfert réussi, les torrents sources et leurs fichiers sont supprimés de l'instance actuelle.",
       "noTargets": "Aucune autre instance active disponible.",
       "cancel": "Annuler",
       "confirm": "Transférer",

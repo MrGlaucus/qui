@@ -444,7 +444,7 @@
     },
     "transfer": {
       "title": "{{count}} Torrent(s) auf eine andere Instanz übertragen",
-      "description": "Die Torrents werden auf die Zielinstanz verschoben, wobei Kategorie, Tags, Speicherort, Share-Limits und Kommentar erhalten bleiben. Nach erfolgreicher Übertragung werden die Quell-Torrents und ihre Dateien aus der aktuellen Instanz gelöscht.",
+      "description": "Die Torrents werden auf die Zielinstanz verschoben, wobei Kategorie, Tags, Share-Limits, Upload-/Download-Geschwindigkeitsbegrenzungen und Kommentar erhalten bleiben. Nach erfolgreicher Übertragung werden die Quell-Torrents und ihre Dateien aus der aktuellen Instanz gelöscht.",
       "noTargets": "Keine anderen aktiven Instanzen verfügbar.",
       "cancel": "Abbrechen",
       "confirm": "Übertragen",
