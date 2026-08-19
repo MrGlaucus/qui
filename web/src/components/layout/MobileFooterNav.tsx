@@ -331,8 +331,10 @@ export function MobileFooterNav() {
                             title={instance.name}
                           >
                             <span className="flex items-center gap-1.5">
-                              {flagClass(instance.countryCode) && (
+                              {flagClass(instance.countryCode) ? (
                                 <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+                              ) : (
+                                <HardDrive className="h-4 w-4 flex-shrink-0" />
                               )}
                               {instance.name}
                             </span>

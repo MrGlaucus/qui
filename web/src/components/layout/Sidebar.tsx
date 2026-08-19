@@ -39,6 +39,7 @@ import {
   FileText,
   GitBranch,
   Globe,
+  HardDrive,
   Home,
   Loader2,
   LogOut,
@@ -249,8 +250,10 @@ export function Sidebar() {
                 )}
               >
                 <span className="truncate max-w-36 flex items-center gap-1.5" title={instance.name}>
-                  {flagClass(instance.countryCode) && (
+                  {flagClass(instance.countryCode) ? (
                     <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+                  ) : (
+                    <HardDrive className="h-4 w-4 flex-shrink-0" />
                   )}
                   {instance.name}
                 </span>

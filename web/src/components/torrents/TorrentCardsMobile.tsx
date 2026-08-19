@@ -985,12 +985,12 @@ function SwipeableCard({
           {/* Right side: Instance badge, Percentage and Speeds */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {instanceBadge && (
-              <span className="flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground flex-shrink-0" title={instanceBadge.name}>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground" title={instanceBadge.name}>
                 {flagClass(instanceBadge.countryCode) && (
                   <span className={`${flagClass(instanceBadge.countryCode)} rounded-sm text-[10px]`} />
                 )}
                 {instanceBadge.name}
-              </span>
+              </Badge>
             )}
             <span className="text-muted-foreground">
               {torrent.progress >= 0.99 && torrent.progress < 1 ? (
@@ -1043,12 +1043,12 @@ function SwipeableCard({
           {/* Instance badge + Tags - aligned to the right */}
           <div className="flex items-center gap-1 flex-wrap justify-end ml-auto overflow-hidden max-h-4">
             {instanceBadge && (
-              <span className="flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground flex-shrink-0" title={instanceBadge.name}>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground" title={instanceBadge.name}>
                 {flagClass(instanceBadge.countryCode) && (
                   <span className={`${flagClass(instanceBadge.countryCode)} rounded-sm text-[10px]`} />
                 )}
                 {instanceBadge.name}
-              </span>
+              </Badge>
             )}
             {displayTags && (
               <>

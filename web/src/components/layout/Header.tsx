@@ -114,8 +114,10 @@ function UnifiedActionDropdown({ icon, tooltip, label, instances, onSelectInstan
             className="cursor-pointer"
           >
             <span className="flex items-center gap-1.5 flex-1 min-w-0">
-              {flagClass(instance.countryCode) && (
+              {flagClass(instance.countryCode) ? (
                 <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+              ) : (
+                <HardDrive className="h-4 w-4 flex-shrink-0" />
               )}
               <span className="flex-1 truncate">{instance.name}</span>
             </span>
