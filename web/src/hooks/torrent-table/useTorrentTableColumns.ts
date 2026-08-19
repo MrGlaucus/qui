@@ -6,7 +6,7 @@
 import { createColumns, type TableViewMode } from "@/components/torrents/TorrentTableColumns"
 import type { SpeedUnit } from "@/lib/speedUnits"
 import type { TrackerCustomizationLookup } from "@/lib/tracker-customizations"
-import type { AppPreferences, Torrent } from "@/types"
+import type { AppPreferences, Instance, Torrent } from "@/types"
 import type { ColumnDef } from "@tanstack/react-table"
 import type { TFunction } from "i18next"
 import { type RefObject, useMemo } from "react"
@@ -35,6 +35,7 @@ export interface UseTorrentTableColumnsParams {
   trackerCustomizationLookup?: TrackerCustomizationLookup
   isReadOnly: boolean
   t: TFunction
+  instancesById?: Map<number, Instance>
   // Data (for the duplicate-identity counts that feed the table's getRowId)
   sortedTorrents: Torrent[]
 }
@@ -72,6 +73,7 @@ export function useTorrentTableColumns({
   trackerCustomizationLookup,
   isReadOnly,
   t,
+  instancesById,
   sortedTorrents,
 }: UseTorrentTableColumnsParams): TorrentTableColumns {
   // Memoize columns to avoid unnecessary recalculations
@@ -89,9 +91,9 @@ export function useTorrentTableColumns({
       getSelectionIdentity,
       isAllSelected,
       excludedFromSelectAll,
-    }, speedUnit, trackerIcons, (timestamp: number) => formatTimestamp(timestamp, true), preferences, supportsTrackerHealth, isUnifiedView && isCrossInstanceEndpoint, desktopViewMode as TableViewMode, trackerCustomizationLookup, !isReadOnly, t),
+    }, speedUnit, trackerIcons, (timestamp: number) => formatTimestamp(timestamp, true), preferences, supportsTrackerHealth, isUnifiedView && isCrossInstanceEndpoint, desktopViewMode as TableViewMode, trackerCustomizationLookup, !isReadOnly, t, instancesById),
     // shiftPressedRef/lastSelectedIndexRef are stable refs (passed in); listed to satisfy exhaustive-deps.
-    [shiftPressedRef, lastSelectedIndexRef, incognitoMode, speedUnit, trackerIcons, formatTimestamp, handleSelectAll, isSelectAllChecked, isSelectAllIndeterminate, handleRowSelection, getSelectionIdentity, isAllSelected, excludedFromSelectAll, preferences, supportsTrackerHealth, isUnifiedView, isCrossInstanceEndpoint, desktopViewMode, trackerCustomizationLookup, isReadOnly, t]
+    [shiftPressedRef, lastSelectedIndexRef, incognitoMode, speedUnit, trackerIcons, formatTimestamp, handleSelectAll, isSelectAllChecked, isSelectAllIndeterminate, handleRowSelection, getSelectionIdentity, isAllSelected, excludedFromSelectAll, preferences, supportsTrackerHealth, isUnifiedView, isCrossInstanceEndpoint, desktopViewMode, trackerCustomizationLookup, isReadOnly, t, instancesById]
   )
 
   const torrentIdentityCounts = useMemo(() => {

@@ -82,6 +82,7 @@ import { cn } from "@/lib/utils"
 import type {
   Category,
   CrossInstanceTorrent,
+  Instance,
   Torrent,
   TorrentCounts,
   TorrentFilters
@@ -297,6 +298,13 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
   const { preferences } = useInstancePreferences(instanceId, { fetchIfMissing: false, enabled: instanceId > 0 })
   const { instances } = useInstances()
   const instance = useMemo(() => instances?.find(i => i.id === instanceId), [instances, instanceId])
+  const instancesById = useMemo(() => {
+    const map = new Map<number, Instance>()
+    for (const inst of instances ?? []) {
+      map.set(inst.id, inst)
+    }
+    return map
+  }, [instances])
 
   // Desktop view mode state (separate from mobile view mode)
   const { viewMode: desktopViewMode, cycleViewMode } = usePersistedCompactViewState("normal", TABLE_ALLOWED_VIEW_MODES)
@@ -782,6 +790,7 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
     trackerCustomizationLookup,
     isReadOnly,
     t,
+    instancesById,
     sortedTorrents,
   })
 

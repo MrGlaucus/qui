@@ -21,6 +21,7 @@ import {
   getLinuxTracker
 } from "@/lib/incognito"
 import { isNeverCompletedTimestamp } from "@/lib/dateTimeUtils"
+import { flagClass } from "@/lib/countryFlags"
 import { formatSpeedWithUnit, type SpeedUnit } from "@/lib/speedUnits"
 import { getStateLabel } from "@/lib/torrent-state-utils"
 import {
@@ -30,7 +31,7 @@ import {
 } from "@/lib/tracker-customizations"
 import { resolveTrackerIconSrc } from "@/lib/tracker-icons"
 import { cn, formatBytes, formatDuration, getRatioColor } from "@/lib/utils"
-import type { AppPreferences, CrossInstanceTorrent, Torrent } from "@/types"
+import type { AppPreferences, CrossInstanceTorrent, Instance, Torrent } from "@/types"
 import type { CellContext, ColumnDef, HeaderContext } from "@tanstack/react-table"
 import {
   AlertCircle,
@@ -431,7 +432,8 @@ export const createColumns = (
   viewMode: TableViewMode = "normal",
   trackerCustomizationLookup?: TrackerCustomizationLookup,
   includeSelectionColumn: boolean = true,
-  t?: TFunction
+  t?: TFunction,
+  instancesById?: Map<number, Instance>
 ): ColumnDef<Torrent>[] => {
   // Badge padding classes based on view mode
   const badgePadding = viewMode === "dense" ? "px-1.5 py-0" : ""
@@ -448,10 +450,15 @@ export const createColumns = (
     accessorKey: "instanceName",
     header: instanceLabel,
     cell: ({ row }) => {
-      const instanceName = (row.original as CrossInstanceTorrent).instanceName ?? ""
+      const crossInstance = row.original as CrossInstanceTorrent
+      const instanceName = crossInstance.instanceName ?? ""
+      const inst = typeof crossInstance.instanceId === "number" ? instancesById?.get(crossInstance.instanceId) : undefined
       return (
         <div className="overflow-hidden whitespace-nowrap text-sm font-medium" title={instanceName}>
           <Badge variant="outline" className="text-xs">
+            {flagClass(inst?.countryCode) && (
+              <span className={`${flagClass(inst?.countryCode)} rounded-sm text-xs shrink-0`} />
+            )}
             {instanceName}
           </Badge>
         </div>
