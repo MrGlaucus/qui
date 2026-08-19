@@ -1176,6 +1176,26 @@ type BulkActionTarget struct {
 	Hash       string `json:"hash"`
 }
 
+// TransferTorrentsRequest represents a request to move torrents to another instance.
+type TransferTorrentsRequest struct {
+	Hashes           []string `json:"hashes"`
+	TargetInstanceID int      `json:"targetInstanceId"`
+}
+
+// TorrentTransferResult reports the outcome for a single transferred torrent.
+type TorrentTransferResult struct {
+	Hash    string `json:"hash"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+}
+
+// TransferTorrentsResponse summarizes the transfer operation.
+type TransferTorrentsResponse struct {
+	Results   []TorrentTransferResult `json:"results"`
+	Succeeded int                     `json:"succeeded"`
+	Failed    int                     `json:"failed"`
+}
+
 const allInstancesID = 0
 
 func normalizeHashValue(hash string) string {
@@ -1611,6 +1631,190 @@ func (h *TorrentsHandler) BulkAction(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, map[string]string{
 		"message": "Bulk action completed successfully",
 	})
+}
+
+// torrentTransferOps abstracts the SyncManager methods needed to transfer torrents.
+type torrentTransferOps interface {
+	GetTorrents(ctx context.Context, instanceID int, filter qbt.TorrentFilterOptions) ([]qbt.Torrent, error)
+	ExportTorrent(ctx context.Context, instanceID int, hash string) ([]byte, string, string, error)
+	AddTorrent(ctx context.Context, instanceID int, fileContent []byte, options map[string]string) (*qbt.TorrentAddResponse, error)
+	SetComment(ctx context.Context, instanceID int, hashes []string, comment string) error
+	BulkAction(ctx context.Context, instanceID int, hashes []string, action string) error
+}
+
+// TransferTorrents moves torrents from the current instance to another instance.
+// Each torrent is handled as its own transaction: the source torrent is only
+// removed after the target instance has accepted it.
+func (h *TorrentsHandler) TransferTorrents(w http.ResponseWriter, r *http.Request) {
+	sourceInstanceID, err := strconv.Atoi(chi.URLParam(r, "instanceID"))
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid instance ID")
+		return
+	}
+
+	var req TransferTorrentsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Deduplicate hashes while preserving order.
+	hashes := make([]string, 0, len(req.Hashes))
+	seen := make(map[string]struct{}, len(req.Hashes))
+	for _, hash := range req.Hashes {
+		hash = strings.TrimSpace(hash)
+		if hash == "" {
+			continue
+		}
+		key := strings.ToLower(hash)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		hashes = append(hashes, hash)
+	}
+
+	if len(hashes) == 0 {
+		RespondError(w, http.StatusBadRequest, "No torrents selected")
+		return
+	}
+
+	if req.TargetInstanceID <= 0 {
+		RespondError(w, http.StatusBadRequest, "Invalid target instance")
+		return
+	}
+
+	if req.TargetInstanceID == sourceInstanceID {
+		RespondError(w, http.StatusBadRequest, "Target instance must be different from the source instance")
+		return
+	}
+
+	if targetInstance, err := h.instanceStore.Get(r.Context(), req.TargetInstanceID); err != nil || targetInstance == nil {
+		RespondError(w, http.StatusBadRequest, "Target instance not found")
+		return
+	}
+
+	resp := transferTorrents(r.Context(), h.syncManager, sourceInstanceID, req.TargetInstanceID, hashes)
+
+	RespondJSON(w, http.StatusOK, resp)
+}
+
+// transferTorrents moves each torrent to another instance. Every torrent is
+// handled as its own transaction: the source torrent is only removed once the
+// target instance has accepted it.
+func transferTorrents(ctx context.Context, ops torrentTransferOps, sourceInstanceID, targetInstanceID int, hashes []string) TransferTorrentsResponse {
+	results := make([]TorrentTransferResult, 0, len(hashes))
+	transferredHashes := make([]string, 0, len(hashes))
+
+	for _, hash := range hashes {
+		if err := transferSingleTorrent(ctx, ops, sourceInstanceID, targetInstanceID, hash); err != nil {
+			log.Warn().Err(err).Int("instanceID", sourceInstanceID).Int("targetInstanceID", targetInstanceID).Str("hash", hash).
+				Msg("Failed to transfer torrent")
+			results = append(results, TorrentTransferResult{Hash: hash, Success: false, Error: err.Error()})
+			continue
+		}
+		results = append(results, TorrentTransferResult{Hash: hash, Success: true})
+		transferredHashes = append(transferredHashes, hash)
+	}
+
+	// Remove successfully transferred torrents from the source instance, keeping files.
+	if len(transferredHashes) > 0 {
+		if err := ops.BulkAction(ctx, sourceInstanceID, transferredHashes, "deleteWithFiles"); err != nil {
+			log.Warn().Err(err).Int("instanceID", sourceInstanceID).Int("count", len(transferredHashes)).
+				Msg("Failed to delete source torrents after transfer")
+			for i := range results {
+				if results[i].Success && slices.Contains(transferredHashes, results[i].Hash) {
+					results[i].Success = false
+					results[i].Error = "transferred to target instance but failed to remove the source torrent"
+				}
+			}
+		}
+	}
+
+	resp := TransferTorrentsResponse{Results: results}
+	for _, res := range results {
+		if res.Success {
+			resp.Succeeded++
+		} else {
+			resp.Failed++
+		}
+	}
+
+	return resp
+}
+
+// transferSingleTorrent moves a single torrent to another instance, carrying over
+// its category, tags, save path, share limits and comment. The source torrent is
+// left untouched until the target has accepted it.
+func transferSingleTorrent(ctx context.Context, ops torrentTransferOps, sourceInstanceID, targetInstanceID int, hash string) error {
+	torrents, err := ops.GetTorrents(ctx, sourceInstanceID, qbt.TorrentFilterOptions{Hashes: []string{hash}})
+	if err != nil {
+		return fmt.Errorf("failed to read source torrent: %w", err)
+	}
+
+	var source *qbt.Torrent
+	for i := range torrents {
+		if strings.EqualFold(torrents[i].Hash, hash) {
+			source = &torrents[i]
+			break
+		}
+	}
+	if source == nil {
+		return errors.New("torrent not found on source instance")
+	}
+
+	data, _, _, err := ops.ExportTorrent(ctx, sourceInstanceID, source.Hash)
+	if err != nil {
+		return fmt.Errorf("failed to export torrent: %w", err)
+	}
+	if len(data) == 0 {
+		return errors.New("exported torrent data is empty")
+	}
+
+	options := map[string]string{
+		"autoTMM":       "false",
+		"paused":        "false",
+		"stopped":       "false",
+		"skip_checking": "false",
+	}
+	if source.SavePath != "" {
+		options["savepath"] = source.SavePath
+	}
+	if source.Category != "" {
+		options["category"] = source.Category
+	}
+	if source.Tags != "" {
+		options["tags"] = source.Tags
+	}
+	if source.UpLimit > 0 {
+		options["upLimit"] = strconv.FormatInt(source.UpLimit, 10)
+	}
+	if source.DlLimit > 0 {
+		options["dlLimit"] = strconv.FormatInt(source.DlLimit, 10)
+	}
+	if source.MaxRatio > 0 {
+		options["ratioLimit"] = strconv.FormatFloat(source.MaxRatio, 'f', 2, 64)
+	}
+	if source.MaxSeedingTime > 0 {
+		options["seedingTimeLimit"] = strconv.FormatInt(source.MaxSeedingTime, 10)
+	}
+
+	resp, err := ops.AddTorrent(ctx, targetInstanceID, data, options)
+	if err != nil {
+		return fmt.Errorf("failed to add torrent to target instance: %w", err)
+	}
+	if resp == nil || resp.SuccessCount == 0 {
+		return errors.New("target instance did not accept the torrent")
+	}
+
+	if source.Comment != "" {
+		if err := ops.SetComment(ctx, targetInstanceID, []string{source.Hash}, source.Comment); err != nil {
+			log.Warn().Err(err).Int("instanceID", targetInstanceID).Str("hash", source.Hash).
+				Msg("Failed to carry over comment during transfer")
+		}
+	}
+
+	return nil
 }
 
 func flattenTargetHashes(targetsByInstance map[int][]string) []string {

@@ -1764,6 +1764,59 @@ paths:
         '200':
           description: Action performed successfully
 
+  /api/instances/{instanceID}/torrents/transfer:
+    post:
+      tags:
+        - Torrents
+      summary: Transfer torrents to another instance
+      description: Moves torrents to another instance, carrying over category, tags, save path, share limits and comment. Each torrent is handled as its own transaction; once the target instance accepts it, the source torrent and its files are deleted.
+      parameters:
+        - $ref: '#/components/parameters/instanceID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hashes
+                - targetInstanceId
+              properties:
+                hashes:
+                  type: array
+                  items:
+                    type: string
+                  description: Torrent hashes to transfer.
+                targetInstanceId:
+                  type: integer
+                  format: int64
+                  description: ID of the instance to move the torrents to.
+      responses:
+        '200':
+          description: Transfer completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        hash:
+                          type: string
+                        success:
+                          type: boolean
+                        error:
+                          type: string
+                  succeeded:
+                    type: integer
+                    format: int32
+                  failed:
+                    type: integer
+                    format: int32
+
   /api/instances/{instanceID}/torrents/field:
     post:
       tags:

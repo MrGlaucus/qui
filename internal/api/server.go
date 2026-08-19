@@ -565,6 +565,7 @@ func (s *Server) Handler() (*chi.Mux, error) {
 						r.Post("/", torrentsHandler.AddTorrent)
 						r.Post("/check-duplicates", torrentsHandler.CheckDuplicates)
 						r.Post("/bulk-action", torrentsHandler.BulkAction)
+						r.Post("/transfer", torrentsHandler.TransferTorrents)
 						r.Post("/add-peers", torrentsHandler.AddPeers)
 						r.Post("/ban-peers", torrentsHandler.BanPeers)
 						r.Post("/field", torrentsHandler.GetTorrentField)

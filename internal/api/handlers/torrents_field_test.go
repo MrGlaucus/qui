@@ -129,7 +129,7 @@ func TestGetTorrentField_MagnetURIExplicitHashes(t *testing.T) {
 		},
 	})
 
-	handler := NewTorrentsHandler(syncManager, nil, instanceStore)
+	handler := NewTorrentsHandler(syncManager, nil, instanceStore, nil)
 	req := newTorrentFieldRequest(t, instanceIDs["alpha"], map[string]any{
 		"field":  "magnet_uri",
 		"hashes": []string{"aaa", "ccc"},
@@ -164,7 +164,7 @@ func TestGetTorrentField_MagnetURICrossInstanceFilterScope(t *testing.T) {
 		},
 	})
 
-	handler := NewTorrentsHandler(syncManager, nil, instanceStore)
+	handler := NewTorrentsHandler(syncManager, nil, instanceStore, nil)
 	req := newTorrentFieldRequest(t, allInstancesID, map[string]any{
 		"field":       "magnet_uri",
 		"instanceIds": []int{instanceIDs["alpha"], instanceIDs["beta"]},
@@ -200,7 +200,7 @@ func TestGetTorrentField_CrossInstancePartialResultsRejected(t *testing.T) {
 	broken, err := instanceStore.Create(context.Background(), "beta", "http://127.0.0.1:1", "user", "pass", nil, nil, false, nil)
 	require.NoError(t, err)
 
-	handler := NewTorrentsHandler(syncManager, nil, instanceStore)
+	handler := NewTorrentsHandler(syncManager, nil, instanceStore, nil)
 	req := newTorrentFieldRequest(t, allInstancesID, map[string]any{
 		"field":       "magnet_uri",
 		"instanceIds": []int{instanceIDs["alpha"], broken.ID},
