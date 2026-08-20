@@ -1176,10 +1176,23 @@ type BulkActionTarget struct {
 	Hash       string `json:"hash"`
 }
 
+// TransferCarryOverOptions selects which torrent properties are carried over
+// when transferring to another instance. Nothing is carried over by default.
+type TransferCarryOverOptions struct {
+	SavePath    bool `json:"savePath"`
+	Category    bool `json:"category"`
+	Tags        bool `json:"tags"`
+	ShareLimits bool `json:"shareLimits"`
+	SpeedLimits bool `json:"speedLimits"`
+	Comment     bool `json:"comment"`
+}
+
 // TransferTorrentsRequest represents a request to move torrents to another instance.
 type TransferTorrentsRequest struct {
-	Hashes           []string `json:"hashes"`
-	TargetInstanceID int      `json:"targetInstanceId"`
+	Hashes            []string                 `json:"hashes"`
+	TargetInstanceID  int                      `json:"targetInstanceId"`
+	CarryOver         TransferCarryOverOptions `json:"carryOver"`
+	DeleteSourceFiles bool                     `json:"deleteSourceFiles"`
 }
 
 // TorrentTransferResult reports the outcome for a single transferred torrent.
@@ -1694,20 +1707,22 @@ func (h *TorrentsHandler) TransferTorrents(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	resp := transferTorrents(r.Context(), h.syncManager, sourceInstanceID, req.TargetInstanceID, hashes)
+	resp := transferTorrents(r.Context(), h.syncManager, sourceInstanceID, req.TargetInstanceID, hashes, req.CarryOver, req.DeleteSourceFiles)
 
 	RespondJSON(w, http.StatusOK, resp)
 }
 
 // transferTorrents moves each torrent to another instance. Every torrent is
 // handled as its own transaction: the source torrent is only removed once the
-// target instance has accepted it.
-func transferTorrents(ctx context.Context, ops torrentTransferOps, sourceInstanceID, targetInstanceID int, hashes []string) TransferTorrentsResponse {
+// target instance has accepted it. CarryOver controls which torrent properties
+// are copied to the target; deleteSourceFiles controls whether the source
+// torrent's files are removed (the torrent itself is always removed).
+func transferTorrents(ctx context.Context, ops torrentTransferOps, sourceInstanceID, targetInstanceID int, hashes []string, carryOver TransferCarryOverOptions, deleteSourceFiles bool) TransferTorrentsResponse {
 	results := make([]TorrentTransferResult, 0, len(hashes))
 	transferredHashes := make([]string, 0, len(hashes))
 
 	for _, hash := range hashes {
-		if err := transferSingleTorrent(ctx, ops, sourceInstanceID, targetInstanceID, hash); err != nil {
+		if err := transferSingleTorrent(ctx, ops, sourceInstanceID, targetInstanceID, hash, carryOver); err != nil {
 			log.Warn().Err(err).Int("instanceID", sourceInstanceID).Int("targetInstanceID", targetInstanceID).Str("hash", hash).
 				Msg("Failed to transfer torrent")
 			results = append(results, TorrentTransferResult{Hash: hash, Success: false, Error: err.Error()})
@@ -1717,9 +1732,14 @@ func transferTorrents(ctx context.Context, ops torrentTransferOps, sourceInstanc
 		transferredHashes = append(transferredHashes, hash)
 	}
 
-	// Remove successfully transferred torrents from the source instance, along with their files.
+	// Remove successfully transferred torrents from the source instance. The
+	// torrent itself is always removed; files only when requested.
 	if len(transferredHashes) > 0 {
-		if err := ops.BulkAction(ctx, sourceInstanceID, transferredHashes, "deleteWithFiles"); err != nil {
+		action := "delete"
+		if deleteSourceFiles {
+			action = "deleteWithFiles"
+		}
+		if err := ops.BulkAction(ctx, sourceInstanceID, transferredHashes, action); err != nil {
 			log.Warn().Err(err).Int("instanceID", sourceInstanceID).Int("count", len(transferredHashes)).
 				Msg("Failed to delete source torrents after transfer")
 			for i := range results {
@@ -1744,9 +1764,9 @@ func transferTorrents(ctx context.Context, ops torrentTransferOps, sourceInstanc
 }
 
 // transferSingleTorrent moves a single torrent to another instance, carrying over
-// its category, tags, share limits, speed limits and comment. The source torrent
-// is left untouched until the target has accepted it.
-func transferSingleTorrent(ctx context.Context, ops torrentTransferOps, sourceInstanceID, targetInstanceID int, hash string) error {
+// the properties selected in carryOver. The source torrent is left untouched until
+// the target has accepted it.
+func transferSingleTorrent(ctx context.Context, ops torrentTransferOps, sourceInstanceID, targetInstanceID int, hash string, carryOver TransferCarryOverOptions) error {
 	torrents, err := ops.GetTorrents(ctx, sourceInstanceID, qbt.TorrentFilterOptions{Hashes: []string{hash}})
 	if err != nil {
 		return fmt.Errorf("failed to read source torrent: %w", err)
@@ -1777,23 +1797,30 @@ func transferSingleTorrent(ctx context.Context, ops torrentTransferOps, sourceIn
 		"stopped":       "false",
 		"skip_checking": "false",
 	}
-	if source.Category != "" {
+	if carryOver.SavePath && source.SavePath != "" {
+		options["savepath"] = source.SavePath
+	}
+	if carryOver.Category && source.Category != "" {
 		options["category"] = source.Category
 	}
-	if source.Tags != "" {
+	if carryOver.Tags && source.Tags != "" {
 		options["tags"] = source.Tags
 	}
-	if source.UpLimit > 0 {
-		options["upLimit"] = strconv.FormatInt(source.UpLimit, 10)
+	if carryOver.SpeedLimits {
+		if source.UpLimit > 0 {
+			options["upLimit"] = strconv.FormatInt(source.UpLimit, 10)
+		}
+		if source.DlLimit > 0 {
+			options["dlLimit"] = strconv.FormatInt(source.DlLimit, 10)
+		}
 	}
-	if source.DlLimit > 0 {
-		options["dlLimit"] = strconv.FormatInt(source.DlLimit, 10)
-	}
-	if source.MaxRatio > 0 {
-		options["ratioLimit"] = strconv.FormatFloat(source.MaxRatio, 'f', 2, 64)
-	}
-	if source.MaxSeedingTime > 0 {
-		options["seedingTimeLimit"] = strconv.FormatInt(source.MaxSeedingTime, 10)
+	if carryOver.ShareLimits {
+		if source.MaxRatio > 0 {
+			options["ratioLimit"] = strconv.FormatFloat(source.MaxRatio, 'f', 2, 64)
+		}
+		if source.MaxSeedingTime > 0 {
+			options["seedingTimeLimit"] = strconv.FormatInt(source.MaxSeedingTime, 10)
+		}
 	}
 
 	resp, err := ops.AddTorrent(ctx, targetInstanceID, data, options)
@@ -1804,7 +1831,7 @@ func transferSingleTorrent(ctx context.Context, ops torrentTransferOps, sourceIn
 		return errors.New("target instance did not accept the torrent")
 	}
 
-	if source.Comment != "" {
+	if carryOver.Comment && source.Comment != "" {
 		if err := ops.SetComment(ctx, targetInstanceID, []string{source.Hash}, source.Comment); err != nil {
 			log.Warn().Err(err).Int("instanceID", targetInstanceID).Str("hash", source.Hash).
 				Msg("Failed to carry over comment during transfer")

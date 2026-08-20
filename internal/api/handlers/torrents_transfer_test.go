@@ -29,9 +29,9 @@ type mockTransferOps struct {
 
 	bulkActionErr error
 
-	addCalls      []transferAddCall
-	bulkActions   []string
-	comments      []string
+	addCalls    []transferAddCall
+	bulkActions []string
+	comments    []string
 }
 
 type transferAddCall struct {
@@ -86,10 +86,22 @@ func transferTestOps() *mockTransferOps {
 	}
 }
 
+// fullCarryOver returns every carry-over option enabled.
+func fullCarryOver() TransferCarryOverOptions {
+	return TransferCarryOverOptions{
+		SavePath:    true,
+		Category:    true,
+		Tags:        true,
+		ShareLimits: true,
+		SpeedLimits: true,
+		Comment:     true,
+	}
+}
+
 func TestTransferTorrents_Success(t *testing.T) {
 	ops := transferTestOps()
 
-	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1", "hash2"})
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1", "hash2"}, fullCarryOver(), true)
 
 	require.Len(t, resp.Results, 2)
 	assert.Equal(t, 2, resp.Succeeded)
@@ -107,8 +119,7 @@ func TestTransferTorrents_Success(t *testing.T) {
 	addOpts := ops.addCalls[0].options
 	assert.Equal(t, 2, ops.addCalls[0].instanceID)
 	assert.Equal(t, "false", addOpts["autoTMM"])
-	_, hasSavePath := addOpts["savepath"]
-	assert.False(t, hasSavePath, "savepath must not be carried over to the target instance")
+	assert.Equal(t, "/data/movies", addOpts["savepath"])
 	assert.Equal(t, "movies", addOpts["category"])
 	assert.Equal(t, "tag-a,tag-b", addOpts["tags"])
 	assert.Equal(t, "100", addOpts["upLimit"])
@@ -120,23 +131,71 @@ func TestTransferTorrents_Success(t *testing.T) {
 	assert.Equal(t, []string{"hash1"}, ops.comments)
 }
 
-func TestTransferTorrents_SavePathNeverCarriedOver(t *testing.T) {
+func TestTransferTorrents_NoCarryOver(t *testing.T) {
 	ops := transferTestOps()
-	ops.torrents["hash1"] = qbt.Torrent{Hash: "hash1", Name: "Torrent One", SavePath: "/data/movies"}
 
-	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"})
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"}, TransferCarryOverOptions{}, true)
 
 	require.Len(t, resp.Results, 1)
 	assert.True(t, resp.Results[0].Success)
 	require.Len(t, ops.addCalls, 1)
-	_, hasSavePath := ops.addCalls[0].options["savepath"]
-	assert.False(t, hasSavePath, "savepath must be omitted even when the source has one")
+	addOpts := ops.addCalls[0].options
+	assert.Equal(t, "false", addOpts["autoTMM"])
+	// Nothing beyond the base add options is carried over.
+	assert.Len(t, addOpts, 4, "no carry-over options selected must leave only the base add options")
+	assert.Empty(t, ops.comments, "comment must not be set when the option is not selected")
+}
+
+func TestTransferTorrents_SelectiveCarryOver(t *testing.T) {
+	ops := transferTestOps()
+
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"}, TransferCarryOverOptions{
+		Category: true,
+		Tags:     true,
+	}, true)
+
+	require.Len(t, resp.Results, 1)
+	assert.True(t, resp.Results[0].Success)
+	require.Len(t, ops.addCalls, 1)
+	addOpts := ops.addCalls[0].options
+	assert.Equal(t, "movies", addOpts["category"])
+	assert.Equal(t, "tag-a,tag-b", addOpts["tags"])
+	_, hasSavePath := addOpts["savepath"]
+	assert.False(t, hasSavePath, "savepath must not be carried over when not selected")
+	_, hasUpLimit := addOpts["upLimit"]
+	assert.False(t, hasUpLimit, "speed limits must not be carried over when not selected")
+	_, hasRatio := addOpts["ratioLimit"]
+	assert.False(t, hasRatio, "share limits must not be carried over when not selected")
+	assert.Empty(t, ops.comments, "comment must not be carried over when not selected")
+}
+
+func TestTransferTorrents_SavePathCarriedOverWhenSelected(t *testing.T) {
+	ops := transferTestOps()
+	ops.torrents["hash1"] = qbt.Torrent{Hash: "hash1", Name: "Torrent One", SavePath: "/data/movies"}
+
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"}, TransferCarryOverOptions{SavePath: true}, true)
+
+	require.Len(t, resp.Results, 1)
+	assert.True(t, resp.Results[0].Success)
+	require.Len(t, ops.addCalls, 1)
+	assert.Equal(t, "/data/movies", ops.addCalls[0].options["savepath"])
+}
+
+func TestTransferTorrents_KeepsSourceFilesWhenNotDeleting(t *testing.T) {
+	ops := transferTestOps()
+
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"}, fullCarryOver(), false)
+
+	require.Len(t, resp.Results, 1)
+	assert.True(t, resp.Results[0].Success)
+	require.Len(t, ops.bulkActions, 1)
+	assert.Equal(t, "delete", ops.bulkActions[0], "source files must be kept when deleteSourceFiles is false")
 }
 
 func TestTransferTorrents_TorrentNotFoundOnSource(t *testing.T) {
 	ops := transferTestOps()
 
-	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"missing"})
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"missing"}, fullCarryOver(), true)
 
 	require.Len(t, resp.Results, 1)
 	assert.False(t, resp.Results[0].Success)
@@ -149,7 +208,7 @@ func TestTransferTorrents_AddFailsKeepsSource(t *testing.T) {
 	ops := transferTestOps()
 	ops.addErr = errors.New("target rejected torrent")
 
-	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"})
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"}, fullCarryOver(), true)
 
 	require.Len(t, resp.Results, 1)
 	assert.False(t, resp.Results[0].Success)
@@ -161,7 +220,7 @@ func TestTransferTorrents_TargetRejectsAdd(t *testing.T) {
 	ops := transferTestOps()
 	ops.addResp = &qbt.TorrentAddResponse{SuccessCount: 0}
 
-	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"})
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"}, fullCarryOver(), true)
 
 	require.Len(t, resp.Results, 1)
 	assert.False(t, resp.Results[0].Success)
@@ -173,7 +232,7 @@ func TestTransferTorrents_ExportFailsKeepsSource(t *testing.T) {
 	ops := transferTestOps()
 	ops.exportErr = errors.New("export failed")
 
-	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"})
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"}, fullCarryOver(), true)
 
 	require.Len(t, resp.Results, 1)
 	assert.False(t, resp.Results[0].Success)
@@ -186,7 +245,7 @@ func TestTransferTorrents_SourceDeletionFails(t *testing.T) {
 	ops := transferTestOps()
 	ops.bulkActionErr = errors.New("delete failed")
 
-	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"})
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1"}, fullCarryOver(), true)
 
 	// The torrent reached the target but the source could not be removed.
 	require.Len(t, resp.Results, 1)
@@ -201,7 +260,7 @@ func TestTransferTorrents_PartialFailure(t *testing.T) {
 	ops.addFailOnce = true
 	ops.addErr = errors.New("target rejected torrent")
 
-	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1", "hash2"})
+	resp := transferTorrents(context.Background(), ops, 1, 2, []string{"hash1", "hash2"}, fullCarryOver(), true)
 
 	require.Len(t, resp.Results, 2)
 	// hash1 is processed first and fails; hash2 still succeeds and triggers the source delete.

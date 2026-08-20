@@ -1769,7 +1769,7 @@ paths:
       tags:
         - Torrents
       summary: Transfer torrents to another instance
-      description: Moves torrents to another instance, carrying over category, tags, share limits, upload/download speed limits and comment. Each torrent is handled as its own transaction; once the target instance accepts it, the source torrent and its files are deleted.
+      description: Moves torrents to another instance. CarryOver selects which torrent properties (save path, category, tags, share limits, speed limits, comment) are copied to the target; nothing is carried over when it is omitted. Each torrent is handled as its own transaction; once the target instance accepts it, the source torrent is removed. DeleteSourceFiles controls whether the source torrent's files are deleted as well.
       parameters:
         - $ref: '#/components/parameters/instanceID'
       requestBody:
@@ -1791,6 +1791,25 @@ paths:
                   type: integer
                   format: int64
                   description: ID of the instance to move the torrents to.
+                carryOver:
+                  type: object
+                  description: Which torrent properties to carry over to the target instance. All false when omitted.
+                  properties:
+                    savePath:
+                      type: boolean
+                    category:
+                      type: boolean
+                    tags:
+                      type: boolean
+                    shareLimits:
+                      type: boolean
+                    speedLimits:
+                      type: boolean
+                    comment:
+                      type: boolean
+                deleteSourceFiles:
+                  type: boolean
+                  description: Whether to delete the source torrents' files after a successful transfer. Defaults to false (files are kept).
       responses:
         '200':
           description: Transfer completed
