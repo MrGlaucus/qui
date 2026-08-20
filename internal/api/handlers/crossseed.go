@@ -826,6 +826,7 @@ func (h *CrossSeedHandler) AutobrrApply(w http.ResponseWriter, r *http.Request) 
 
 	log.Debug().
 		Str("source", "cross-seed.webhook").
+		Str("announcedName", req.TorrentName).
 		Str("torrentName", torrentName).
 		Str("torrentHash", torrentHash).
 		Int64("size", totalSize).
