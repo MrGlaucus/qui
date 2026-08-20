@@ -202,6 +202,18 @@ var sqliteMigrationFilenameRenames = []migrationFilenameRename{
 		from: "082_add_cross_seed_log_indexer.sql",
 		to:   "092_add_cross_seed_log_indexer.sql",
 	},
+	{
+		from: "085_add_indexer_limit_units.sql",
+		to:   "095_add_indexer_limit_units.sql",
+	},
+	{
+		from: "086_update_indexers_view_for_units.sql",
+		to:   "096_update_indexers_view_for_units.sql",
+	},
+	{
+		from: "087_add_daily_traffic.sql",
+		to:   "097_add_daily_traffic.sql",
+	},
 }
 
 var postgresMigrationFilenameRenames = []migrationFilenameRename{
@@ -272,6 +284,18 @@ var postgresMigrationFilenameRenames = []migrationFilenameRename{
 	{
 		from: "084_add_cross_seed_log_indexer.sql",
 		to:   "092_add_cross_seed_log_indexer.sql",
+	},
+	{
+		from: "087_add_indexer_limit_units.sql",
+		to:   "097_add_indexer_limit_units.sql",
+	},
+	{
+		from: "088_update_indexers_view_for_units.sql",
+		to:   "098_update_indexers_view_for_units.sql",
+	},
+	{
+		from: "089_add_daily_traffic.sql",
+		to:   "099_add_daily_traffic.sql",
 	},
 }
 
