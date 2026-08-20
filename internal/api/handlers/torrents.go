@@ -59,6 +59,7 @@ type TorrentsHandler struct {
 	torrentAdder      torrentAdder
 	torrentDownloader torrentDownloader
 	contentResolver   torrentContentResolver
+	archiveExporter   torrentArchiveExporter
 }
 
 // TorrentPropertiesResponse wraps qBittorrent properties with additional QUI metadata.
