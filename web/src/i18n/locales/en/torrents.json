@@ -444,11 +444,20 @@
     },
     "transfer": {
       "title": "Transfer {{count}} torrent(s) to another instance",
-      "description": "The torrents will be moved to the target instance, keeping their category, tags, share limits, upload/download speed limits and comment. Once the transfer succeeds, the source torrents and their files are deleted from the current instance.",
+      "description": "Choose which torrent properties to carry over to the target instance. The source torrents are removed once the transfer succeeds.",
       "noTargets": "No other active instances available.",
       "cancel": "Cancel",
       "confirm": "Transfer",
-      "transferring": "Transferring..."
+      "transferring": "Transferring...",
+      "optionsLabel": "Carry over",
+      "options": {
+        "savePath": "Save path",
+        "category": "Category",
+        "tags": "Tags",
+        "shareLimits": "Share limits (ratio & seeding time)",
+        "speedLimits": "Upload/download speed limits",
+        "comment": "Comment"
+      }
     }
   },
   "dropZone": {

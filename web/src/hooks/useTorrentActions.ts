@@ -7,7 +7,7 @@ import { usePersistedDeleteFiles } from "@/hooks/usePersistedDeleteFiles"
 import { usePersistedCrossSeedBlocklist } from "@/hooks/usePersistedCrossSeedBlocklist"
 import { api } from "@/lib/api"
 import type { TagUpdatePlan } from "@/lib/tag-editor"
-import type { Torrent, TorrentFilters } from "@/types"
+import type { Torrent, TorrentFilters, TransferCarryOverOptions } from "@/types"
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -1018,8 +1018,8 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
   const isPending = mutation.isPending || updateTagsMutation.isPending || renameTorrentMutation.isPending || renameFileMutation.isPending || renameFolderMutation.isPending
 
   const transferMutation = useMutation({
-    mutationFn: (targetInstanceId: number) =>
-      api.transferTorrents(instanceId, targetInstanceId, contextHashes),
+    mutationFn: ({ targetInstanceId, carryOver, deleteSourceFiles }: { targetInstanceId: number; carryOver: TransferCarryOverOptions; deleteSourceFiles: boolean }) =>
+      api.transferTorrents(instanceId, targetInstanceId, contextHashes, carryOver, deleteSourceFiles),
     onSuccess: (data) => {
       setShowTransferDialog(false)
       setContextHashes([])
@@ -1041,8 +1041,8 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
     },
   })
 
-  const handleTransfer = useCallback((targetInstanceId: number) => {
-    transferMutation.mutate(targetInstanceId)
+  const handleTransfer = useCallback((targetInstanceId: number, carryOver: TransferCarryOverOptions, deleteSourceFiles: boolean) => {
+    transferMutation.mutate({ targetInstanceId, carryOver, deleteSourceFiles })
   }, [transferMutation])
 
   const isTransferPending = transferMutation.isPending

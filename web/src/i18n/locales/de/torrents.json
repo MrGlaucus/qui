@@ -444,11 +444,20 @@
     },
     "transfer": {
       "title": "{{count}} Torrent(s) auf eine andere Instanz übertragen",
-      "description": "Die Torrents werden auf die Zielinstanz verschoben, wobei Kategorie, Tags, Share-Limits, Upload-/Download-Geschwindigkeitsbegrenzungen und Kommentar erhalten bleiben. Nach erfolgreicher Übertragung werden die Quell-Torrents und ihre Dateien aus der aktuellen Instanz gelöscht.",
+      "description": "Wähle aus, welche Torrent-Eigenschaften auf die Zielinstanz übertragen werden sollen. Die Quell-Torrents werden nach erfolgreicher Übertragung entfernt.",
       "noTargets": "Keine anderen aktiven Instanzen verfügbar.",
       "cancel": "Abbrechen",
       "confirm": "Übertragen",
-      "transferring": "Übertragung läuft..."
+      "transferring": "Übertragung läuft...",
+      "optionsLabel": "Übernehmen",
+      "options": {
+        "savePath": "Speicherpfad",
+        "category": "Kategorie",
+        "tags": "Tags",
+        "shareLimits": "Share-Limits (Ratio & Seedzeit)",
+        "speedLimits": "Upload-/Download-Geschwindigkeitsbegrenzungen",
+        "comment": "Kommentar"
+      }
     }
   },
   "dropZone": {

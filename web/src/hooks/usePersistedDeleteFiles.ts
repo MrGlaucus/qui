@@ -5,9 +5,9 @@
 
 import { useCallback, useEffect, useState } from "react"
 
-export function usePersistedDeleteFiles(defaultValue: boolean = false) {
-  const storageKey = "qui-delete-files-default"
-  const lockKey = "qui-delete-files-lock"
+export function usePersistedDeleteFiles(defaultValue: boolean = false, keyPrefix: string = "qui-delete-files") {
+  const storageKey = `${keyPrefix}-default`
+  const lockKey = `${keyPrefix}-lock`
 
   const readStoredPreference = () => {
     try {

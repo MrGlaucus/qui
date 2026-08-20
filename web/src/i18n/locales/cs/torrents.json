@@ -444,11 +444,20 @@
     },
     "transfer": {
       "title": "Přesunout {{count}} torrentů na jinou instanci",
-      "description": "Torrenty budou přesunuty na cílovou instanci se zachováním kategorie, tagů, limitů sdílení, limitů rychlosti stahování/odesílání a komentáře. Po úspěšném přesunu budou zdrojové torrenty i jejich soubory odstraněny z aktuální instance.",
+      "description": "Vyberte, které vlastnosti torrentů se mají přenést na cílovou instanci. Zdrojové torrenty budou po úspěšném přenosu odebrány.",
       "noTargets": "Žádné další aktivní instance nejsou k dispozici.",
       "cancel": "Zrušit",
       "confirm": "Přesunout",
-      "transferring": "Přesun probíhá..."
+      "transferring": "Přesun probíhá...",
+      "optionsLabel": "Přenést",
+      "options": {
+        "savePath": "Cesta uložení",
+        "category": "Kategorie",
+        "tags": "Tagy",
+        "shareLimits": "Limity sdílení (poměr a čas seedování)",
+        "speedLimits": "Limity rychlosti odesílání/stahování",
+        "comment": "Komentář"
+      }
     }
   },
   "dropZone": {

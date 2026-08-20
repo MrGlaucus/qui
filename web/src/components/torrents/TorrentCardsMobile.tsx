@@ -81,6 +81,7 @@ import {
   Plus,
   Radio,
   Search,
+  Send,
   Settings2,
   Sprout,
   Tag,
@@ -98,7 +99,8 @@ import {
   SetCategoryDialog,
   SetLocationDialog,
   TagEditorDialog,
-  TmmConfirmDialog
+  TmmConfirmDialog,
+  TransferDialog
 } from "./TorrentDialogs"
 import {
   buildMobileShareLimitInitialState,
@@ -1271,6 +1273,12 @@ export function TorrentCardsMobile({
     prepareTmmAction,
     handleTmmConfirm,
     proceedToLocationDialog,
+    // Transfer
+    showTransferDialog,
+    setShowTransferDialog,
+    prepareTransferAction,
+    handleTransfer,
+    isTransferPending,
   } = useTorrentActions({
     instanceId,
     instanceIds,
@@ -2652,6 +2660,19 @@ export function TorrentCardsMobile({
               <FolderOpen className="mr-2 h-4 w-4" />
               {t("managementBar.setLocation")}
             </Button>
+            {!isAllInstancesView && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  prepareTransferAction(isAllSelected ? [] : selectedRequestHashes, getSelectedTorrents)
+                  setShowActionsSheet(false)
+                }}
+                className="justify-start"
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {t("contextMenu.transferToAnotherInstance")}
+              </Button>
+            )}
             <Button
               variant="destructive"
               onClick={() => {
@@ -2793,6 +2814,16 @@ export function TorrentCardsMobile({
           setShowSpeedLimitDialog(false)
         }}
         isPending={isPending}
+      />
+
+      {/* Transfer Dialog */}
+      <TransferDialog
+        open={showTransferDialog}
+        onOpenChange={setShowTransferDialog}
+        instanceId={instanceId}
+        hashCount={effectiveSelectionCount}
+        onConfirm={handleTransfer}
+        isPending={isTransferPending}
       />
 
       {/* Set Location Dialog */}

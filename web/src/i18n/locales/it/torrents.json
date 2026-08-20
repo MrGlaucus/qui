@@ -444,11 +444,20 @@
     },
     "transfer": {
       "title": "Trasferisci {{count}} torrent su un'altra istanza",
-      "description": "I torrent verranno spostati sull'istanza di destinazione mantenendo categoria, tag, limiti di condivisione, limiti di velocità di upload/download e commento. Dopo il trasferimento riuscito, i torrent di origine e i loro file vengono eliminati dall'istanza corrente.",
+      "description": "Scegli quali proprietà del torrent trasferire sull'istanza di destinazione. I torrent sorgente vengono rimossi al termine del trasferimento.",
       "noTargets": "Nessuna altra istanza attiva disponibile.",
       "cancel": "Annulla",
       "confirm": "Trasferisci",
-      "transferring": "Trasferimento in corso..."
+      "transferring": "Trasferimento in corso...",
+      "optionsLabel": "Trasferisci",
+      "options": {
+        "savePath": "Percorso di salvataggio",
+        "category": "Categoria",
+        "tags": "Tag",
+        "shareLimits": "Limiti di condivisione (ratio e tempo di seed)",
+        "speedLimits": "Limiti di velocità upload/download",
+        "comment": "Commento"
+      }
     }
   },
   "dropZone": {

@@ -17,7 +17,7 @@ import type { useCrossSeedOrchestration } from "@/hooks/torrent-table/useCrossSe
 import type { useTorrentsList } from "@/hooks/useTorrentsList"
 import { api } from "@/lib/api"
 import { getCommonCategory, getCommonSavePath } from "@/lib/torrent-utils"
-import type { Category, CrossInstanceTorrent, Torrent } from "@/types"
+import type { Category, CrossInstanceTorrent, Torrent, TransferCarryOverOptions } from "@/types"
 import { useQuery } from "@tanstack/react-query"
 import { type Dispatch, type SetStateAction, useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -82,7 +82,7 @@ export interface TorrentTableDialogsProps {
   setShowLocationWarningDialog: Dispatch<SetStateAction<boolean>>
   showTransferDialog: boolean
   setShowTransferDialog: Dispatch<SetStateAction<boolean>>
-  handleTransfer: (targetInstanceId: number) => void
+  handleTransfer: (targetInstanceId: number, carryOver: TransferCarryOverOptions, deleteSourceFiles: boolean) => void
   isTransferPending: boolean
 
   // Delete-dialog options

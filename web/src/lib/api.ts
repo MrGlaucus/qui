@@ -111,6 +111,7 @@ import type {
   TorrentResponse,
   TorrentTracker,
   TransferTorrentsResponse,
+  TransferCarryOverOptions,
   TorznabIndexer,
   TorznabIndexerError,
   TorznabIndexerFormData,
@@ -1081,10 +1082,16 @@ class ApiClient {
     })
   }
 
-  async transferTorrents(instanceId: number, targetInstanceId: number, hashes: string[]): Promise<TransferTorrentsResponse> {
+  async transferTorrents(
+    instanceId: number,
+    targetInstanceId: number,
+    hashes: string[],
+    carryOver: TransferCarryOverOptions,
+    deleteSourceFiles: boolean
+  ): Promise<TransferTorrentsResponse> {
     return this.request(`/instances/${instanceId}/torrents/transfer`, {
       method: "POST",
-      body: JSON.stringify({ hashes, targetInstanceId }),
+      body: JSON.stringify({ hashes, targetInstanceId, carryOver, deleteSourceFiles }),
     })
   }
 

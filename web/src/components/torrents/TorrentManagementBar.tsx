@@ -31,7 +31,6 @@ import { formatBytes } from "@/lib/utils"
 import type { Category, CrossInstanceTorrent, Torrent, TorrentFilters } from "@/types"
 import {
   ArrowDown,
-  ArrowRightLeft,
   ArrowUp,
   BarChart3,
   Blocks,
@@ -45,6 +44,7 @@ import {
   Pause,
   Play,
   Radio,
+  Send,
   Settings2,
   Share2,
   Sprout,
@@ -659,7 +659,7 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
                   onClick={() => prepareTransferAction(selectedHashes, selectedTorrents)}
                   disabled={isPending || isTransferPending || isDisabled}
                 >
-                  <ArrowRightLeft className="h-4 w-4" />
+                  <Send className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{t("managementBar.transfer")}</TooltipContent>

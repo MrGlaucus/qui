@@ -318,6 +318,15 @@ export interface AddTorrentResponse {
   failedFiles?: AddTorrentFailedFile[]
 }
 
+export interface TransferCarryOverOptions {
+  savePath: boolean
+  category: boolean
+  tags: boolean
+  shareLimits: boolean
+  speedLimits: boolean
+  comment: boolean
+}
+
 export interface TorrentTransferResult {
   hash: string
   success: boolean

@@ -444,11 +444,20 @@
     },
     "transfer": {
       "title": "Transferir {{count}} torrent(s) para outra instância",
-      "description": "Os torrents serão movidos para a instância de destino mantendo categoria, tags, limites de compartilhamento, limites de velocidade de upload/download e comentário. Após a transferência ser bem-sucedida, os torrents de origem e seus arquivos são excluídos da instância atual.",
+      "description": "Escolha quais propriedades do torrent serão transferidas para a instância de destino. Os torrents de origem são removidos após a transferência.",
       "noTargets": "Nenhuma outra instância ativa disponível.",
       "cancel": "Cancelar",
       "confirm": "Transferir",
-      "transferring": "Transferindo..."
+      "transferring": "Transferindo...",
+      "optionsLabel": "Copiar",
+      "options": {
+        "savePath": "Caminho de salvamento",
+        "category": "Categoria",
+        "tags": "Tags",
+        "shareLimits": "Limites de compartilhamento (proporção e tempo de seeding)",
+        "speedLimits": "Limites de velocidade de upload/download",
+        "comment": "Comentário"
+      }
     }
   },
   "dropZone": {

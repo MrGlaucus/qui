@@ -396,11 +396,20 @@
     },
     "transfer": {
       "title": "토렌트 {{count}}개를 다른 인스턴스로 전송",
-      "description": "토렌트가 카테고리, 태그, 공유 제한, 업로드/다운로드 속도 제한 및 메모를 유지한 채 대상 인스턴스로 이동됩니다. 전송에 성공하면 현재 인스턴스에서 원본 토렌트와 해당 파일이 삭제됩니다.",
+      "description": "대상 인스턴스로 전달할 토렌트 속성을 선택하세요. 전송이 완료되면 원본 토렌트가 제거됩니다.",
       "noTargets": "사용 가능한 다른 활성 인스턴스가 없습니다.",
       "cancel": "취소",
       "confirm": "전송",
-      "transferring": "전송 중..."
+      "transferring": "전송 중...",
+      "optionsLabel": "속성 동기화",
+      "options": {
+        "savePath": "저장 경로",
+        "category": "카테고리",
+        "tags": "태그",
+        "shareLimits": "공유 제한 (배포율 및 시딩 시간)",
+        "speedLimits": "업로드/다운로드 속도 제한",
+        "comment": "메모"
+      }
     }
   },
   "dropZone": {

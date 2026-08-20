@@ -42,7 +42,8 @@ import {
 } from "@/lib/tag-editor"
 import { cn } from "@/lib/utils"
 import { usePathAutocomplete } from "@/hooks/usePathAutocomplete"
-import type { Category, InstanceCapabilities, Torrent, TorrentFilters } from "@/types"
+import { usePersistedDeleteFiles } from "@/hooks/usePersistedDeleteFiles"
+import type { Category, InstanceCapabilities, Torrent, TorrentFilters, TransferCarryOverOptions } from "@/types"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { AlertTriangle, HardDrive, Loader2, Plus } from "lucide-react"
 import type { ChangeEvent, KeyboardEvent } from "react"
@@ -50,6 +51,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { buildCategoryTree, type CategoryNode } from "./CategoryTree"
+import { DeleteFilesPreference } from "./DeleteFilesPreference"
 import {
   checkFieldConsistency,
   LIMIT_UNLIMITED,
@@ -2461,9 +2463,27 @@ interface TransferDialogProps {
   onOpenChange: (open: boolean) => void
   instanceId: number
   hashCount: number
-  onConfirm: (targetInstanceId: number) => void
+  onConfirm: (targetInstanceId: number, carryOver: TransferCarryOverOptions, deleteSourceFiles: boolean) => void
   isPending?: boolean
 }
+
+const EMPTY_CARRY_OVER: TransferCarryOverOptions = {
+  savePath: false,
+  category: false,
+  tags: false,
+  shareLimits: false,
+  speedLimits: false,
+  comment: false,
+}
+
+const carryOverOptionKeys = [
+  "savePath",
+  "category",
+  "tags",
+  "shareLimits",
+  "speedLimits",
+  "comment",
+] as const satisfies readonly (keyof TransferCarryOverOptions)[]
 
 export const TransferDialog = memo(function TransferDialog({
   open,
@@ -2476,6 +2496,13 @@ export const TransferDialog = memo(function TransferDialog({
   const { t } = useTranslation("torrents")
   const { instances } = useInstances()
   const [selected, setSelected] = useState<number | null>(null)
+  const [carryOver, setCarryOver] = useState<TransferCarryOverOptions>(EMPTY_CARRY_OVER)
+  const {
+    deleteFiles: deleteSourceFiles,
+    setDeleteFiles: setDeleteSourceFiles,
+    isLocked,
+    toggleLock,
+  } = usePersistedDeleteFiles(false, "qui-transfer-delete-files")
 
   // Only active instances other than the source can be a target.
   const targets = useMemo(
@@ -2483,12 +2510,17 @@ export const TransferDialog = memo(function TransferDialog({
     [instances, instanceId]
   )
 
-  // Reset the selection each time the dialog opens.
+  // Reset the selection and carry-over options each time the dialog opens.
   useEffect(() => {
     if (open) {
       setSelected(null)
+      setCarryOver(EMPTY_CARRY_OVER)
     }
   }, [open])
+
+  const toggleCarryOver = (key: keyof TransferCarryOverOptions) => {
+    setCarryOver(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -2532,6 +2564,33 @@ export const TransferDialog = memo(function TransferDialog({
             </p>
           )}
         </div>
+        {selected !== null && (
+          <div className="border-t pt-3 space-y-2">
+            <p className="text-sm font-medium">{t("dialogs.transfer.optionsLabel")}</p>
+            <div className="grid grid-cols-1 gap-2">
+              {carryOverOptionKeys.map((key) => (
+                <label
+                  key={key}
+                  className="flex items-center gap-2 text-sm cursor-pointer select-none"
+                >
+                  <Checkbox
+                    checked={carryOver[key]}
+                    onCheckedChange={() => toggleCarryOver(key)}
+                  />
+                  {t(`dialogs.transfer.options.${key}`)}
+                </label>
+              ))}
+            </div>
+            <DeleteFilesPreference
+              id="deleteSourceFiles"
+              checked={deleteSourceFiles}
+              onCheckedChange={setDeleteSourceFiles}
+              isLocked={isLocked}
+              onToggleLock={toggleLock}
+              className="pt-1"
+            />
+          </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
             {t("dialogs.transfer.cancel")}
@@ -2539,7 +2598,7 @@ export const TransferDialog = memo(function TransferDialog({
           <Button
             onClick={() => {
               if (selected !== null) {
-                onConfirm(selected)
+                onConfirm(selected, carryOver, deleteSourceFiles)
               }
             }}
             disabled={isPending || selected === null}

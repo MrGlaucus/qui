@@ -38,13 +38,13 @@ import {
   Play,
   Radio,
   Search,
+  Send,
   Settings2,
   Sparkles,
   Sprout,
   Tag,
   Terminal,
-  Trash2,
-  ArrowRightLeft
+  Trash2
 } from "lucide-react"
 import { memo, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
@@ -656,7 +656,7 @@ export const TorrentContextMenu = memo(function TorrentContextMenu({
                   onClick={() => onPrepareTransfer(hashes, torrents)}
                   disabled={isPending}
                 >
-                  <ArrowRightLeft className="mr-2 h-4 w-4" />
+                  <Send className="mr-2 h-4 w-4" />
                   {t("contextMenu.transferToAnotherInstance")} {count > 1 ? `(${count})` : ""}
                 </ContextMenuItem>
               </>

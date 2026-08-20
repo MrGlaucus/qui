@@ -444,11 +444,20 @@
     },
     "transfer": {
       "title": "Transférer {{count}} torrent(s) vers une autre instance",
-      "description": "Les torrents seront déplacés vers l'instance cible en conservant leur catégorie, tags, limites de partage, limites de vitesse de téléchargement et d'envoi et commentaire. Une fois le transfert réussi, les torrents sources et leurs fichiers sont supprimés de l'instance actuelle.",
+      "description": "Choisissez les propriétés à transférer vers l'instance cible. Les torrents sources sont supprimés une fois le transfert réussi.",
       "noTargets": "Aucune autre instance active disponible.",
       "cancel": "Annuler",
       "confirm": "Transférer",
-      "transferring": "Transfert en cours..."
+      "transferring": "Transfert en cours...",
+      "optionsLabel": "Reprendre",
+      "options": {
+        "savePath": "Chemin de sauvegarde",
+        "category": "Catégorie",
+        "tags": "Tags",
+        "shareLimits": "Limites de partage (ratio et durée de seed)",
+        "speedLimits": "Limites de vitesse de téléversement/téléchargement",
+        "comment": "Commentaire"
+      }
     }
   },
   "dropZone": {
