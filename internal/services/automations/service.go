@@ -67,6 +67,35 @@ var automationActionLabels = map[string]string{
 	models.ActivityActionDryRunNoMatch:       "试运行：无匹配",
 }
 
+// automationActionEmojis decorates the per-torrent "影响种子" section so each
+// action gets a visual anchor in the notification instead of a wall of text.
+var automationActionEmojis = map[string]string{
+	models.ActivityActionDeletedRatio:        "🗑️",
+	models.ActivityActionDeletedSeeding:      "🗑️",
+	models.ActivityActionDeletedUnregistered: "🗑️",
+	models.ActivityActionDeletedCondition:    "🗑️",
+	models.ActivityActionDeleteFailed:        "❌",
+	models.ActivityActionLimitFailed:         "❌",
+	models.ActivityActionTagsChanged:         "🏷️",
+	models.ActivityActionCategoryChanged:     "🗂️",
+	models.ActivityActionSpeedLimitsChanged:  "⚡",
+	models.ActivityActionShareLimitsChanged:  "📈",
+	models.ActivityActionPaused:              "⏸️",
+	models.ActivityActionResumed:             "▶️",
+	models.ActivityActionRechecked:           "🔍",
+	models.ActivityActionReannounced:         "📣",
+	models.ActivityActionMoved:               "📂",
+	models.ActivityActionExportedToInstance:  "📤",
+	models.ActivityActionDryRunNoMatch:       "🧪",
+}
+
+func automationActionEmoji(action string) string {
+	if emoji, ok := automationActionEmojis[action]; ok {
+		return emoji
+	}
+	return "•"
+}
+
 type automationSummary struct {
 	applied          int
 	failed           int
@@ -148,15 +177,9 @@ func (s *automationSummary) message() string {
 	if s == nil {
 		return ""
 	}
-	lines := []string{fmt.Sprintf("已应用: %d", s.applied)}
+	lines := []string{fmt.Sprintf("生效种子: %d", s.applied)}
 	if s.failed > 0 {
 		lines = append(lines, fmt.Sprintf("失败: %d", s.failed))
-	}
-	if formatted := formatActionCounts(s.appliedByAction, 3); formatted != "" {
-		lines = append(lines, "成功操作: "+formatted)
-	}
-	if formatted := formatActionCounts(s.failedByAction, 3); formatted != "" {
-		lines = append(lines, "失败操作: "+formatted)
 	}
 	if formatted := formatRuleCounts(s.ruleTotalsByName(), 3); formatted != "" {
 		lines = append(lines, "规则: "+formatted)
@@ -198,30 +221,30 @@ func (s *automationSampleTorrent) render(indent int) string {
 	if action == "" {
 		action = "操作"
 	}
-	header := fmt.Sprintf("%s· [%s] %s", pad, action, s.name)
+	header := fmt.Sprintf("%s· %s [%s] %s", pad, automationActionEmoji(s.action), action, s.name)
 	if s.hash != "" {
 		header += fmt.Sprintf(" (%s)", shortHash(s.hash))
 	}
-	if s.trackerDomain != "" {
-		header += fmt.Sprintf(" · %s", s.trackerDomain)
-	}
 
-	detail := make([]string, 0, 4)
+	detail := make([]string, 0, 6)
 	if s.sizeBytes > 0 {
-		detail = append(detail, "大小: "+formatAutomationBytes(s.sizeBytes))
+		detail = append(detail, "📦 大小: "+formatAutomationBytes(s.sizeBytes))
 	}
 	if s.ratio >= 0 {
-		detail = append(detail, fmt.Sprintf("分享率: %.2f", s.ratio))
+		detail = append(detail, fmt.Sprintf("📈 分享率: %.2f", s.ratio))
 	}
 	if s.category != "" {
-		detail = append(detail, "分类: "+s.category)
+		detail = append(detail, "🗂️ 分类: "+s.category)
 	}
 	if s.state != "" {
-		detail = append(detail, "状态: "+s.state)
+		detail = append(detail, "⚙️ 状态: "+s.state)
 	}
 	if s.upSpeedBps > 0 || s.downSpeedBps > 0 {
-		detail = append(detail, fmt.Sprintf("速度: ↓ %s / ↑ %s",
+		detail = append(detail, fmt.Sprintf("⚡ 速度: ↓ %s / ↑ %s",
 			formatAutomationSpeed(s.downSpeedBps), formatAutomationSpeed(s.upSpeedBps)))
+	}
+	if s.trackerDomain != "" {
+		detail = append(detail, "🌐 站点: "+s.trackerDomain)
 	}
 
 	out := []string{header}
@@ -540,28 +563,6 @@ func sortedCountItems(counts map[string]int) []countItem {
 	return items
 }
 
-func formatActionCounts(counts map[string]int, limit int) string {
-	items := sortedCountItems(counts)
-	if len(items) == 0 {
-		return ""
-	}
-
-	maxItems := limit
-	if maxItems <= 0 || maxItems > len(items) {
-		maxItems = len(items)
-	}
-
-	parts := make([]string, 0, maxItems)
-	for i := 0; i < maxItems; i++ {
-		if items[i].count <= 0 {
-			continue
-		}
-		label := automationActionLabel(items[i].key)
-		parts = append(parts, fmt.Sprintf("%s=%d", label, items[i].count))
-	}
-	return strings.Join(parts, "; ")
-}
-
 func formatRuleCounts(counts map[string]int, limit int) string {
 	items := sortedCountItems(counts)
 	if len(items) == 0 {
@@ -679,6 +680,7 @@ type pendingDeletion struct {
 	ruleName      string
 	reason        string
 	details       map[string]any
+	sample        automationSampleTorrent
 }
 
 func DefaultConfig() Config {
@@ -2672,6 +2674,16 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 					action = models.ActivityActionDeletedSeeding
 				}
 
+				sample := automationSampleTorrent{
+					action: action,
+					name:   torrentName,
+					hash:   h,
+					ratio:  -1,
+				}
+				if t, exists := torrentByHash[h]; exists {
+					sample = sampleFromTorrent(action, t)
+				}
+
 				pendingByHash[h] = pendingDeletion{
 					hash:          h,
 					torrentName:   torrentName,
@@ -2681,6 +2693,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 					ruleName:      state.deleteRuleName,
 					reason:        state.deleteReason,
 					details:       map[string]any{"filesKept": keepingFiles, "deleteMode": deleteMode, "isTrigger": isTrigger},
+					sample:        sample,
 				}
 
 				// Mark as processed
@@ -4017,6 +4030,9 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 							Reason:        err.Error(),
 							Details:       detailsJSON,
 						}
+						failedSample := pending.sample
+						failedSample.action = models.ActivityActionDeleteFailed
+						summary.addTorrentSamples([]automationSampleTorrent{failedSample}, 3)
 						summary.recordActivity(activity, 1)
 						if s.activityStore != nil {
 							if err := s.activityStore.Create(ctx, activity); err != nil {
@@ -4048,6 +4064,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 							Reason:        pending.reason,
 							Details:       detailsJSON,
 						}
+						summary.addTorrentSamples([]automationSampleTorrent{pending.sample}, 3)
 						summary.recordActivity(activity, 1)
 						if s.activityStore != nil {
 							if err := s.activityStore.Create(ctx, activity); err != nil {
@@ -4534,21 +4551,25 @@ func collectSampleTorrents(hashes []string, action string, torrentByHash map[str
 			continue
 		}
 		seen[name] = struct{}{}
-		out = append(out, automationSampleTorrent{
-			action:        action,
-			name:          name,
-			hash:          torrent.Hash,
-			sizeBytes:     torrent.Size,
-			ratio:         torrent.Ratio,
-			category:      torrent.Category,
-			trackerDomain: trackerDomain(torrent.Tracker),
-			state:         string(torrent.State),
-			upSpeedBps:    torrent.UpSpeed,
-			downSpeedBps:  torrent.DlSpeed,
-		})
+		out = append(out, sampleFromTorrent(action, torrent))
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].name < out[j].name })
 	return out
+}
+
+func sampleFromTorrent(action string, t qbt.Torrent) automationSampleTorrent {
+	return automationSampleTorrent{
+		action:        action,
+		name:          t.Name,
+		hash:          t.Hash,
+		sizeBytes:     t.Size,
+		ratio:         t.Ratio,
+		category:      t.Category,
+		trackerDomain: trackerDomain(t.Tracker),
+		state:         string(t.State),
+		upSpeedBps:    t.UpSpeed,
+		downSpeedBps:  t.DlSpeed,
+	}
 }
 
 func matchesTracker(pattern string, domains []string) bool {

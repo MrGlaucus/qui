@@ -9,10 +9,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	qbt "github.com/autobrr/go-qbittorrent"
+
 	"github.com/autobrr/qui/internal/models"
 )
 
-func TestAutomationSummaryMessageDoesNotDuplicateTopFailures(t *testing.T) {
+func TestAutomationSummaryMessageShowsFailureCountOnce(t *testing.T) {
 	t.Parallel()
 
 	summary := newAutomationSummary()
@@ -20,7 +22,8 @@ func TestAutomationSummaryMessageDoesNotDuplicateTopFailures(t *testing.T) {
 	summary.failedByAction[models.ActivityActionDeleteFailed] = 1
 
 	msg := summary.message()
-	require.Equal(t, 1, strings.Count(msg, "失败操作:"))
+	require.Equal(t, 1, strings.Count(msg, "失败: 1"))
+	require.Contains(t, msg, "生效种子: 0")
 }
 
 func TestBuildAutomationRuleSummariesGroupsActionsByRule(t *testing.T) {
@@ -192,29 +195,65 @@ func TestAutomationSummaryMessageRendersRichTorrentSamples(t *testing.T) {
 	}, 3)
 
 	msg := summary.message()
-	require.Contains(t, msg, "成功操作: 更新限速=1")
+	require.Contains(t, msg, "生效种子: 1")
 	require.Contains(t, msg, "影响种子:")
-	require.Contains(t, msg, "· [更新限速] Some.Release.2026.2160p.WEB-DL.H.265 (01234567) · tracker.example.net")
-	require.Contains(t, msg, "大小: 42.37 GiB")
-	require.Contains(t, msg, "分享率: 4.40")
-	require.Contains(t, msg, "分类: Movies")
-	require.Contains(t, msg, "状态: uploading")
-	require.Contains(t, msg, "速度: ↓ 0 B/s / ↑ 38.60 MB/s")
-	require.NotContains(t, msg, "主要操作")
-	require.NotContains(t, msg, "主要失败")
+	require.Contains(t, msg, "· ⚡ [更新限速] Some.Release.2026.2160p.WEB-DL.H.265 (01234567)")
+	require.Contains(t, msg, "📦 大小: 42.37 GiB")
+	require.Contains(t, msg, "📈 分享率: 4.40")
+	require.Contains(t, msg, "🗂️ 分类: Movies")
+	require.Contains(t, msg, "⚙️ 状态: uploading")
+	require.Contains(t, msg, "⚡ 速度: ↓ 0 B/s / ↑ 38.60 MB/s")
+	require.Contains(t, msg, "🌐 站点: tracker.example.net")
+	require.NotContains(t, msg, "成功操作")
+	require.NotContains(t, msg, "失败操作")
 }
 
-func TestAutomationSummaryMessageOmitsZeroFailedActionLine(t *testing.T) {
+func TestAutomationSummaryMessageOmitsFailureCountWhenNone(t *testing.T) {
 	t.Parallel()
 
 	summary := newAutomationSummary()
-	summary.applied = 1
-	// A zero entry must not render a "失败操作: x=0" line.
+	summary.recordActivity(&models.AutomationActivity{
+		Action:  models.ActivityActionSpeedLimitsChanged,
+		Outcome: models.ActivityOutcomeSuccess,
+	}, 1)
+	// A zero failure entry must not render a "失败: 0" line.
 	summary.failedByAction[models.ActivityActionSpeedLimitsChanged] = 0
 
 	msg := summary.message()
-	require.NotContains(t, msg, "失败操作:")
-	require.NotContains(t, msg, "=0")
+	require.Contains(t, msg, "生效种子: 1")
+	require.NotContains(t, msg, "失败:")
+}
+
+func TestSampleFromTorrentCapturesRichFields(t *testing.T) {
+	t.Parallel()
+
+	sample := sampleFromTorrent(models.ActivityActionDeletedCondition, qbt.Torrent{
+		Hash:     "abcdef0123456789",
+		Name:     "My.Neighbor.Totoro.1988.1080p.NF.WEB-DL.H264.DDP2.0-HHWEB",
+		Tracker:  "https://tracker.hhanclub.net/announce",
+		Size:     42_370_000_000,
+		Ratio:    4.4,
+		Category: "Movies",
+		State:    qbt.TorrentStateUploading,
+		UpSpeed:  38_600_000,
+		DlSpeed:  0,
+	})
+
+	summary := newAutomationSummary()
+	summary.recordActivity(&models.AutomationActivity{
+		Action:  models.ActivityActionDeletedCondition,
+		Outcome: models.ActivityOutcomeSuccess,
+	}, 1)
+	summary.addTorrentSamples([]automationSampleTorrent{sample}, 3)
+
+	msg := summary.message()
+	require.Contains(t, msg, "· 🗑️ [删除种子（规则）] My.Neighbor.Totoro.1988.1080p.NF.WEB-DL.H264.DDP2.0-HHWEB (abcdef01)")
+	require.Contains(t, msg, "📦 大小: 42.37 GiB")
+	require.Contains(t, msg, "📈 分享率: 4.40")
+	require.Contains(t, msg, "🗂️ 分类: Movies")
+	require.Contains(t, msg, "⚙️ 状态: uploading")
+	require.Contains(t, msg, "⚡ 速度: ↓ 0 B/s / ↑ 38.60 MB/s")
+	require.Contains(t, msg, "🌐 站点: tracker.hhanclub.net")
 }
 
 func TestRecordMoveFailureRuleCountsContributesToNotifyGate(t *testing.T) {

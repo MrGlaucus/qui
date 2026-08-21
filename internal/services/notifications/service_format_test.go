@@ -145,12 +145,11 @@ func TestFormatEventAutomationsActionsAppliedMergesSamplesOutsideNotifiarrAPI(t 
 	svc := &Service{}
 	title, message := svc.formatEvent(context.Background(), Event{
 		Type: EventAutomationsActionsApplied,
-		Message: "已应用: 1\n" +
-			"成功操作: 更新标签=1\n" +
+		Message: "生效种子: 1\n" +
 			"标签: +no_hl=1\n" +
 			"标签样本: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR\n" +
 			"影响种子:\n" +
-			"  · [更新标签] Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv",
+			"  · 🏷️ [更新标签] Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv",
 	}, true)
 
 	require.Equal(t, "自动化操作已应用", title)
@@ -166,16 +165,15 @@ func TestFormatEventAutomationsActionsAppliedKeepsSamplesForNotifiarrAPI(t *test
 	svc := &Service{}
 	title, message := svc.formatEvent(context.Background(), Event{
 		Type: EventAutomationsActionsApplied,
-		Message: "已应用: 1\n" +
-			"成功操作: 更新标签=1\n" +
+		Message: "生效种子: 1\n" +
 			"标签: +no_hl=1\n" +
 			"标签样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT\n" +
 			"影响种子:\n" +
-			"  · [更新标签] Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT",
+			"  · 🏷️ [更新标签] Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT",
 	}, false)
 
 	require.Equal(t, "自动化操作已应用", title)
 	require.Contains(t, message, "标签样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
 	require.Contains(t, message, "影响种子:")
-	require.Contains(t, message, "[更新标签] Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
+	require.Contains(t, message, "🏷️ [更新标签] Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
 }
