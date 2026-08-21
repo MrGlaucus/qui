@@ -20,7 +20,7 @@ func TestAutomationSummaryMessageDoesNotDuplicateTopFailures(t *testing.T) {
 	summary.failedByAction[models.ActivityActionDeleteFailed] = 1
 
 	msg := summary.message()
-	require.Equal(t, 1, strings.Count(msg, "主要失败:"))
+	require.Equal(t, 1, strings.Count(msg, "失败操作:"))
 }
 
 func TestBuildAutomationRuleSummariesGroupsActionsByRule(t *testing.T) {
@@ -84,11 +84,11 @@ func TestBuildAutomationRuleSummariesGroupsActionsByRule(t *testing.T) {
 			}
 		}
 
-		require.Equal(t, "Deleted torrent (ratio rule)", actions[models.ActivityActionDeletedRatio].label)
+		require.Equal(t, "删除种子（分享率规则）", actions[models.ActivityActionDeletedRatio].label)
 		require.Equal(t, 2, actions[models.ActivityActionDeletedRatio].applied)
 		require.Equal(t, 0, actions[models.ActivityActionDeletedRatio].failed)
 
-		require.Equal(t, "Delete failed", actions[models.ActivityActionDeleteFailed].label)
+		require.Equal(t, "删除失败", actions[models.ActivityActionDeleteFailed].label)
 		require.Equal(t, 0, actions[models.ActivityActionDeleteFailed].applied)
 		require.Equal(t, 1, actions[models.ActivityActionDeleteFailed].failed)
 	}
@@ -146,25 +146,75 @@ func TestAutomationSummaryMessageIncludesSamplesForNonDeleteActions(t *testing.T
 	}, 1)
 
 	msg := summary.message()
-	require.Contains(t, msg, "样本: Some.Release.2026")
+	require.Contains(t, msg, "影响种子:")
+	require.Contains(t, msg, "Some.Release.2026")
 }
 
 func TestAutomationSummaryAddTorrentSamplesUsesLimitAndDedupes(t *testing.T) {
 	t.Parallel()
 
 	summary := newAutomationSummary()
-	summary.addTorrentSamples([]string{
-		"Torrent C",
-		"Torrent A",
-		"Torrent A",
-		"Torrent B",
+	summary.addTorrentSamples([]automationSampleTorrent{
+		{action: models.ActivityActionMoved, name: "Torrent C", ratio: -1},
+		{action: models.ActivityActionMoved, name: "Torrent A", ratio: -1},
+		{action: models.ActivityActionMoved, name: "Torrent A", ratio: -1},
+		{action: models.ActivityActionMoved, name: "Torrent B", ratio: -1},
 	}, 3)
 
 	msg := summary.message()
-	require.Contains(t, msg, "样本:")
+	require.Contains(t, msg, "影响种子:")
 	require.Contains(t, msg, "Torrent A")
 	require.Contains(t, msg, "Torrent B")
 	require.Contains(t, msg, "Torrent C")
+}
+
+func TestAutomationSummaryMessageRendersRichTorrentSamples(t *testing.T) {
+	t.Parallel()
+
+	summary := newAutomationSummary()
+	summary.recordActivity(&models.AutomationActivity{
+		Action:  models.ActivityActionSpeedLimitsChanged,
+		Outcome: models.ActivityOutcomeSuccess,
+	}, 1)
+	summary.addTorrentSamples([]automationSampleTorrent{
+		{
+			action:        models.ActivityActionSpeedLimitsChanged,
+			name:          "Some.Release.2026.2160p.WEB-DL.H.265",
+			hash:          "0123456789abcdef",
+			sizeBytes:     42_370_000_000,
+			ratio:         4.4,
+			category:      "Movies",
+			trackerDomain: "tracker.example.net",
+			state:         "uploading",
+			upSpeedBps:    38_600_000,
+			downSpeedBps:  0,
+		},
+	}, 3)
+
+	msg := summary.message()
+	require.Contains(t, msg, "成功操作: 更新限速=1")
+	require.Contains(t, msg, "影响种子:")
+	require.Contains(t, msg, "· [更新限速] Some.Release.2026.2160p.WEB-DL.H.265 (01234567) · tracker.example.net")
+	require.Contains(t, msg, "大小: 42.37 GiB")
+	require.Contains(t, msg, "分享率: 4.40")
+	require.Contains(t, msg, "分类: Movies")
+	require.Contains(t, msg, "状态: uploading")
+	require.Contains(t, msg, "速度: ↓ 0 B/s / ↑ 38.60 MB/s")
+	require.NotContains(t, msg, "主要操作")
+	require.NotContains(t, msg, "主要失败")
+}
+
+func TestAutomationSummaryMessageOmitsZeroFailedActionLine(t *testing.T) {
+	t.Parallel()
+
+	summary := newAutomationSummary()
+	summary.applied = 1
+	// A zero entry must not render a "失败操作: x=0" line.
+	summary.failedByAction[models.ActivityActionSpeedLimitsChanged] = 0
+
+	msg := summary.message()
+	require.NotContains(t, msg, "失败操作:")
+	require.NotContains(t, msg, "=0")
 }
 
 func TestRecordMoveFailureRuleCountsContributesToNotifyGate(t *testing.T) {

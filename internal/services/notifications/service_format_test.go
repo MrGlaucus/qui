@@ -5,7 +5,6 @@ package notifications
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -147,16 +146,18 @@ func TestFormatEventAutomationsActionsAppliedMergesSamplesOutsideNotifiarrAPI(t 
 	title, message := svc.formatEvent(context.Background(), Event{
 		Type: EventAutomationsActionsApplied,
 		Message: "已应用: 1\n" +
-			"主要操作: Tags updated=1\n" +
+			"成功操作: 更新标签=1\n" +
 			"标签: +no_hl=1\n" +
 			"标签样本: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR\n" +
-			"样本: Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv",
+			"影响种子:\n" +
+			"  · [更新标签] Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv",
 	}, true)
 
 	require.Equal(t, "自动化操作已应用", title)
-	require.NotContains(t, message, "标签样本:")
-	require.Contains(t, message, "样本: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR; Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv")
-	require.Equal(t, 1, strings.Count(message, "样本:"))
+	require.Contains(t, message, "标签样本: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR")
+	require.Contains(t, message, "影响种子:")
+	require.Contains(t, message, "Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv")
+	require.NotContains(t, message, "\n样本:")
 }
 
 func TestFormatEventAutomationsActionsAppliedKeepsSamplesForNotifiarrAPI(t *testing.T) {
@@ -166,13 +167,15 @@ func TestFormatEventAutomationsActionsAppliedKeepsSamplesForNotifiarrAPI(t *test
 	title, message := svc.formatEvent(context.Background(), Event{
 		Type: EventAutomationsActionsApplied,
 		Message: "已应用: 1\n" +
-			"主要操作: Tags updated=1\n" +
+			"成功操作: 更新标签=1\n" +
 			"标签: +no_hl=1\n" +
 			"标签样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT\n" +
-			"样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT",
+			"影响种子:\n" +
+			"  · [更新标签] Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT",
 	}, false)
 
 	require.Equal(t, "自动化操作已应用", title)
 	require.Contains(t, message, "标签样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
-	require.Contains(t, message, "样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
+	require.Contains(t, message, "影响种子:")
+	require.Contains(t, message, "[更新标签] Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
 }

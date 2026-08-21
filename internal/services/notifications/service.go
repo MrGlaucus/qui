@@ -662,7 +662,10 @@ func mergeAutomationSampleLines(lines []string) []string {
 		}
 	}
 
-	if tagLineIndex < 0 {
+	// The affected-torrent section is now a multi-line "影响种子:" block, so the
+	// only mergeable case is a legacy "样本:" line that duplicates tag samples.
+	// Without a real sample line there is nothing to merge.
+	if tagLineIndex < 0 || sampleLineIndex < 0 {
 		return lines
 	}
 

@@ -44,28 +44,27 @@ type Config struct {
 // DefaultRuleInterval is the cadence for rules that don't specify their own interval.
 const DefaultRuleInterval = 15 * time.Minute
 
-
 // Log messages for delete actions (reduces duplication)
 const logMsgRemoveTorrentWithFiles = "automations: removing torrent with files"
 
 var automationActionLabels = map[string]string{
-	models.ActivityActionDeletedRatio:        "Deleted torrent (ratio rule)",
-	models.ActivityActionDeletedSeeding:      "Deleted torrent (seeding rule)",
-	models.ActivityActionDeletedUnregistered: "Deleted torrent (unregistered)",
-	models.ActivityActionDeletedCondition:    "Deleted torrent (rule)",
-	models.ActivityActionDeleteFailed:        "Delete failed",
-	models.ActivityActionLimitFailed:         "Speed/share limit failed",
-	models.ActivityActionTagsChanged:         "Tags updated",
-	models.ActivityActionCategoryChanged:     "Category updated",
-	models.ActivityActionSpeedLimitsChanged:  "Speed limits updated",
-	models.ActivityActionShareLimitsChanged:  "Share limits updated",
-	models.ActivityActionPaused:              "Paused torrents",
-	models.ActivityActionResumed:             "Resumed torrents",
-	models.ActivityActionRechecked:           "Rechecked torrents",
-	models.ActivityActionReannounced:         "Reannounced torrents",
-	models.ActivityActionMoved:               "Moved torrents",
-	models.ActivityActionExportedToInstance:  "Export to instance",
-	models.ActivityActionDryRunNoMatch:       "Dry-run: no matches",
+	models.ActivityActionDeletedRatio:        "删除种子（分享率规则）",
+	models.ActivityActionDeletedSeeding:      "删除种子（做种规则）",
+	models.ActivityActionDeletedUnregistered: "删除种子（未注册）",
+	models.ActivityActionDeletedCondition:    "删除种子（规则）",
+	models.ActivityActionDeleteFailed:        "删除失败",
+	models.ActivityActionLimitFailed:         "限速设置失败",
+	models.ActivityActionTagsChanged:         "更新标签",
+	models.ActivityActionCategoryChanged:     "更新分类",
+	models.ActivityActionSpeedLimitsChanged:  "更新限速",
+	models.ActivityActionShareLimitsChanged:  "更新分享率",
+	models.ActivityActionPaused:              "暂停种子",
+	models.ActivityActionResumed:             "恢复种子",
+	models.ActivityActionRechecked:           "强制校验",
+	models.ActivityActionReannounced:         "重新公告",
+	models.ActivityActionMoved:               "移动种子",
+	models.ActivityActionExportedToInstance:  "导出到实例",
+	models.ActivityActionDryRunNoMatch:       "试运行：无匹配",
 }
 
 type automationSummary struct {
@@ -77,10 +76,26 @@ type automationSummary struct {
 	tagAddedByName   map[string]int
 	tagRemovedByName map[string]int
 	tagSamples       []string
-	sampleTorrents   []string
+	sampleTorrents   []automationSampleTorrent
 	sampleErrors     []string
 	sampleSeen       map[string]struct{}
 	tagSampleSeen    map[string]struct{}
+}
+
+// automationSampleTorrent captures a per-torrent snapshot for the notification
+// "影响种子" section, so the user can see what happened to each affected torrent
+// and the resulting state, instead of only a bare torrent name.
+type automationSampleTorrent struct {
+	action        string
+	name          string
+	hash          string
+	sizeBytes     int64
+	ratio         float64
+	category      string
+	trackerDomain string
+	state         string
+	upSpeedBps    int64
+	downSpeedBps  int64
 }
 
 type automationRuleSummary struct {
@@ -138,10 +153,10 @@ func (s *automationSummary) message() string {
 		lines = append(lines, fmt.Sprintf("失败: %d", s.failed))
 	}
 	if formatted := formatActionCounts(s.appliedByAction, 3); formatted != "" {
-		lines = append(lines, "主要操作: "+formatted)
+		lines = append(lines, "成功操作: "+formatted)
 	}
 	if formatted := formatActionCounts(s.failedByAction, 3); formatted != "" {
-		lines = append(lines, "主要失败: "+formatted)
+		lines = append(lines, "失败操作: "+formatted)
 	}
 	if formatted := formatRuleCounts(s.ruleTotalsByName(), 3); formatted != "" {
 		lines = append(lines, "规则: "+formatted)
@@ -153,12 +168,147 @@ func (s *automationSummary) message() string {
 		lines = append(lines, "标签样本: "+strings.Join(s.tagSamples, "; "))
 	}
 	if len(s.sampleTorrents) > 0 {
-		lines = append(lines, "样本: "+strings.Join(s.sampleTorrents, "; "))
+		lines = append(lines, "影响种子:")
+		for _, sample := range s.sampleTorrents {
+			lines = append(lines, sample.render(1))
+		}
 	}
 	if len(s.sampleErrors) > 0 {
 		lines = append(lines, "错误: "+strings.Join(s.sampleErrors, "; "))
 	}
 	return strings.Join(lines, "\n")
+}
+
+// sampleTorrentNames returns the affected torrent names as a plain list for
+// notification payloads that only accept string samples (e.g. Notifiarr API).
+func (s *automationSummary) sampleTorrentNames() []string {
+	if s == nil {
+		return nil
+	}
+	names := make([]string, 0, len(s.sampleTorrents))
+	for _, sample := range s.sampleTorrents {
+		names = append(names, sample.name)
+	}
+	return names
+}
+
+func (s *automationSampleTorrent) render(indent int) string {
+	pad := strings.Repeat("  ", indent)
+	action := automationActionLabel(s.action)
+	if action == "" {
+		action = "操作"
+	}
+	header := fmt.Sprintf("%s· [%s] %s", pad, action, s.name)
+	if s.hash != "" {
+		header += fmt.Sprintf(" (%s)", shortHash(s.hash))
+	}
+	if s.trackerDomain != "" {
+		header += fmt.Sprintf(" · %s", s.trackerDomain)
+	}
+
+	detail := make([]string, 0, 4)
+	if s.sizeBytes > 0 {
+		detail = append(detail, "大小: "+formatAutomationBytes(s.sizeBytes))
+	}
+	if s.ratio >= 0 {
+		detail = append(detail, fmt.Sprintf("分享率: %.2f", s.ratio))
+	}
+	if s.category != "" {
+		detail = append(detail, "分类: "+s.category)
+	}
+	if s.state != "" {
+		detail = append(detail, "状态: "+s.state)
+	}
+	if s.upSpeedBps > 0 || s.downSpeedBps > 0 {
+		detail = append(detail, fmt.Sprintf("速度: ↓ %s / ↑ %s",
+			formatAutomationSpeed(s.downSpeedBps), formatAutomationSpeed(s.upSpeedBps)))
+	}
+
+	out := []string{header}
+	if len(detail) > 0 {
+		out = append(out, pad+"  "+strings.Join(detail, " · "))
+	}
+	return strings.Join(out, "\n")
+}
+
+func shortHash(hash string) string {
+	trimmed := strings.TrimSpace(hash)
+	if len(trimmed) > 8 {
+		return trimmed[:8]
+	}
+	return trimmed
+}
+
+func trackerDomain(tracker string) string {
+	trimmed := strings.TrimSpace(tracker)
+	if trimmed == "" {
+		return ""
+	}
+	// tracker may be a full announce URL (scheme://host/path) or just a hostname.
+	if strings.Contains(trimmed, "://") {
+		rest := strings.TrimPrefix(trimmed, trimmed[:strings.Index(trimmed, "://")+3])
+		host := rest
+		if idx := strings.IndexAny(rest, "/?"); idx >= 0 {
+			host = rest[:idx]
+		}
+		if strings.HasPrefix(host, "www.") {
+			host = strings.TrimPrefix(host, "www.")
+		}
+		return host
+	}
+	host := trimmed
+	if idx := strings.IndexAny(host, "/?"); idx >= 0 {
+		host = host[:idx]
+	}
+	if strings.HasPrefix(host, "www.") {
+		host = strings.TrimPrefix(host, "www.")
+	}
+	return host
+}
+
+func formatAutomationBytes(value int64) string {
+	if value < 0 {
+		value = 0
+	}
+	const (
+		kb = 1_000.0
+		mb = 1_000_000.0
+		gb = 1_000_000_000.0
+		tb = 1_000_000_000_000.0
+	)
+	switch {
+	case value >= int64(tb):
+		return fmt.Sprintf("%.2f TiB", float64(value)/tb)
+	case value >= int64(gb):
+		return fmt.Sprintf("%.2f GiB", float64(value)/gb)
+	case value >= int64(mb):
+		return fmt.Sprintf("%.2f MiB", float64(value)/mb)
+	case value >= int64(kb):
+		return fmt.Sprintf("%.2f KiB", float64(value)/kb)
+	default:
+		return fmt.Sprintf("%d B", value)
+	}
+}
+
+func formatAutomationSpeed(value int64) string {
+	if value < 0 {
+		value = 0
+	}
+	const (
+		kb = 1_000.0
+		mb = 1_000_000.0
+		gb = 1_000_000_000.0
+	)
+	switch {
+	case value >= int64(gb):
+		return fmt.Sprintf("%.2f GB/s", float64(value)/gb)
+	case value >= int64(mb):
+		return fmt.Sprintf("%.2f MB/s", float64(value)/mb)
+	case value >= int64(kb):
+		return fmt.Sprintf("%.2f KB/s", float64(value)/kb)
+	default:
+		return fmt.Sprintf("%d B/s", value)
+	}
 }
 
 func (s *automationSummary) recordActivity(activity *models.AutomationActivity, count int) {
@@ -178,20 +328,43 @@ func (s *automationSummary) addSamplesFromActivity(activity *models.AutomationAc
 		return
 	}
 	if activity.TorrentName != "" {
-		s.addSample(&s.sampleTorrents, activity.TorrentName, 3)
+		s.addSampleTorrent(automationSampleTorrent{
+			action: activity.Action,
+			name:   activity.TorrentName,
+			hash:   activity.Hash,
+			ratio:  -1,
+		}, 3)
 	}
 	if activity.Outcome == models.ActivityOutcomeFailed && strings.TrimSpace(activity.Reason) != "" {
 		s.addSample(&s.sampleErrors, activity.Reason, 2)
 	}
 }
 
-func (s *automationSummary) addTorrentSamples(names []string, limit int) {
+func (s *automationSummary) addTorrentSamples(samples []automationSampleTorrent, limit int) {
 	if s == nil || limit <= 0 {
 		return
 	}
-	for _, name := range names {
-		s.addSample(&s.sampleTorrents, name, limit)
+	for _, sample := range samples {
+		s.addSampleTorrent(sample, limit)
 	}
+}
+
+func (s *automationSummary) addSampleTorrent(sample automationSampleTorrent, limit int) {
+	if s == nil || limit <= 0 {
+		return
+	}
+	name := strings.TrimSpace(sample.name)
+	if name == "" {
+		return
+	}
+	if _, exists := s.sampleSeen[name]; exists {
+		return
+	}
+	if len(s.sampleTorrents) >= limit {
+		return
+	}
+	s.sampleSeen[name] = struct{}{}
+	s.sampleTorrents = append(s.sampleTorrents, sample)
 }
 
 func (s *automationSummary) addRuleAction(activity *models.AutomationActivity, count int) {
@@ -380,6 +553,9 @@ func formatActionCounts(counts map[string]int, limit int) string {
 
 	parts := make([]string, 0, maxItems)
 	for i := 0; i < maxItems; i++ {
+		if items[i].count <= 0 {
+			continue
+		}
 		label := automationActionLabel(items[i].key)
 		parts = append(parts, fmt.Sprintf("%s=%d", label, items[i].count))
 	}
@@ -546,10 +722,10 @@ type Service struct {
 
 	// keep lightweight memory of recent deletions to avoid acting on torrents
 	// that havent disappeared from sync data yet
-	lastApplied           map[int]map[string]time.Time // instanceID -> hash -> timestamp
-	lastRuleRun           map[ruleKey]time.Time        // per-rule cadence tracking
-	inFlightExports       map[string]struct{}          // "targetInstanceID:hash" -> in-progress export
-	mu                    sync.RWMutex
+	lastApplied     map[int]map[string]time.Time // instanceID -> hash -> timestamp
+	lastRuleRun     map[ruleKey]time.Time        // per-rule cadence tracking
+	inFlightExports map[string]struct{}          // "targetInstanceID:hash" -> in-progress export
+	mu              sync.RWMutex
 
 	activityPublisher activity.Publisher
 }
@@ -589,8 +765,8 @@ func NewService(cfg Config, instanceStore *models.InstanceStore, ruleStore *mode
 		lastApplied:               make(map[int]map[string]time.Time),
 		lastRuleRun:               make(map[ruleKey]time.Time),
 
-		inFlightExports:           make(map[string]struct{}),
-		activityPublisher:         activity.NopPublisher{},
+		inFlightExports:   make(map[string]struct{}),
+		activityPublisher: activity.NopPublisher{},
 	}
 }
 
@@ -2812,7 +2988,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			buildRuleCountsFromHashes(flattenHashGroups(downloadSuccess), downloadRuleByHash),
 		)
 		speedSampleHashes := append(flattenHashGroups(uploadSuccess), flattenHashGroups(downloadSuccess)...)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(speedSampleHashes, torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(speedSampleHashes, models.ActivityActionSpeedLimitsChanged, torrentByHash), 3)
 		if s.activityStore != nil {
 			activityID, err := s.activityStore.CreateWithID(ctx, activity)
 			if err != nil {
@@ -2856,7 +3032,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 				models.ActivityOutcomeFailed,
 				buildRuleCountsFromHashMaps(batch, shareRatioRuleByHash, shareSeedingRuleByHash),
 			)
-			summary.addTorrentSamples(collectTorrentNamesForHashes(batch, torrentByHash), 3)
+			summary.addTorrentSamples(collectSampleTorrents(batch, models.ActivityActionLimitFailed, torrentByHash), 3)
 			if s.activityStore != nil {
 				if actErr := s.activityStore.Create(ctx, activity); actErr != nil {
 					log.Warn().Err(actErr).Int("instanceID", instanceID).Msg("automations: failed to record activity")
@@ -2888,7 +3064,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			models.ActivityOutcomeSuccess,
 			buildRuleCountsFromHashMaps(flattenHashGroupsByShareKey(shareLimitSuccess), shareRatioRuleByHash, shareSeedingRuleByHash),
 		)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(flattenHashGroupsByShareKey(shareLimitSuccess), torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(flattenHashGroupsByShareKey(shareLimitSuccess), models.ActivityActionShareLimitsChanged, torrentByHash), 3)
 		if s.activityStore != nil {
 			activityID, err := s.activityStore.CreateWithID(ctx, activity)
 			if err != nil {
@@ -2934,7 +3110,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			models.ActivityOutcomeSuccess,
 			buildRuleCountsFromHashes(pausedHashesSuccess, pauseRuleByHash),
 		)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(pausedHashesSuccess, torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(pausedHashesSuccess, models.ActivityActionPaused, torrentByHash), 3)
 		if s.activityStore != nil {
 			activityID, err := s.activityStore.CreateWithID(ctx, activity)
 			if err != nil {
@@ -2980,7 +3156,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			models.ActivityOutcomeSuccess,
 			buildRuleCountsFromHashes(resumedHashesSuccess, resumeRuleByHash),
 		)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(resumedHashesSuccess, torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(resumedHashesSuccess, models.ActivityActionResumed, torrentByHash), 3)
 		if s.activityStore != nil {
 			activityID, err := s.activityStore.CreateWithID(ctx, activity)
 			if err != nil {
@@ -3026,7 +3202,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			models.ActivityOutcomeSuccess,
 			buildRuleCountsFromHashes(recheckedHashesSuccess, recheckRuleByHash),
 		)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(recheckedHashesSuccess, torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(recheckedHashesSuccess, models.ActivityActionRechecked, torrentByHash), 3)
 		if s.activityStore != nil {
 			activityID, err := s.activityStore.CreateWithID(ctx, activity)
 			if err != nil {
@@ -3072,7 +3248,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			models.ActivityOutcomeSuccess,
 			buildRuleCountsFromHashes(reannouncedHashesSuccess, reannounceRuleByHash),
 		)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(reannouncedHashesSuccess, torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(reannouncedHashesSuccess, models.ActivityActionReannounced, torrentByHash), 3)
 		if s.activityStore != nil {
 			activityID, err := s.activityStore.CreateWithID(ctx, activity)
 			if err != nil {
@@ -3128,7 +3304,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			models.ActivityOutcomeSuccess,
 			buildRuleCountsFromHashes(autoManagedHashesSuccess, autoManageRuleByHash),
 		)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(autoManagedHashesSuccess, torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(autoManagedHashesSuccess, models.ActivityActionAutoManaged, torrentByHash), 3)
 		if s.activityStore != nil {
 			activityID, err := s.activityStore.CreateWithID(ctx, activity)
 			if err != nil {
@@ -3288,7 +3464,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			summary.recordRuleCounts(models.ActivityActionTagsChanged, models.ActivityOutcomeSuccess, tagRuleCounts)
 			summary.addTagCounts(addCounts, removeCounts)
 			summary.addTagSamples(collectTorrentNamesForHashes(tagSampleHashes, torrentByHash), 3)
-			summary.addTorrentSamples(collectTorrentNamesForHashes(tagSampleHashes, torrentByHash), 3)
+			summary.addTorrentSamples(collectSampleTorrents(tagSampleHashes, models.ActivityActionTagsChanged, torrentByHash), 3)
 			if s.activityStore != nil {
 				activityID, err := s.activityStore.CreateWithID(ctx, activity)
 				if err != nil {
@@ -3509,7 +3685,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			models.ActivityOutcomeSuccess,
 			buildRuleCountsFromHashes(categoryMoveHashes(successfulMoves), categoryRuleByHash),
 		)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(categoryMoveHashes(successfulMoves), torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(categoryMoveHashes(successfulMoves), models.ActivityActionCategoryChanged, torrentByHash), 3)
 		if s.activityStore != nil {
 			activityID, err := s.activityStore.CreateWithID(ctx, activity)
 			if err != nil {
@@ -3737,7 +3913,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			models.ActivityOutcomeSuccess,
 			buildRuleCountsFromHashes(flattenHashGroupsByPath(successfulMoveHashesByPath), moveRuleByHash),
 		)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(flattenHashGroupsByPath(successfulMoveHashesByPath), torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(flattenHashGroupsByPath(successfulMoveHashesByPath), models.ActivityActionMoved, torrentByHash), 3)
 		if s.activityStore != nil {
 			activityID, err := s.activityStore.CreateWithID(ctx, activity)
 			if err != nil {
@@ -3761,7 +3937,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 		}
 		summary.recordActivity(activity, failureCount)
 		recordMoveFailureRuleCounts(summary, failedMoveHashesByPath, moveRuleByHash)
-		summary.addTorrentSamples(collectTorrentNamesForHashes(flattenHashGroupsByPath(failedMoveHashesByPath), torrentByHash), 3)
+		summary.addTorrentSamples(collectSampleTorrents(flattenHashGroupsByPath(failedMoveHashesByPath), models.ActivityActionMoved, torrentByHash), 3)
 		if s.activityStore != nil {
 			if err := s.activityStore.Create(ctx, activity); err != nil {
 				log.Warn().Err(err).Int("instanceID", instanceID).Msg("automations: failed to record move activity")
@@ -3986,7 +4162,7 @@ func (s *Service) notifyAutomationSummary(ctx context.Context, instanceID int, s
 			Applied: notifiedSummary.applied,
 			Failed:  notifiedSummary.failed,
 			Rules:   buildAutomationRuleSummaries(notifiedSummary),
-			Samples: append([]string(nil), notifiedSummary.sampleTorrents...),
+			Samples: notifiedSummary.sampleTorrentNames(),
 		},
 		ErrorMessage:  errorMessage,
 		ErrorMessages: errorMessages,
@@ -4206,7 +4382,7 @@ func buildNotifiedAutomationSummary(summary *automationSummary, rules []*models.
 	}
 
 	if notifiedRules == totalRules {
-		filtered.sampleTorrents = append([]string(nil), summary.sampleTorrents...)
+		filtered.sampleTorrents = append([]automationSampleTorrent(nil), summary.sampleTorrents...)
 		filtered.sampleErrors = append([]string(nil), summary.sampleErrors...)
 		filtered.tagSamples = append([]string(nil), summary.tagSamples...)
 		maps.Copy(filtered.tagAddedByName, summary.tagAddedByName)
@@ -4336,6 +4512,42 @@ func collectTorrentNamesForHashes(hashes []string, torrentByHash map[string]qbt.
 		out = append(out, name)
 	}
 	sort.Strings(out)
+	return out
+}
+
+func collectSampleTorrents(hashes []string, action string, torrentByHash map[string]qbt.Torrent) []automationSampleTorrent {
+	if len(hashes) == 0 || len(torrentByHash) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	out := make([]automationSampleTorrent, 0, len(hashes))
+	for _, hash := range hashes {
+		torrent, ok := torrentByHash[hash]
+		if !ok {
+			continue
+		}
+		name := strings.TrimSpace(torrent.Name)
+		if name == "" {
+			continue
+		}
+		if _, exists := seen[name]; exists {
+			continue
+		}
+		seen[name] = struct{}{}
+		out = append(out, automationSampleTorrent{
+			action:        action,
+			name:          name,
+			hash:          torrent.Hash,
+			sizeBytes:     torrent.Size,
+			ratio:         torrent.Ratio,
+			category:      torrent.Category,
+			trackerDomain: trackerDomain(torrent.Tracker),
+			state:         string(torrent.State),
+			upSpeedBps:    torrent.UpSpeed,
+			downSpeedBps:  torrent.DlSpeed,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].name < out[j].name })
 	return out
 }
 
@@ -5257,7 +5469,7 @@ func (s *Service) applySpeedLimits(
 						models.ActivityOutcomeFailed,
 						buildRuleCountsFromHashes(batch, ruleByHash),
 					)
-					summary.addTorrentSamples(collectTorrentNamesForHashes(batch, torrentByHash), 3)
+					summary.addTorrentSamples(collectSampleTorrents(batch, models.ActivityActionLimitFailed, torrentByHash), 3)
 				}
 				if s.activityStore != nil {
 					if err := s.activityStore.Create(ctx, activity); err != nil {
