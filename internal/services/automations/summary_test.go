@@ -198,11 +198,9 @@ func TestAutomationSummaryMessageRendersRichTorrentSamples(t *testing.T) {
 	require.Contains(t, msg, "生效种子: 1")
 	require.Contains(t, msg, "影响种子:")
 	require.Contains(t, msg, "· ⚡ [更新限速] Some.Release.2026.2160p.WEB-DL.H.265 (01234567)")
-	require.Contains(t, msg, "📦 大小: 42.37 GiB")
-	require.Contains(t, msg, "📈 分享率: 4.40")
-	require.Contains(t, msg, "🗂️ 分类: Movies")
-	require.Contains(t, msg, "⚙️ 状态: uploading")
-	require.Contains(t, msg, "⚡ 速度: ↓ 0 B/s / ↑ 38.60 MB/s")
+	require.Contains(t, msg, "📦 大小: 42.37 GiB · 📈 分享率: 4.40")
+	require.Contains(t, msg, "🗂️ 分类: Movies · ⚙️ 状态: uploading")
+	require.Contains(t, msg, "⚡ 速度: ↑ 38.60 MB/s / ↓ 0 B/s")
 	require.Contains(t, msg, "🌐 站点: tracker.example.net")
 	require.NotContains(t, msg, "成功操作")
 	require.NotContains(t, msg, "失败操作")
@@ -228,15 +226,17 @@ func TestSampleFromTorrentCapturesRichFields(t *testing.T) {
 	t.Parallel()
 
 	sample := sampleFromTorrent(models.ActivityActionDeletedCondition, qbt.Torrent{
-		Hash:     "abcdef0123456789",
-		Name:     "My.Neighbor.Totoro.1988.1080p.NF.WEB-DL.H264.DDP2.0-HHWEB",
-		Tracker:  "https://tracker.hhanclub.net/announce",
-		Size:     42_370_000_000,
-		Ratio:    4.4,
-		Category: "Movies",
-		State:    qbt.TorrentStateUploading,
-		UpSpeed:  38_600_000,
-		DlSpeed:  0,
+		Hash:       "abcdef0123456789",
+		Name:       "My.Neighbor.Totoro.1988.1080p.NF.WEB-DL.H264.DDP2.0-HHWEB",
+		Tracker:    "https://tracker.hhanclub.net/announce",
+		Size:       42_370_000_000,
+		Ratio:      4.4,
+		Category:   "Movies",
+		State:      qbt.TorrentStateUploading,
+		Uploaded:   92_810_000_000,
+		Downloaded: 21_070_000_000,
+		UpSpeed:    38_600_000,
+		DlSpeed:    0,
 	})
 
 	summary := newAutomationSummary()
@@ -248,11 +248,10 @@ func TestSampleFromTorrentCapturesRichFields(t *testing.T) {
 
 	msg := summary.message()
 	require.Contains(t, msg, "· 🗑️ [删除种子（规则）] My.Neighbor.Totoro.1988.1080p.NF.WEB-DL.H264.DDP2.0-HHWEB (abcdef01)")
-	require.Contains(t, msg, "📦 大小: 42.37 GiB")
-	require.Contains(t, msg, "📈 分享率: 4.40")
-	require.Contains(t, msg, "🗂️ 分类: Movies")
-	require.Contains(t, msg, "⚙️ 状态: uploading")
-	require.Contains(t, msg, "⚡ 速度: ↓ 0 B/s / ↑ 38.60 MB/s")
+	require.Contains(t, msg, "📦 大小: 42.37 GiB · 📈 分享率: 4.40")
+	require.Contains(t, msg, "📊 流量: ↑ 92.81 GiB / ↓ 21.07 GiB")
+	require.Contains(t, msg, "🗂️ 分类: Movies · ⚙️ 状态: uploading")
+	require.Contains(t, msg, "⚡ 速度: ↑ 38.60 MB/s / ↓ 0 B/s")
 	require.Contains(t, msg, "🌐 站点: tracker.hhanclub.net")
 }
 

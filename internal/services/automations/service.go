@@ -123,6 +123,8 @@ type automationSampleTorrent struct {
 	category      string
 	trackerDomain string
 	state         string
+	uploaded      int64
+	downloaded    int64
 	upSpeedBps    int64
 	downSpeedBps  int64
 }
@@ -226,32 +228,70 @@ func (s *automationSampleTorrent) render(indent int) string {
 		header += fmt.Sprintf(" (%s)", shortHash(s.hash))
 	}
 
-	detail := make([]string, 0, 6)
+	var sizeField string
 	if s.sizeBytes > 0 {
-		detail = append(detail, "📦 大小: "+formatAutomationBytes(s.sizeBytes))
+		sizeField = "📦 大小: " + formatAutomationBytes(s.sizeBytes)
 	}
+	var ratioField string
 	if s.ratio >= 0 {
-		detail = append(detail, fmt.Sprintf("📈 分享率: %.2f", s.ratio))
+		ratioField = fmt.Sprintf("📈 分享率: %.2f", s.ratio)
 	}
+	var categoryField string
 	if s.category != "" {
-		detail = append(detail, "🗂️ 分类: "+s.category)
+		categoryField = "🗂️ 分类: " + s.category
 	}
+	var stateField string
 	if s.state != "" {
-		detail = append(detail, "⚙️ 状态: "+s.state)
+		stateField = "⚙️ 状态: " + s.state
 	}
+	var trafficField string
+	if s.uploaded > 0 || s.downloaded > 0 {
+		trafficField = fmt.Sprintf("📊 流量: ↑ %s / ↓ %s",
+			formatAutomationBytes(s.uploaded), formatAutomationBytes(s.downloaded))
+	}
+	var speedField string
 	if s.upSpeedBps > 0 || s.downSpeedBps > 0 {
-		detail = append(detail, fmt.Sprintf("⚡ 速度: ↓ %s / ↑ %s",
-			formatAutomationSpeed(s.downSpeedBps), formatAutomationSpeed(s.upSpeedBps)))
+		speedField = fmt.Sprintf("⚡ 速度: ↑ %s / ↓ %s",
+			formatAutomationSpeed(s.upSpeedBps), formatAutomationSpeed(s.downSpeedBps))
 	}
+	var trackerField string
 	if s.trackerDomain != "" {
-		detail = append(detail, "🌐 站点: "+s.trackerDomain)
+		trackerField = "🌐 站点: " + s.trackerDomain
+	}
+
+	// Group related fields two per line for readability.
+	rows := make([]string, 0, 5)
+	if line := joinFields(" · ", sizeField, ratioField); line != "" {
+		rows = append(rows, line)
+	}
+	if line := joinFields(" · ", trafficField, ""); line != "" {
+		rows = append(rows, line)
+	}
+	if line := joinFields(" · ", speedField, ""); line != "" {
+		rows = append(rows, line)
+	}
+	if line := joinFields(" · ", categoryField, stateField); line != "" {
+		rows = append(rows, line)
+	}
+	if line := joinFields(" · ", trackerField, ""); line != "" {
+		rows = append(rows, line)
 	}
 
 	out := []string{header}
-	if len(detail) > 0 {
-		out = append(out, pad+"  "+strings.Join(detail, " · "))
+	for _, row := range rows {
+		out = append(out, pad+"  "+row)
 	}
 	return strings.Join(out, "\n")
+}
+
+func joinFields(sep string, fields ...string) string {
+	parts := make([]string, 0, len(fields))
+	for _, f := range fields {
+		if f != "" {
+			parts = append(parts, f)
+		}
+	}
+	return strings.Join(parts, sep)
 }
 
 func shortHash(hash string) string {
@@ -4567,6 +4607,8 @@ func sampleFromTorrent(action string, t qbt.Torrent) automationSampleTorrent {
 		category:      t.Category,
 		trackerDomain: trackerDomain(t.Tracker),
 		state:         string(t.State),
+		uploaded:      t.Uploaded,
+		downloaded:    t.Downloaded,
 		upSpeedBps:    t.UpSpeed,
 		downSpeedBps:  t.DlSpeed,
 	}
