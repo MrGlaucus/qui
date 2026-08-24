@@ -44,6 +44,7 @@ import (
 	"github.com/autobrr/qui/internal/update"
 	"github.com/autobrr/qui/internal/web"
 	"github.com/autobrr/qui/internal/web/swagger"
+	"github.com/autobrr/qui/pkg/timeutil"
 	webfs "github.com/autobrr/qui/web"
 )
 
@@ -95,6 +96,7 @@ type Server struct {
 	arrInstanceStore                 *models.ArrInstanceStore
 	arrService                       *arr.Service
 	activityHub                      *activity.Hub
+	timezone                         *timeutil.Provider
 }
 
 type Dependencies struct {
@@ -141,6 +143,7 @@ type Dependencies struct {
 	ArrInstanceStore                 *models.ArrInstanceStore
 	ArrService                       *arr.Service
 	ActivityHub                      *activity.Hub
+	Timezone                         *timeutil.Provider
 }
 
 func NewServer(deps *Dependencies) *Server {
@@ -153,7 +156,11 @@ func NewServer(deps *Dependencies) *Server {
 	}
 	if deps.DailyTrafficStore != nil {
 		streamManager.SetTodayTrafficProvider(func(ctx context.Context, instanceID int) (*qbittorrent.TodayTraffic, error) {
-			row, err := deps.DailyTrafficStore.GetByInstanceAndDate(ctx, instanceID, time.Now().Format("2006-01-02"))
+			today := time.Now().Format("2006-01-02")
+			if deps.Timezone != nil {
+				today = deps.Timezone.Today()
+			}
+			row, err := deps.DailyTrafficStore.GetByInstanceAndDate(ctx, instanceID, today)
 			if err != nil {
 				return nil, err
 			}
@@ -226,6 +233,7 @@ func NewServer(deps *Dependencies) *Server {
 		arrInstanceStore:                 deps.ArrInstanceStore,
 		arrService:                       deps.ArrService,
 		activityHub:                      deps.ActivityHub,
+		timezone:                         deps.Timezone,
 	}
 
 	return &s
@@ -405,7 +413,7 @@ func (s *Server) Handler() (*chi.Mux, error) {
 	rssHandler := handlers.NewRSSHandler(s.syncManager)
 	rssSSEHandler := handlers.NewRSSSSEHandler(s.syncManager)
 	dashboardSettingsHandler := handlers.NewDashboardSettingsHandler(s.dashboardSettingsStore)
-	clientSettingsHandler := handlers.NewClientSettingsHandler(s.clientSettingsStore, s.activityHub)
+	clientSettingsHandler := handlers.NewClientSettingsHandler(s.clientSettingsStore, s.activityHub, s.timezone)
 	filterViewHandler := handlers.NewFilterViewHandler(s.filterViewStore)
 	logExclusionsHandler := handlers.NewLogExclusionsHandler(s.logExclusionsStore)
 	logsHandler := handlers.NewLogsHandler(s.config)
@@ -644,25 +652,25 @@ func (s *Server) Handler() (*chi.Mux, error) {
 					// Trackers
 					r.Get("/trackers", torrentsHandler.GetActiveTrackers)
 
-				// Automations
-				r.Route("/automations", func(r chi.Router) {
-					r.Get("/", automationsHandler.List)
-					r.Post("/", automationsHandler.Create)
-					r.Put("/order", automationsHandler.Reorder)
-					r.Post("/apply", automationsHandler.ApplyNow)
-					r.Post("/dry-run", automationsHandler.DryRunNow)
-					r.Post("/preview", automationsHandler.PreviewDeleteRule)
-					r.Post("/validate-regex", automationsHandler.ValidateRegex)
-					r.Get("/activity", automationsHandler.ListActivity)
-					r.Get("/activity/{activityId}", automationsHandler.GetActivityRun)
-					r.Delete("/activity", automationsHandler.DeleteActivity)
-					r.Post("/copy-to/{targetId}", automationsHandler.CopyToInstance)
+					// Automations
+					r.Route("/automations", func(r chi.Router) {
+						r.Get("/", automationsHandler.List)
+						r.Post("/", automationsHandler.Create)
+						r.Put("/order", automationsHandler.Reorder)
+						r.Post("/apply", automationsHandler.ApplyNow)
+						r.Post("/dry-run", automationsHandler.DryRunNow)
+						r.Post("/preview", automationsHandler.PreviewDeleteRule)
+						r.Post("/validate-regex", automationsHandler.ValidateRegex)
+						r.Get("/activity", automationsHandler.ListActivity)
+						r.Get("/activity/{activityId}", automationsHandler.GetActivityRun)
+						r.Delete("/activity", automationsHandler.DeleteActivity)
+						r.Post("/copy-to/{targetId}", automationsHandler.CopyToInstance)
 
-					r.Route("/{ruleID}", func(r chi.Router) {
-						r.Put("/", automationsHandler.Update)
-						r.Delete("/", automationsHandler.Delete)
+						r.Route("/{ruleID}", func(r chi.Router) {
+							r.Put("/", automationsHandler.Update)
+							r.Delete("/", automationsHandler.Delete)
+						})
 					})
-				})
 
 					// RSS management
 					r.Route("/rss", func(r chi.Router) {

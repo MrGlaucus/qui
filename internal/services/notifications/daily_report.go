@@ -60,7 +60,7 @@ func (s *Service) StartDailyTrafficReport(ctx context.Context, store dailyTraffi
 		return
 	}
 
-	lastDate := time.Now().Format("2006-01-02")
+	lastDate := s.now().Format("2006-01-02")
 
 	go func() {
 		ticker := time.NewTicker(dailyReportCheckInterval)
@@ -118,10 +118,10 @@ func (s *Service) StartHourlyTrafficReport(ctx context.Context, store dailyTraff
 		return
 	}
 
-	lastHour := time.Now().Format("2006-01-02-15")
+	lastHour := s.now().Format("2006-01-02-15")
 	// Fire once at startup so the report covers the current accumulated data
 	// without waiting for the next full hour boundary.
-	startedAt := time.Now()
+	startedAt := s.now()
 
 	go func() {
 		ticker := time.NewTicker(dailyReportCheckInterval)
@@ -132,7 +132,7 @@ func (s *Service) StartHourlyTrafficReport(ctx context.Context, store dailyTraff
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				now := time.Now()
+				now := s.now()
 				hourKey := now.Format("2006-01-02-15")
 				hourChanged := hourKey != lastHour
 				if hourChanged {
@@ -198,7 +198,7 @@ func (s *Service) StartBaselineReport(ctx context.Context, store dailyTrafficRep
 		return
 	}
 
-	lastBaselineDate := time.Now().Format("2006-01-02")
+	lastBaselineDate := s.now().Format("2006-01-02")
 	var graceEnd time.Time
 	syncedForDay := false
 
@@ -211,7 +211,7 @@ func (s *Service) StartBaselineReport(ctx context.Context, store dailyTrafficRep
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				now := time.Now()
+				now := s.now()
 				today := now.Format("2006-01-02")
 				if today == lastBaselineDate {
 					continue
@@ -254,7 +254,7 @@ func (s *Service) StartBaselineReport(ctx context.Context, store dailyTrafficRep
 
 func (s *Service) reportBaseline(ctx context.Context, date string, rows []*models.InstanceDailyTraffic) {
 	rows = s.sortTrafficRowsBySortOrder(ctx, rows)
-	title, message := buildBaselineReport(date, rows, s.resolveReportInstanceName(ctx))
+	title, message := buildBaselineReport(date, rows, s.resolveReportInstanceName(ctx), s.location())
 	if strings.TrimSpace(message) == "" {
 		return
 	}
@@ -393,8 +393,8 @@ func baselineRows(rows []*models.InstanceDailyTraffic) []*models.InstanceDailyTr
 
 // buildBaselineReport formats the midnight baseline capture report. Each row
 // contributes one instance block: display name, captured baseline bytes, data
-// source, and capture time.
-func buildBaselineReport(date string, rows []*models.InstanceDailyTraffic, instanceName func(int) string) (string, string) {
+// source, and capture time (rendered in loc).
+func buildBaselineReport(date string, rows []*models.InstanceDailyTraffic, instanceName func(int) string, loc *time.Location) (string, string) {
 	title := fmt.Sprintf("🌙 基准采集结果 %s", date)
 
 	var sb strings.Builder
@@ -415,7 +415,7 @@ func buildBaselineReport(date string, rows []*models.InstanceDailyTraffic, insta
 		sb.WriteString(fmt.Sprintf("🏷️ %s\n", name))
 		sb.WriteString(fmt.Sprintf("🎯 基准: ↑ %s / ↓ %s\n", formatBytes(uploaded), formatBytes(downloaded)))
 		sb.WriteString(fmt.Sprintf("🧭 来源: %s\n", baselineSource(row)))
-		sb.WriteString(fmt.Sprintf("⏱️ 时间: %s", baselineTime(row)))
+		sb.WriteString(fmt.Sprintf("⏱️ 时间: %s", formatBaselineTime(row, loc)))
 	}
 
 	return title, sb.String()
@@ -442,8 +442,8 @@ func baselineSource(row *models.InstanceDailyTraffic) string {
 	return row.DataSource
 }
 
-// baselineTime renders the captured baseline timestamp in server-local time.
-func baselineTime(row *models.InstanceDailyTraffic) string {
+// formatBaselineTime renders the captured baseline timestamp in loc.
+func formatBaselineTime(row *models.InstanceDailyTraffic, loc *time.Location) string {
 	if row == nil || strings.TrimSpace(row.BaselineAt) == "" {
 		return ""
 	}
@@ -451,7 +451,10 @@ func baselineTime(row *models.InstanceDailyTraffic) string {
 	if err != nil {
 		return row.BaselineAt
 	}
-	return parsed.Local().Format("2006-01-02 15:04:05")
+	if loc == nil {
+		loc = time.Local
+	}
+	return parsed.In(loc).Format("2006-01-02 15:04:05")
 }
 
 // formatBytes renders a byte count with an auto-selected binary-decimal unit.

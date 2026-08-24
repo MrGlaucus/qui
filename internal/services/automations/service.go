@@ -48,52 +48,23 @@ const DefaultRuleInterval = 15 * time.Minute
 const logMsgRemoveTorrentWithFiles = "automations: removing torrent with files"
 
 var automationActionLabels = map[string]string{
-	models.ActivityActionDeletedRatio:        "删除种子（分享率规则）",
-	models.ActivityActionDeletedSeeding:      "删除种子（做种规则）",
-	models.ActivityActionDeletedUnregistered: "删除种子（未注册）",
-	models.ActivityActionDeletedCondition:    "删除种子（规则）",
-	models.ActivityActionDeleteFailed:        "删除失败",
-	models.ActivityActionLimitFailed:         "限速设置失败",
-	models.ActivityActionTagsChanged:         "更新标签",
-	models.ActivityActionCategoryChanged:     "更新分类",
-	models.ActivityActionSpeedLimitsChanged:  "更新限速",
-	models.ActivityActionShareLimitsChanged:  "更新分享率",
-	models.ActivityActionPaused:              "暂停种子",
-	models.ActivityActionResumed:             "恢复种子",
-	models.ActivityActionRechecked:           "强制校验",
-	models.ActivityActionReannounced:         "重新公告",
-	models.ActivityActionMoved:               "移动种子",
-	models.ActivityActionExportedToInstance:  "导出到实例",
-	models.ActivityActionDryRunNoMatch:       "试运行：无匹配",
-}
-
-// automationActionEmojis decorates the per-torrent "影响种子" section so each
-// action gets a visual anchor in the notification instead of a wall of text.
-var automationActionEmojis = map[string]string{
-	models.ActivityActionDeletedRatio:        "🗑️",
-	models.ActivityActionDeletedSeeding:      "🗑️",
-	models.ActivityActionDeletedUnregistered: "🗑️",
-	models.ActivityActionDeletedCondition:    "🗑️",
-	models.ActivityActionDeleteFailed:        "❌",
-	models.ActivityActionLimitFailed:         "❌",
-	models.ActivityActionTagsChanged:         "🏷️",
-	models.ActivityActionCategoryChanged:     "🗂️",
-	models.ActivityActionSpeedLimitsChanged:  "⚡",
-	models.ActivityActionShareLimitsChanged:  "📈",
-	models.ActivityActionPaused:              "⏸️",
-	models.ActivityActionResumed:             "▶️",
-	models.ActivityActionRechecked:           "🔍",
-	models.ActivityActionReannounced:         "📣",
-	models.ActivityActionMoved:               "📂",
-	models.ActivityActionExportedToInstance:  "📤",
-	models.ActivityActionDryRunNoMatch:       "🧪",
-}
-
-func automationActionEmoji(action string) string {
-	if emoji, ok := automationActionEmojis[action]; ok {
-		return emoji
-	}
-	return "•"
+	models.ActivityActionDeletedRatio:        "automations.action.deletedRatio",
+	models.ActivityActionDeletedSeeding:      "automations.action.deletedSeeding",
+	models.ActivityActionDeletedUnregistered: "automations.action.deletedUnregistered",
+	models.ActivityActionDeletedCondition:    "automations.action.deletedCondition",
+	models.ActivityActionDeleteFailed:        "automations.action.deleteFailed",
+	models.ActivityActionLimitFailed:         "automations.action.limitFailed",
+	models.ActivityActionTagsChanged:         "automations.action.tagsChanged",
+	models.ActivityActionCategoryChanged:     "automations.action.categoryChanged",
+	models.ActivityActionSpeedLimitsChanged:  "automations.action.speedLimitsChanged",
+	models.ActivityActionShareLimitsChanged:  "automations.action.shareLimitsChanged",
+	models.ActivityActionPaused:              "automations.action.paused",
+	models.ActivityActionResumed:             "automations.action.resumed",
+	models.ActivityActionRechecked:           "automations.action.rechecked",
+	models.ActivityActionReannounced:         "automations.action.reannounced",
+	models.ActivityActionMoved:               "automations.action.moved",
+	models.ActivityActionExportedToInstance:  "automations.action.exportedToInstance",
+	models.ActivityActionDryRunNoMatch:       "automations.action.dryRunNoMatch",
 }
 
 type automationSummary struct {
@@ -179,31 +150,31 @@ func (s *automationSummary) hasActivity() bool {
 	return s.applied > 0 || s.failed > 0
 }
 
-func (s *automationSummary) message() string {
+func (s *automationSummary) message(lang string) string {
 	if s == nil {
 		return ""
 	}
-	lines := []string{fmt.Sprintf("生效种子: %d", s.applied)}
+	lines := []string{fmt.Sprintf("%s: %d", notifications.T("automations.summary.applied", lang), s.applied)}
 	if s.failed > 0 {
-		lines = append(lines, fmt.Sprintf("失败: %d", s.failed))
+		lines = append(lines, fmt.Sprintf("%s: %d", notifications.T("automations.summary.failed", lang), s.failed))
 	}
 	if formatted := formatRuleCounts(s.ruleTotalsByName(), 3); formatted != "" {
-		lines = append(lines, "规则: "+formatted)
+		lines = append(lines, notifications.T("automations.summary.rules", lang)+": "+formatted)
 	}
 	if formatted := formatTagCounts(s.tagAddedByName, s.tagRemovedByName, 3); formatted != "" {
-		lines = append(lines, "标签: "+formatted)
+		lines = append(lines, notifications.T("automations.summary.tags", lang)+": "+formatted)
 	}
 	if len(s.tagSamples) > 0 {
-		lines = append(lines, "标签样本: "+strings.Join(s.tagSamples, "; "))
+		lines = append(lines, notifications.T("automations.summary.tagSample", lang)+": "+strings.Join(s.tagSamples, "; "))
 	}
 	if len(s.sampleTorrents) > 0 {
-		lines = append(lines, "影响种子:")
+		lines = append(lines, notifications.T("automations.summary.affected", lang)+":")
 		for _, sample := range s.sampleTorrents {
-			lines = append(lines, sample.render())
+			lines = append(lines, sample.render(lang))
 		}
 	}
 	if len(s.sampleErrors) > 0 {
-		lines = append(lines, "错误: "+strings.Join(s.sampleErrors, "; "))
+		lines = append(lines, notifications.T("automations.summary.errors", lang)+": "+strings.Join(s.sampleErrors, "; "))
 	}
 	return strings.Join(lines, "\n")
 }
@@ -221,20 +192,20 @@ func (s *automationSummary) sampleTorrentNames() []string {
 	return names
 }
 
-func (s *automationSampleTorrent) render() string {
+func (s *automationSampleTorrent) render(lang string) string {
 	const seedDivider = "――――――――――――――――"
 
-	action := automationActionLabel(s.action)
+	action := automationActionLabel(s.action, lang)
 	if action == "" {
-		action = "操作"
+		action = notifications.T("automations.sample.action", lang)
 	}
 
 	var b strings.Builder
 	b.WriteString(seedDivider)
 	b.WriteString("\n")
-	b.WriteString(automationActionEmoji(s.action) + " " + action)
+	b.WriteString("- " + action)
 
-	seedLine := "  种子: " + s.name
+	seedLine := "- " + notifications.T("automations.sample.torrent", lang) + ": " + s.name
 	if s.hash != "" {
 		seedLine += fmt.Sprintf(" (%s)", shortHash(s.hash))
 	}
@@ -246,14 +217,22 @@ func (s *automationSampleTorrent) render() string {
 		return b.String()
 	}
 
+	sizeLabel := notifications.T("automations.sample.size", lang)
+	ratioLabel := notifications.T("automations.sample.ratio", lang)
+	trafficLabel := notifications.T("automations.sample.traffic", lang)
+	speedLabel := notifications.T("automations.sample.speed", lang)
+	categoryLabel := notifications.T("automations.sample.category", lang)
+	stateLabel := notifications.T("automations.sample.state", lang)
+	trackerLabel := notifications.T("automations.sample.tracker", lang)
+
 	fields := []string{
-		"  📦 大小: " + formatAutomationBytes(s.sizeBytes),
-		fmt.Sprintf("  📈 分享率: %.2f", s.ratio),
-		fmt.Sprintf("  📊 流量: ↑ %s / ↓ %s", formatAutomationBytes(s.uploaded), formatAutomationBytes(s.downloaded)),
-		fmt.Sprintf("  ⚡ 速度: ↑ %s / ↓ %s", formatAutomationSpeed(s.upSpeedBps), formatAutomationSpeed(s.downSpeedBps)),
-		"  🗂️ 分类: " + dashIfEmpty(s.category),
-		"  ⚙️ 状态: " + dashIfEmpty(s.state),
-		"  🌐 站点: " + dashIfEmpty(s.trackerDomain),
+		"- " + sizeLabel + ": " + formatAutomationBytes(s.sizeBytes),
+		fmt.Sprintf("- %s: %.2f", ratioLabel, s.ratio),
+		fmt.Sprintf("- %s: ↑ %s / ↓ %s", trafficLabel, formatAutomationBytes(s.uploaded), formatAutomationBytes(s.downloaded)),
+		fmt.Sprintf("- %s: ↑ %s / ↓ %s", speedLabel, formatAutomationSpeed(s.upSpeedBps), formatAutomationSpeed(s.downSpeedBps)),
+		"- " + categoryLabel + ": " + dashIfEmpty(s.category),
+		"- " + stateLabel + ": " + dashIfEmpty(s.state),
+		"- " + trackerLabel + ": " + dashIfEmpty(s.trackerDomain),
 	}
 	for _, f := range fields {
 		b.WriteString("\n")
@@ -616,9 +595,9 @@ func formatTagCounts(added map[string]int, removed map[string]int, limit int) st
 	return strings.Join(parts, "; ")
 }
 
-func automationActionLabel(action string) string {
-	if label, ok := automationActionLabels[action]; ok {
-		return label
+func automationActionLabel(action, lang string) string {
+	if key, ok := automationActionLabels[action]; ok {
+		return notifications.T(key, lang)
 	}
 	return strings.ReplaceAll(action, "_", " ")
 }
@@ -736,6 +715,9 @@ type Service struct {
 	crossSeedLogStore         *models.CrossSeedLogStore
 	activityRuns              *activityRunStore
 	releaseParser             *releases.Parser
+	// language returns the user's notification language code (e.g. "zh-CN" or
+	// "en"); defaults to Chinese when unset. Used to render notification text.
+	language func() string
 
 	// keep lightweight memory of recent deletions to avoid acting on torrents
 	// that havent disappeared from sync data yet
@@ -785,6 +767,23 @@ func NewService(cfg Config, instanceStore *models.InstanceStore, ruleStore *mode
 		inFlightExports:   make(map[string]struct{}),
 		activityPublisher: activity.NopPublisher{},
 	}
+}
+
+// SetLanguage registers a function returning the user's frontend language code
+// (e.g. "zh-CN" or "en"). Notification text is rendered according to it.
+func (s *Service) SetLanguage(fn func() string) {
+	if s == nil {
+		return
+	}
+	s.language = fn
+}
+
+// lang returns the normalized notification language ("zh" or "en").
+func (s *Service) lang() string {
+	if s == nil || s.language == nil {
+		return "zh"
+	}
+	return notifications.NormalizeLang(s.language())
 }
 
 // SetActivityPublisher wires the qui server-event hub so automation activity is
@@ -4190,11 +4189,11 @@ func (s *Service) notifyAutomationSummary(ctx context.Context, instanceID int, s
 	s.notifier.Notify(ctx, notifications.Event{
 		Type:       notifications.EventAutomationsActionsApplied,
 		InstanceID: instanceID,
-		Message:    notifiedSummary.message(),
+		Message:    notifiedSummary.message(s.lang()),
 		Automations: &notifications.AutomationsEventData{
 			Applied: notifiedSummary.applied,
 			Failed:  notifiedSummary.failed,
-			Rules:   buildAutomationRuleSummaries(notifiedSummary),
+			Rules:   buildAutomationRuleSummaries(notifiedSummary, s.lang()),
 			Samples: notifiedSummary.sampleTorrentNames(),
 		},
 		ErrorMessage:  errorMessage,
@@ -4226,7 +4225,7 @@ func shouldNotifyAutomationSummary(summary *automationSummary, rules []*models.A
 	return false
 }
 
-func buildAutomationRuleSummaries(summary *automationSummary) []notifications.AutomationRuleSummary {
+func buildAutomationRuleSummaries(summary *automationSummary, lang string) []notifications.AutomationRuleSummary {
 	if summary == nil || len(summary.rules) == 0 {
 		return nil
 	}
@@ -4268,7 +4267,7 @@ func buildAutomationRuleSummaries(summary *automationSummary) []notifications.Au
 			}
 			actions = append(actions, notifications.AutomationActionSummary{
 				Action:  action,
-				Label:   automationActionLabel(action),
+				Label:   automationActionLabel(action, lang),
 				Applied: counts.applied,
 				Failed:  counts.failed,
 			})

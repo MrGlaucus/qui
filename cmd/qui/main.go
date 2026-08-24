@@ -49,6 +49,7 @@ import (
 	"github.com/autobrr/qui/internal/services/trackericons"
 	"github.com/autobrr/qui/internal/update"
 	"github.com/autobrr/qui/pkg/sqlite3store"
+	"github.com/autobrr/qui/pkg/timeutil"
 )
 
 var (
@@ -567,10 +568,19 @@ func (app *Application) runServer() {
 	}
 	defer clientPool.Close()
 
-	// Daily traffic collection (server-local timezone day boundaries)
+	// Daily traffic collection. Day boundaries follow the user's timezone
+	// preference (updated at runtime from client_settings), falling back to
+	// server-local time.
 	dailyTrafficStore := models.NewInstanceDailyTrafficStore(db)
-	clientPool.SetDailyTrafficRecorder(qbittorrent.NewDailyTrafficRecorder(dailyTrafficStore, 7))
+	timezoneProvider := timeutil.NewProvider()
+	clientPool.SetDailyTrafficRecorder(qbittorrent.NewDailyTrafficRecorderWithTimezone(dailyTrafficStore, 7, timezoneProvider))
 
+	// Seed the timezone provider from any stored client setting so day
+	// boundaries honour the user's timezone from the first sample, even before
+	// a client_settings GET/PUT is served.
+	if stored, err := clientSettingsStore.GetAll(context.Background()); err == nil {
+		timezoneProvider.Set(timeutil.TimezoneFromSettings(stored))
+	}
 	// Initialize managers
 	syncManager := qbittorrent.NewSyncManager(clientPool, trackerCustomizationStore)
 
@@ -633,6 +643,7 @@ func (app *Application) runServer() {
 	notificationCtx, notificationCancel := context.WithCancel(context.Background())
 	defer notificationCancel()
 	if notificationService != nil {
+		notificationService.SetTimezone(timezoneProvider)
 		notificationService.SetForceSync(func(ctx context.Context, instanceID int) error {
 			qbtSyncManager, err := syncManager.GetQBittorrentSyncManager(ctx, instanceID)
 			if err != nil {
@@ -692,6 +703,7 @@ func (app *Application) runServer() {
 	reannounceService.SetActivityPublisher(activityHub)
 	automationService := automations.NewService(automations.DefaultConfig(), instanceStore, automationStore, automationActivityStore, trackerCustomizationStore, syncManager, notificationService, externalProgramService, crossSeedService, crossSeedLogStore)
 	automationService.SetActivityPublisher(activityHub)
+	automationService.SetLanguage(clientSettingsLanguage(clientSettingsStore))
 
 	orphanScanStore := models.NewOrphanScanStore(db)
 	orphanScanService := orphanscan.NewService(orphanscan.DefaultConfig(), instanceStore, orphanScanStore, syncManager, notificationService)
@@ -837,6 +849,7 @@ func (app *Application) runServer() {
 		ArrInstanceStore:                 arrInstanceStore,
 		ArrService:                       arrService,
 		ActivityHub:                      activityHub,
+		Timezone:                         timezoneProvider,
 	})
 
 	// Reconcile any cross-seed runs left in 'running' status from a previous crash/restart.
@@ -964,4 +977,20 @@ func (a *torrentHashAdapter) GetAllTorrentHashes(ctx context.Context, instanceID
 		hashes[i] = torrents[i].Hash
 	}
 	return hashes, nil
+}
+
+// clientSettingsLanguage returns a function that reads the user's notification
+// language code from the client_settings key-value store. It re-reads each call
+// so a language change takes effect without a restart.
+func clientSettingsLanguage(store *models.ClientSettingsStore) func() string {
+	return func() string {
+		if store == nil {
+			return ""
+		}
+		settings, err := store.GetAll(context.Background())
+		if err != nil {
+			return ""
+		}
+		return settings["qui.language"]
+	}
 }

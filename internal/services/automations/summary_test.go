@@ -21,7 +21,7 @@ func TestAutomationSummaryMessageShowsFailureCountOnce(t *testing.T) {
 	summary.failed = 1
 	summary.failedByAction[models.ActivityActionDeleteFailed] = 1
 
-	msg := summary.message()
+	msg := summary.message("zh")
 	require.Equal(t, 1, strings.Count(msg, "失败: 1"))
 	require.Contains(t, msg, "生效种子: 0")
 }
@@ -56,7 +56,7 @@ func TestBuildAutomationRuleSummariesGroupsActionsByRule(t *testing.T) {
 		Outcome:  models.ActivityOutcomeSuccess,
 	}, 2)
 
-	got := buildAutomationRuleSummaries(summary)
+	got := buildAutomationRuleSummaries(summary, "zh")
 	require.Len(t, got, 2)
 
 	var ratioRuleFound bool
@@ -110,11 +110,11 @@ func TestBuildAutomationRuleSummariesUsesRuleIDFallbackWhenNameMissing(t *testin
 		Outcome: models.ActivityOutcomeSuccess,
 	}, 1)
 
-	msg := summary.message()
+	msg := summary.message("zh")
 	require.Contains(t, msg, "规则: Rule #99")
 	require.NotContains(t, msg, "Unknown rule")
 
-	got := buildAutomationRuleSummaries(summary)
+	got := buildAutomationRuleSummaries(summary, "zh")
 	require.Len(t, got, 1)
 	require.Equal(t, 99, got[0].RuleID)
 	require.Equal(t, "Rule #99", got[0].RuleName)
@@ -131,7 +131,7 @@ func TestAutomationSummaryMessageIncludesTagDetailsAndSamples(t *testing.T) {
 	)
 	summary.addTagSamples([]string{"Torrent B", "Torrent A", "Torrent A"}, 3)
 
-	msg := summary.message()
+	msg := summary.message("zh")
 	require.Contains(t, msg, "标签: +freeleech=2; -temp=1")
 	require.Contains(t, msg, "标签样本:")
 	require.Contains(t, msg, "Torrent A")
@@ -148,7 +148,7 @@ func TestAutomationSummaryMessageIncludesSamplesForNonDeleteActions(t *testing.T
 		TorrentName: "Some.Release.2026",
 	}, 1)
 
-	msg := summary.message()
+	msg := summary.message("zh")
 	require.Contains(t, msg, "影响种子:")
 	require.Contains(t, msg, "Some.Release.2026")
 }
@@ -164,7 +164,7 @@ func TestAutomationSummaryAddTorrentSamplesUsesLimitAndDedupes(t *testing.T) {
 		{action: models.ActivityActionMoved, name: "Torrent B", ratio: -1},
 	}, 3)
 
-	msg := summary.message()
+	msg := summary.message("zh")
 	require.Contains(t, msg, "影响种子:")
 	require.Contains(t, msg, "Torrent A")
 	require.Contains(t, msg, "Torrent B")
@@ -195,21 +195,61 @@ func TestAutomationSummaryMessageRendersRichTorrentSamples(t *testing.T) {
 		},
 	}, 3)
 
-	msg := summary.message()
+	msg := summary.message("zh")
 	require.Contains(t, msg, "生效种子: 1")
 	require.Contains(t, msg, "影响种子:")
 	require.Contains(t, msg, "――――――――――――――――")
-	require.Contains(t, msg, "⚡ 更新限速")
-	require.Contains(t, msg, "种子: Some.Release.2026.2160p.WEB-DL.H.265 (01234567)")
-	require.Contains(t, msg, "📦 大小: 42.37 GiB")
-	require.Contains(t, msg, "📈 分享率: 4.40")
-	require.Contains(t, msg, "📊 流量: ↑ 0 B / ↓ 0 B")
-	require.Contains(t, msg, "⚡ 速度: ↑ 38.60 MB/s / ↓ 0 B/s")
-	require.Contains(t, msg, "🗂️ 分类: Movies")
-	require.Contains(t, msg, "⚙️ 状态: uploading")
-	require.Contains(t, msg, "🌐 站点: tracker.example.net")
+	require.Contains(t, msg, "- 更新限速")
+	require.Contains(t, msg, "- 种子: Some.Release.2026.2160p.WEB-DL.H.265 (01234567)")
+	require.Contains(t, msg, "- 大小: 42.37 GiB")
+	require.Contains(t, msg, "- 分享率: 4.40")
+	require.Contains(t, msg, "- 流量: ↑ 0 B / ↓ 0 B")
+	require.Contains(t, msg, "- 速度: ↑ 38.60 MB/s / ↓ 0 B/s")
+	require.Contains(t, msg, "- 分类: Movies")
+	require.Contains(t, msg, "- 状态: uploading")
+	require.Contains(t, msg, "- 站点: tracker.example.net")
 	require.NotContains(t, msg, "成功操作")
 	require.NotContains(t, msg, "失败操作")
+}
+
+func TestAutomationSummaryMessageRendersEnglish(t *testing.T) {
+	t.Parallel()
+
+	summary := newAutomationSummary()
+	summary.recordActivity(&models.AutomationActivity{
+		Action:  models.ActivityActionSpeedLimitsChanged,
+		Outcome: models.ActivityOutcomeSuccess,
+	}, 1)
+	summary.addTorrentSamples([]automationSampleTorrent{
+		{
+			action:        models.ActivityActionSpeedLimitsChanged,
+			name:          "Some.Release.2026",
+			hash:          "0123456789abcdef",
+			sizeBytes:     42_370_000_000,
+			ratio:         4.4,
+			category:      "Movies",
+			trackerDomain: "tracker.example.net",
+			state:         "uploading",
+			upSpeedBps:    38_600_000,
+			downSpeedBps:  0,
+			hasFullData:   true,
+		},
+	}, 3)
+
+	msg := summary.message("en")
+	require.Contains(t, msg, "Affected torrents: 1")
+	require.Contains(t, msg, "Affected torrents:")
+	require.Contains(t, msg, "- Speed limits updated")
+	require.Contains(t, msg, "- Torrent: Some.Release.2026 (01234567)")
+	require.Contains(t, msg, "- Size: 42.37 GiB")
+	require.Contains(t, msg, "- Ratio: 4.40")
+	require.Contains(t, msg, "- Traffic: ↑ 0 B / ↓ 0 B")
+	require.Contains(t, msg, "- Speed: ↑ 38.60 MB/s / ↓ 0 B/s")
+	require.Contains(t, msg, "- Category: Movies")
+	require.Contains(t, msg, "- State: uploading")
+	require.Contains(t, msg, "- Tracker: tracker.example.net")
+	require.NotContains(t, msg, "生效种子")
+	require.NotContains(t, msg, "影响种子")
 }
 
 func TestAutomationSummaryMessageOmitsFailureCountWhenNone(t *testing.T) {
@@ -223,7 +263,7 @@ func TestAutomationSummaryMessageOmitsFailureCountWhenNone(t *testing.T) {
 	// A zero failure entry must not render a "失败: 0" line.
 	summary.failedByAction[models.ActivityActionSpeedLimitsChanged] = 0
 
-	msg := summary.message()
+	msg := summary.message("zh")
 	require.Contains(t, msg, "生效种子: 1")
 	require.NotContains(t, msg, "失败:")
 }
@@ -252,16 +292,16 @@ func TestSampleFromTorrentCapturesRichFields(t *testing.T) {
 	}, 1)
 	summary.addTorrentSamples([]automationSampleTorrent{sample}, 3)
 
-	msg := summary.message()
-	require.Contains(t, msg, "🗑️ 删除种子（规则）")
-	require.Contains(t, msg, "种子: My.Neighbor.Totoro.1988.1080p.NF.WEB-DL.H264.DDP2.0-HHWEB (abcdef01)")
-	require.Contains(t, msg, "📦 大小: 42.37 GiB")
-	require.Contains(t, msg, "📈 分享率: 4.40")
-	require.Contains(t, msg, "📊 流量: ↑ 92.81 GiB / ↓ 21.07 GiB")
-	require.Contains(t, msg, "🗂️ 分类: Movies")
-	require.Contains(t, msg, "⚙️ 状态: uploading")
-	require.Contains(t, msg, "⚡ 速度: ↑ 38.60 MB/s / ↓ 0 B/s")
-	require.Contains(t, msg, "🌐 站点: tracker.hhanclub.net")
+	msg := summary.message("zh")
+	require.Contains(t, msg, "- 删除种子（规则）")
+	require.Contains(t, msg, "- 种子: My.Neighbor.Totoro.1988.1080p.NF.WEB-DL.H264.DDP2.0-HHWEB (abcdef01)")
+	require.Contains(t, msg, "- 大小: 42.37 GiB")
+	require.Contains(t, msg, "- 分享率: 4.40")
+	require.Contains(t, msg, "- 流量: ↑ 92.81 GiB / ↓ 21.07 GiB")
+	require.Contains(t, msg, "- 分类: Movies")
+	require.Contains(t, msg, "- 状态: uploading")
+	require.Contains(t, msg, "- 速度: ↑ 38.60 MB/s / ↓ 0 B/s")
+	require.Contains(t, msg, "- 站点: tracker.hhanclub.net")
 }
 
 func TestAutomationSummaryMessageShowsZeroSpeedLine(t *testing.T) {
@@ -289,14 +329,14 @@ func TestAutomationSummaryMessageShowsZeroSpeedLine(t *testing.T) {
 		},
 	}, 3)
 
-	msg := summary.message()
-	require.Contains(t, msg, "📦 大小: 6.47 GiB")
-	require.Contains(t, msg, "📈 分享率: 2.30")
-	require.Contains(t, msg, "📊 流量: ↑ 0 B / ↓ 0 B")
-	require.Contains(t, msg, "⚡ 速度: ↑ 0 B/s / ↓ 0 B/s")
-	require.Contains(t, msg, "🗂️ 分类: HHCLUB-RESCUE")
-	require.Contains(t, msg, "⚙️ 状态: stalledUP")
-	require.Contains(t, msg, "🌐 站点: -")
+	msg := summary.message("zh")
+	require.Contains(t, msg, "- 大小: 6.47 GiB")
+	require.Contains(t, msg, "- 分享率: 2.30")
+	require.Contains(t, msg, "- 流量: ↑ 0 B / ↓ 0 B")
+	require.Contains(t, msg, "- 速度: ↑ 0 B/s / ↓ 0 B/s")
+	require.Contains(t, msg, "- 分类: HHCLUB-RESCUE")
+	require.Contains(t, msg, "- 状态: stalledUP")
+	require.Contains(t, msg, "- 站点: -")
 }
 
 func TestAutomationSummaryNameOnlySampleRendersHeaderOnly(t *testing.T) {
@@ -314,9 +354,9 @@ func TestAutomationSummaryNameOnlySampleRendersHeaderOnly(t *testing.T) {
 		},
 	}, 3)
 
-	msg := summary.message()
-	require.Contains(t, msg, "📤 导出到实例")
-	require.Contains(t, msg, "种子: Exported.Release.2026 (deadbeef)")
+	msg := summary.message("zh")
+	require.Contains(t, msg, "- 导出到实例")
+	require.Contains(t, msg, "- 种子: Exported.Release.2026 (deadbeef)")
 	require.NotContains(t, msg, "分享率")
 	require.NotContains(t, msg, "大小")
 	require.NotContains(t, msg, "速度")
@@ -387,7 +427,7 @@ func TestRecordMoveFailureRuleCountsContributesToNotifyGate(t *testing.T) {
 
 			require.Equal(t, tt.wantNotify, shouldNotifyAutomationSummary(summary, tt.automations))
 
-			got := buildAutomationRuleSummaries(summary)
+			got := buildAutomationRuleSummaries(summary, "zh")
 			require.Len(t, got, len(tt.wantFailedByRuleID))
 			for _, rule := range got {
 				require.Equal(t, tt.wantFailedByRuleID[rule.RuleID], rule.Failed)

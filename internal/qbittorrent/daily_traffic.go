@@ -9,6 +9,7 @@ import (
 
 	qbt "github.com/autobrr/go-qbittorrent"
 	"github.com/autobrr/qui/internal/models"
+	"github.com/autobrr/qui/pkg/timeutil"
 	"github.com/rs/zerolog/log"
 )
 
@@ -56,6 +57,20 @@ func NewDailyTrafficRecorder(store *models.InstanceDailyTrafficStore, retentionD
 		now:           func() time.Time { return time.Now() },
 		retentionDays: retentionDays,
 	}
+}
+
+// NewDailyTrafficRecorderWithTimezone builds a recorder whose day boundaries
+// follow the given timezone provider (updated at runtime from frontend
+// settings), instead of the server-local timezone.
+func NewDailyTrafficRecorderWithTimezone(store *models.InstanceDailyTrafficStore, retentionDays int, provider *timeutil.Provider) *DailyTrafficRecorder {
+	if retentionDays <= 0 {
+		retentionDays = 7
+	}
+	r := NewDailyTrafficRecorder(store, retentionDays)
+	if provider != nil {
+		r.now = provider.Now
+	}
+	return r
 }
 
 // trafficDelta is a single sample's computed attribution.

@@ -11,6 +11,7 @@ import (
 
 	"github.com/autobrr/qui/internal/models"
 	"github.com/autobrr/qui/internal/services/activity"
+	"github.com/autobrr/qui/pkg/timeutil"
 )
 
 // maxClientSettingsBodySize caps one PUT payload.
@@ -21,10 +22,23 @@ type ClientSettingsHandler struct {
 	// activity signals stored-settings changes so open tabs refetch instead
 	// of polling.
 	activity activity.Publisher
+	// timezone is refreshed from the stored settings so backend day boundaries
+	// follow the user's chosen timezone.
+	timezone *timeutil.Provider
 }
 
-func NewClientSettingsHandler(store *models.ClientSettingsStore, publisher activity.Publisher) *ClientSettingsHandler {
-	return &ClientSettingsHandler{store: store, activity: publisher}
+func NewClientSettingsHandler(store *models.ClientSettingsStore, publisher activity.Publisher, timezone *timeutil.Provider) *ClientSettingsHandler {
+	return &ClientSettingsHandler{store: store, activity: publisher, timezone: timezone}
+}
+
+// applyTimezoneSettings reads the timezone preference from a snapshot of the
+// stored settings and updates the shared provider. No-op when the provider is
+// nil (e.g. in tests).
+func (h *ClientSettingsHandler) applyTimezoneSettings(settings map[string]string) {
+	if h.timezone == nil {
+		return
+	}
+	h.timezone.Set(timeutil.TimezoneFromSettings(settings))
 }
 
 // GetClientSettings returns every stored setting as a key-value map.
@@ -35,6 +49,7 @@ func (h *ClientSettingsHandler) GetClientSettings(w http.ResponseWriter, r *http
 		RespondError(w, http.StatusInternalServerError, "Failed to load client settings")
 		return
 	}
+	h.applyTimezoneSettings(settings)
 	RespondJSON(w, http.StatusOK, settings)
 }
 
@@ -64,6 +79,7 @@ func (h *ClientSettingsHandler) UpdateClientSettings(w http.ResponseWriter, r *h
 		RespondError(w, http.StatusInternalServerError, "Failed to save client settings")
 		return
 	}
+	h.applyTimezoneSettings(settings)
 	h.activity.Publish(activity.Event{Kind: activity.KindClientSettings})
 	RespondJSON(w, http.StatusOK, settings)
 }

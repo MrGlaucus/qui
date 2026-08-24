@@ -121,7 +121,7 @@ func TestBuildBaselineReport(t *testing.T) {
 		return map[int]string{1: "OVH-KS1B-DE-1", 2: "HostDZire-US"}[instanceID]
 	}
 
-	title, message := buildBaselineReport("2026-08-11", rows, resolve)
+	title, message := buildBaselineReport("2026-08-11", rows, resolve, time.Local)
 
 	require.Equal(t, "🌙 基准采集结果 2026-08-11", title)
 	require.Contains(t, message, "🏷️ OVH-KS1B-DE-1")

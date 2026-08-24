@@ -23,6 +23,7 @@ import (
 
 	"github.com/autobrr/qui/internal/models"
 	"github.com/autobrr/qui/pkg/redact"
+	"github.com/autobrr/qui/pkg/timeutil"
 )
 
 const (
@@ -81,6 +82,36 @@ type Service struct {
 	queue         chan Event
 	startOnce     sync.Once
 	forceSync     func(ctx context.Context, instanceID int) error
+	// now returns the current time in the timezone traffic reports and day
+	// boundaries should use. Defaults to server-local time; call SetTimezone
+	// to follow the user's frontend timezone.
+	now func() time.Time
+	// loc returns the current timezone location used to format stored
+	// timestamps (e.g. baseline times) in reports.
+	loc func() *time.Location
+}
+
+// SetTimezone points the service's time source at the given timezone provider,
+// so daily/hourly traffic reports respect the user's calendar days instead of
+// the server's.
+func (s *Service) SetTimezone(provider *timeutil.Provider) {
+	if s == nil || provider == nil {
+		return
+	}
+	s.now = provider.Now
+	s.loc = provider.Location
+}
+
+// location returns the current timezone location for formatting stored
+// timestamps. Falls back to a default that does not require a provider.
+func (s *Service) location() *time.Location {
+	if s == nil {
+		return time.Local
+	}
+	if s.loc != nil {
+		return s.loc()
+	}
+	return time.Local
 }
 
 // SetForceSync registers a callback that triggers a qBittorrent maindata sync
@@ -104,6 +135,7 @@ func NewService(store *models.NotificationTargetStore, instanceStore *models.Ins
 		instanceStore: instanceStore,
 		logger:        logger,
 		queue:         make(chan Event, defaultQueueSize),
+		now:           time.Now,
 	}
 }
 
