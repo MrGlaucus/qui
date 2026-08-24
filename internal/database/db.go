@@ -226,6 +226,58 @@ var sqliteMigrationFilenameRenames = []migrationFilenameRename{
 		from: "093_add_daily_traffic_baseline.sql",
 		to:   "100_add_daily_traffic_baseline.sql",
 	},
+	// Fork migrations were renumbered above 2000 to avoid colliding with
+	// upstream's sequential numbers. Map every historical number to the final
+	// high number so existing databases (which may have recorded an earlier
+	// number after a prior merge) do not re-run them.
+	{
+		from: "083_add_indexer_upload_download_limit.sql",
+		to:   "2001_add_indexer_upload_download_limit.sql",
+	},
+	{
+		from: "084_update_indexers_view_for_limits.sql",
+		to:   "2002_update_indexers_view_for_limits.sql",
+	},
+	{
+		from: "090_add_cross_seed_log.sql",
+		to:   "2003_add_cross_seed_log.sql",
+	},
+	{
+		from: "091_add_cross_seed_log_columns.sql",
+		to:   "2004_add_cross_seed_log_columns.sql",
+	},
+	{
+		from: "092_add_cross_seed_log_indexer.sql",
+		to:   "2005_add_cross_seed_log_indexer.sql",
+	},
+	{
+		from: "094_add_instance_country.sql",
+		to:   "2006_add_instance_country.sql",
+	},
+	{
+		from: "095_add_indexer_limit_units.sql",
+		to:   "2007_add_indexer_limit_units.sql",
+	},
+	{
+		from: "096_update_indexers_view_for_units.sql",
+		to:   "2008_update_indexers_view_for_units.sql",
+	},
+	{
+		from: "097_add_daily_traffic.sql",
+		to:   "2009_add_daily_traffic.sql",
+	},
+	{
+		from: "098_add_auto_resume_max_download.sql",
+		to:   "2010_add_auto_resume_max_download.sql",
+	},
+	{
+		from: "099_add_cross_seed_title_rescue.sql",
+		to:   "2011_add_cross_seed_title_rescue.sql",
+	},
+	{
+		from: "100_add_daily_traffic_baseline.sql",
+		to:   "2012_add_daily_traffic_baseline.sql",
+	},
 }
 
 var postgresMigrationFilenameRenames = []migrationFilenameRename{
@@ -312,6 +364,58 @@ var postgresMigrationFilenameRenames = []migrationFilenameRename{
 	{
 		from: "095_add_daily_traffic_baseline.sql",
 		to:   "103_add_daily_traffic_baseline.sql",
+	},
+	// Fork migrations were renumbered above 2000 to avoid colliding with
+	// upstream's sequential numbers. Map every historical number to the final
+	// high number so existing databases (which may have recorded an earlier
+	// number after a prior merge) do not re-run them.
+	{
+		from: "085_add_indexer_upload_download_limit.sql",
+		to:   "2001_add_indexer_upload_download_limit.sql",
+	},
+	{
+		from: "086_update_indexers_view_for_limits.sql",
+		to:   "2002_update_indexers_view_for_limits.sql",
+	},
+	{
+		from: "093_add_auto_resume_max_download.sql",
+		to:   "2003_add_auto_resume_max_download.sql",
+	},
+	{
+		from: "094_add_cross_seed_title_rescue.sql",
+		to:   "2004_add_cross_seed_title_rescue.sql",
+	},
+	{
+		from: "096_add_instance_country.sql",
+		to:   "2005_add_instance_country.sql",
+	},
+	{
+		from: "097_add_indexer_limit_units.sql",
+		to:   "2006_add_indexer_limit_units.sql",
+	},
+	{
+		from: "098_update_indexers_view_for_units.sql",
+		to:   "2007_update_indexers_view_for_units.sql",
+	},
+	{
+		from: "099_add_daily_traffic.sql",
+		to:   "2008_add_daily_traffic.sql",
+	},
+	{
+		from: "100_add_cross_seed_log.sql",
+		to:   "2009_add_cross_seed_log.sql",
+	},
+	{
+		from: "101_add_cross_seed_log_columns.sql",
+		to:   "2010_add_cross_seed_log_columns.sql",
+	},
+	{
+		from: "102_add_cross_seed_log_indexer.sql",
+		to:   "2011_add_cross_seed_log_indexer.sql",
+	},
+	{
+		from: "103_add_daily_traffic_baseline.sql",
+		to:   "2012_add_daily_traffic_baseline.sql",
 	},
 }
 
