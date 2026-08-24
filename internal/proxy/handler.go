@@ -1683,8 +1683,7 @@ func (h *Handler) handleTorrentMediaInfo(w http.ResponseWriter, r *http.Request)
 
 	instance, prefs, err := validateProxyMediainfoRequest(ctx, h.instanceStore, h.syncManager, instanceID)
 	if err != nil {
-		var reqErr *proxyMediaInfoRequestError
-		if errors.As(err, &reqErr) {
+		if reqErr, ok := errors.AsType[*proxyMediaInfoRequestError](err); ok {
 			writeJSONError(w, reqErr.status, reqErr.message)
 			return
 		}
@@ -1696,8 +1695,7 @@ func (h *Handler) handleTorrentMediaInfo(w http.ResponseWriter, r *http.Request)
 
 	contentPath, resolvedPath, err := resolveProxyContentPathCandidates(r, prefs, contentPathCandidatesFromPreferences)
 	if err != nil {
-		var reqErr *proxyMediaInfoRequestError
-		if errors.As(err, &reqErr) {
+		if reqErr, ok := errors.AsType[*proxyMediaInfoRequestError](err); ok {
 			writeJSONError(w, reqErr.status, reqErr.message)
 			return
 		}
@@ -1719,8 +1717,7 @@ func (h *Handler) handleTorrentMediaInfo(w http.ResponseWriter, r *http.Request)
 
 	summaryTxt, rawJSON, err := analyzeMediaFile(resolvedPath, contentPath, instanceID)
 	if err != nil {
-		var reqErr *proxyMediaInfoRequestError
-		if errors.As(err, &reqErr) {
+		if reqErr, ok := errors.AsType[*proxyMediaInfoRequestError](err); ok {
 			writeJSONError(w, reqErr.status, reqErr.message)
 			return
 		}
@@ -1730,8 +1727,7 @@ func (h *Handler) handleTorrentMediaInfo(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err = writeProxyMediaInfoResponse(w, contentPath, summaryTxt, rawJSON); err != nil {
-		var writeErr *proxyMediaInfoResponseWriteError
-		if errors.As(err, &writeErr) {
+		if writeErr, ok := errors.AsType[*proxyMediaInfoResponseWriteError](err); ok {
 			if writeErr.encodeErr != nil {
 				log.Error().Err(writeErr.encodeErr).Int("instanceId", instanceID).Str("contentPath", contentPath).Msg("Failed to encode proxy mediainfo response")
 			}

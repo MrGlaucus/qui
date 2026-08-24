@@ -112,7 +112,7 @@ func ValidateURL(rawURL string) error {
 		_, err := parseNotifiarrAPIConfig(rawURL)
 		return err
 	}
-	_, err := router.New(nil, rawURL)
+	_, err := router.NewWithOptions(nil, types.SenderOptions{}, rawURL)
 	return err
 }
 
@@ -219,7 +219,7 @@ func (s *Service) send(ctx context.Context, target *models.NotificationTarget, e
 }
 
 func (s *Service) sendDefault(rawURL, title, message string, event Event) error {
-	sender, err := router.New(nil, rawURL)
+	sender, err := router.NewWithOptions(nil, types.SenderOptions{}, rawURL)
 	if err != nil {
 		return err
 	}
@@ -274,7 +274,7 @@ func (s *Service) sendDiscord(rawURL string, event Event, title, message string)
 }
 
 func (s *Service) sendNotifiarr(rawURL string, _ Event, title, message string) error {
-	sender, err := router.New(nil, rawURL)
+	sender, err := router.NewWithOptions(nil, types.SenderOptions{}, rawURL)
 	if err != nil {
 		return err
 	}

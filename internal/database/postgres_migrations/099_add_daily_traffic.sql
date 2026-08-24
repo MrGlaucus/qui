@@ -41,7 +41,8 @@ SELECT
     i.hardlink_dir_preset,
     i.use_reflinks,
     i.fallback_to_regular_mode,
-    i.daily_traffic_enabled
+    i.daily_traffic_enabled,
+    i.country_code
 FROM instances i
 LEFT JOIN string_pool n ON i.name_id = n.id
 LEFT JOIN string_pool h ON i.host_id = h.id
