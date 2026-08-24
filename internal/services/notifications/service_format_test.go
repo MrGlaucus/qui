@@ -10,6 +10,51 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestMaxMessageLengthForTarget(t *testing.T) {
+	t.Parallel()
+
+	telegramURL := "telegram://123456:token@telegram?chats=@channel"
+
+	tests := []struct {
+		name      string
+		rawURL    string
+		eventType EventType
+		want      int
+	}{
+		{
+			name:      "telegram uses the telegram cap",
+			rawURL:    telegramURL,
+			eventType: EventAutomationsActionsApplied,
+			want:      telegramMaxMessageLength,
+		},
+		{
+			name:      "generic target uses the generic cap",
+			rawURL:    "mailto://user:pass@host",
+			eventType: EventAutomationsActionsApplied,
+			want:      maxMessageLength,
+		},
+		{
+			name:      "generic daily report uses the long report cap",
+			rawURL:    "mailto://user:pass@host",
+			eventType: EventDailyTrafficReport,
+			want:      dailyReportMaxMessageLength,
+		},
+		{
+			name:      "telegram daily report still respects telegram cap",
+			rawURL:    telegramURL,
+			eventType: EventDailyTrafficReport,
+			want:      telegramMaxMessageLength,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, maxMessageLengthFor(tt.rawURL, tt.eventType))
+		})
+	}
+}
+
 func TestFormatEventTorrentAddedIncludesMetricLines(t *testing.T) {
 	t.Parallel()
 
@@ -149,13 +194,15 @@ func TestFormatEventAutomationsActionsAppliedMergesSamplesOutsideNotifiarrAPI(t 
 			"标签: +no_hl=1\n" +
 			"标签样本: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR\n" +
 			"影响种子:\n" +
-			"  · 🏷️ [更新标签] Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv",
+			"――――――――――――――――\n" +
+			"🏷️ 更新标签\n" +
+			"  种子: Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv",
 	}, true)
 
 	require.Equal(t, "自动化操作已应用", title)
 	require.Contains(t, message, "标签样本: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR")
 	require.Contains(t, message, "影响种子:")
-	require.Contains(t, message, "Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv")
+	require.Contains(t, message, "种子: Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv")
 	require.NotContains(t, message, "\n样本:")
 }
 
@@ -169,11 +216,14 @@ func TestFormatEventAutomationsActionsAppliedKeepsSamplesForNotifiarrAPI(t *test
 			"标签: +no_hl=1\n" +
 			"标签样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT\n" +
 			"影响种子:\n" +
-			"  · 🏷️ [更新标签] Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT",
+			"――――――――――――――――\n" +
+			"🏷️ 更新标签\n" +
+			"  种子: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT",
 	}, false)
 
 	require.Equal(t, "自动化操作已应用", title)
 	require.Contains(t, message, "标签样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
 	require.Contains(t, message, "影响种子:")
-	require.Contains(t, message, "🏷️ [更新标签] Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
+	require.Contains(t, message, "🏷️ 更新标签")
+	require.Contains(t, message, "种子: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT")
 }

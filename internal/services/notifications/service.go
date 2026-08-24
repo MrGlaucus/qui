@@ -229,11 +229,7 @@ func (s *Service) sendDefault(rawURL, title, message string, event Event) error 
 		params.SetTitle(truncateMessage(trimmed, maxTitleLength))
 	}
 
-	maxMessage := maxMessageLength
-	switch event.Type {
-	case EventDailyTrafficReport, EventHourlyTrafficReport, EventBaselineReport:
-		maxMessage = dailyReportMaxMessageLength
-	}
+	maxMessage := maxMessageLengthFor(rawURL, event.Type)
 	trimmedMessage := truncateMessage(message, maxMessage)
 	results := sender.Send(trimmedMessage, &params)
 	var errs []error
@@ -737,6 +733,7 @@ func parseSampleListLine(line, prefix string) []string {
 
 const (
 	maxMessageLength            = 420
+	telegramMaxMessageLength    = 4000
 	maxTitleLength              = 80
 	dailyReportMaxMessageLength = 8192
 	discordTitleLimit           = 256
@@ -753,6 +750,22 @@ const (
 	discordColorSuccess = 0x57f287
 	discordColorError   = 0xed4245
 )
+
+// maxMessageLengthFor returns the message length cap for a target and event.
+// Telegram accepts up to 4096 characters per message, while generic targets
+// (email, Slack, …) are capped much lower so longer automation notifications
+// (per-torrent details for several affected seeds) are not truncated there.
+func maxMessageLengthFor(rawURL string, eventType EventType) int {
+	if targetScheme(rawURL) == "telegram" {
+		return telegramMaxMessageLength
+	}
+	switch eventType {
+	case EventDailyTrafficReport, EventHourlyTrafficReport, EventBaselineReport:
+		return dailyReportMaxMessageLength
+	default:
+		return maxMessageLength
+	}
+}
 
 func targetScheme(rawURL string) string {
 	parsed, err := url.Parse(rawURL)

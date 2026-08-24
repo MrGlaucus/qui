@@ -127,6 +127,10 @@ type automationSampleTorrent struct {
 	downloaded    int64
 	upSpeedBps    int64
 	downSpeedBps  int64
+	// hasFullData marks snapshots captured from a full qbt.Torrent. Samples
+	// built from bare activity records carry no metrics and only render the
+	// header line, so missing data is not shown as fake zeroes.
+	hasFullData bool
 }
 
 type automationRuleSummary struct {
@@ -195,7 +199,7 @@ func (s *automationSummary) message() string {
 	if len(s.sampleTorrents) > 0 {
 		lines = append(lines, "影响种子:")
 		for _, sample := range s.sampleTorrents {
-			lines = append(lines, sample.render(1))
+			lines = append(lines, sample.render())
 		}
 	}
 	if len(s.sampleErrors) > 0 {
@@ -217,81 +221,52 @@ func (s *automationSummary) sampleTorrentNames() []string {
 	return names
 }
 
-func (s *automationSampleTorrent) render(indent int) string {
-	pad := strings.Repeat("  ", indent)
+func (s *automationSampleTorrent) render() string {
+	const seedDivider = "――――――――――――――――"
+
 	action := automationActionLabel(s.action)
 	if action == "" {
 		action = "操作"
 	}
-	header := fmt.Sprintf("%s· %s [%s] %s", pad, automationActionEmoji(s.action), action, s.name)
+
+	var b strings.Builder
+	b.WriteString(seedDivider)
+	b.WriteString("\n")
+	b.WriteString(automationActionEmoji(s.action) + " " + action)
+
+	seedLine := "  种子: " + s.name
 	if s.hash != "" {
-		header += fmt.Sprintf(" (%s)", shortHash(s.hash))
+		seedLine += fmt.Sprintf(" (%s)", shortHash(s.hash))
+	}
+	b.WriteString("\n")
+	b.WriteString(seedLine)
+
+	// Bare activity records carry no torrent metrics.
+	if !s.hasFullData {
+		return b.String()
 	}
 
-	var sizeField string
-	if s.sizeBytes > 0 {
-		sizeField = "📦 大小: " + formatAutomationBytes(s.sizeBytes)
+	fields := []string{
+		"  📦 大小: " + formatAutomationBytes(s.sizeBytes),
+		fmt.Sprintf("  📈 分享率: %.2f", s.ratio),
+		fmt.Sprintf("  📊 流量: ↑ %s / ↓ %s", formatAutomationBytes(s.uploaded), formatAutomationBytes(s.downloaded)),
+		fmt.Sprintf("  ⚡ 速度: ↑ %s / ↓ %s", formatAutomationSpeed(s.upSpeedBps), formatAutomationSpeed(s.downSpeedBps)),
+		"  🗂️ 分类: " + dashIfEmpty(s.category),
+		"  ⚙️ 状态: " + dashIfEmpty(s.state),
+		"  🌐 站点: " + dashIfEmpty(s.trackerDomain),
 	}
-	var ratioField string
-	if s.ratio >= 0 {
-		ratioField = fmt.Sprintf("📈 分享率: %.2f", s.ratio)
+	for _, f := range fields {
+		b.WriteString("\n")
+		b.WriteString(f)
 	}
-	var categoryField string
-	if s.category != "" {
-		categoryField = "🗂️ 分类: " + s.category
-	}
-	var stateField string
-	if s.state != "" {
-		stateField = "⚙️ 状态: " + s.state
-	}
-	var trafficField string
-	if s.uploaded > 0 || s.downloaded > 0 {
-		trafficField = fmt.Sprintf("📊 流量: ↑ %s / ↓ %s",
-			formatAutomationBytes(s.uploaded), formatAutomationBytes(s.downloaded))
-	}
-	var speedField string
-	if s.upSpeedBps > 0 || s.downSpeedBps > 0 {
-		speedField = fmt.Sprintf("⚡ 速度: ↑ %s / ↓ %s",
-			formatAutomationSpeed(s.upSpeedBps), formatAutomationSpeed(s.downSpeedBps))
-	}
-	var trackerField string
-	if s.trackerDomain != "" {
-		trackerField = "🌐 站点: " + s.trackerDomain
-	}
-
-	// Group related fields two per line for readability.
-	rows := make([]string, 0, 5)
-	if line := joinFields(" · ", sizeField, ratioField); line != "" {
-		rows = append(rows, line)
-	}
-	if line := joinFields(" · ", trafficField, ""); line != "" {
-		rows = append(rows, line)
-	}
-	if line := joinFields(" · ", speedField, ""); line != "" {
-		rows = append(rows, line)
-	}
-	if line := joinFields(" · ", categoryField, stateField); line != "" {
-		rows = append(rows, line)
-	}
-	if line := joinFields(" · ", trackerField, ""); line != "" {
-		rows = append(rows, line)
-	}
-
-	out := []string{header}
-	for _, row := range rows {
-		out = append(out, pad+"  "+row)
-	}
-	return strings.Join(out, "\n")
+	return b.String()
 }
 
-func joinFields(sep string, fields ...string) string {
-	parts := make([]string, 0, len(fields))
-	for _, f := range fields {
-		if f != "" {
-			parts = append(parts, f)
-		}
+func dashIfEmpty(v string) string {
+	if strings.TrimSpace(v) == "" {
+		return "-"
 	}
-	return strings.Join(parts, sep)
+	return v
 }
 
 func shortHash(hash string) string {
@@ -4612,6 +4587,7 @@ func sampleFromTorrent(action string, t qbt.Torrent) automationSampleTorrent {
 		downloaded:    t.Downloaded,
 		upSpeedBps:    t.UpSpeed,
 		downSpeedBps:  t.DlSpeed,
+		hasFullData:   true,
 	}
 }
 

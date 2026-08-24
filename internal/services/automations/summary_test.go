@@ -191,16 +191,22 @@ func TestAutomationSummaryMessageRendersRichTorrentSamples(t *testing.T) {
 			state:         "uploading",
 			upSpeedBps:    38_600_000,
 			downSpeedBps:  0,
+			hasFullData:   true,
 		},
 	}, 3)
 
 	msg := summary.message()
 	require.Contains(t, msg, "生效种子: 1")
 	require.Contains(t, msg, "影响种子:")
-	require.Contains(t, msg, "· ⚡ [更新限速] Some.Release.2026.2160p.WEB-DL.H.265 (01234567)")
-	require.Contains(t, msg, "📦 大小: 42.37 GiB · 📈 分享率: 4.40")
-	require.Contains(t, msg, "🗂️ 分类: Movies · ⚙️ 状态: uploading")
+	require.Contains(t, msg, "――――――――――――――――")
+	require.Contains(t, msg, "⚡ 更新限速")
+	require.Contains(t, msg, "种子: Some.Release.2026.2160p.WEB-DL.H.265 (01234567)")
+	require.Contains(t, msg, "📦 大小: 42.37 GiB")
+	require.Contains(t, msg, "📈 分享率: 4.40")
+	require.Contains(t, msg, "📊 流量: ↑ 0 B / ↓ 0 B")
 	require.Contains(t, msg, "⚡ 速度: ↑ 38.60 MB/s / ↓ 0 B/s")
+	require.Contains(t, msg, "🗂️ 分类: Movies")
+	require.Contains(t, msg, "⚙️ 状态: uploading")
 	require.Contains(t, msg, "🌐 站点: tracker.example.net")
 	require.NotContains(t, msg, "成功操作")
 	require.NotContains(t, msg, "失败操作")
@@ -247,12 +253,73 @@ func TestSampleFromTorrentCapturesRichFields(t *testing.T) {
 	summary.addTorrentSamples([]automationSampleTorrent{sample}, 3)
 
 	msg := summary.message()
-	require.Contains(t, msg, "· 🗑️ [删除种子（规则）] My.Neighbor.Totoro.1988.1080p.NF.WEB-DL.H264.DDP2.0-HHWEB (abcdef01)")
-	require.Contains(t, msg, "📦 大小: 42.37 GiB · 📈 分享率: 4.40")
+	require.Contains(t, msg, "🗑️ 删除种子（规则）")
+	require.Contains(t, msg, "种子: My.Neighbor.Totoro.1988.1080p.NF.WEB-DL.H264.DDP2.0-HHWEB (abcdef01)")
+	require.Contains(t, msg, "📦 大小: 42.37 GiB")
+	require.Contains(t, msg, "📈 分享率: 4.40")
 	require.Contains(t, msg, "📊 流量: ↑ 92.81 GiB / ↓ 21.07 GiB")
-	require.Contains(t, msg, "🗂️ 分类: Movies · ⚙️ 状态: uploading")
+	require.Contains(t, msg, "🗂️ 分类: Movies")
+	require.Contains(t, msg, "⚙️ 状态: uploading")
 	require.Contains(t, msg, "⚡ 速度: ↑ 38.60 MB/s / ↓ 0 B/s")
 	require.Contains(t, msg, "🌐 站点: tracker.hhanclub.net")
+}
+
+func TestAutomationSummaryMessageShowsZeroSpeedLine(t *testing.T) {
+	t.Parallel()
+
+	// A stalled/quiet torrent has zero speed both ways, but the notification
+	// should still show the speed line so the user can confirm no activity.
+	summary := newAutomationSummary()
+	summary.recordActivity(&models.AutomationActivity{
+		Action:  models.ActivityActionDeletedCondition,
+		Outcome: models.ActivityOutcomeSuccess,
+	}, 1)
+	summary.addTorrentSamples([]automationSampleTorrent{
+		{
+			action:       models.ActivityActionDeletedCondition,
+			name:         "Ballerina.2023.1080p.NF.WEB-DL",
+			hash:         "a9f451e2",
+			sizeBytes:    6_470_000_000,
+			ratio:        2.3,
+			category:     "HHCLUB-RESCUE",
+			state:        "stalledUP",
+			upSpeedBps:   0,
+			downSpeedBps: 0,
+			hasFullData:  true,
+		},
+	}, 3)
+
+	msg := summary.message()
+	require.Contains(t, msg, "📦 大小: 6.47 GiB")
+	require.Contains(t, msg, "📈 分享率: 2.30")
+	require.Contains(t, msg, "📊 流量: ↑ 0 B / ↓ 0 B")
+	require.Contains(t, msg, "⚡ 速度: ↑ 0 B/s / ↓ 0 B/s")
+	require.Contains(t, msg, "🗂️ 分类: HHCLUB-RESCUE")
+	require.Contains(t, msg, "⚙️ 状态: stalledUP")
+	require.Contains(t, msg, "🌐 站点: -")
+}
+
+func TestAutomationSummaryNameOnlySampleRendersHeaderOnly(t *testing.T) {
+	t.Parallel()
+
+	// Samples built from bare activity records have no metrics; they must not
+	// render fake zero fields like "分享率: -1.00".
+	summary := newAutomationSummary()
+	summary.addTorrentSamples([]automationSampleTorrent{
+		{
+			action: models.ActivityActionExportedToInstance,
+			name:   "Exported.Release.2026",
+			hash:   "deadbeef",
+			ratio:  -1,
+		},
+	}, 3)
+
+	msg := summary.message()
+	require.Contains(t, msg, "📤 导出到实例")
+	require.Contains(t, msg, "种子: Exported.Release.2026 (deadbeef)")
+	require.NotContains(t, msg, "分享率")
+	require.NotContains(t, msg, "大小")
+	require.NotContains(t, msg, "速度")
 }
 
 func TestRecordMoveFailureRuleCountsContributesToNotifyGate(t *testing.T) {
