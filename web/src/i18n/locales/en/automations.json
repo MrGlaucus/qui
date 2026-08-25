@@ -190,6 +190,7 @@
       "POPULARITY": "Popularity",
       "DL_SPEED": "Download Speed",
       "UP_SPEED": "Upload Speed",
+      "UP_SPEED_AVG": "Average Upload Speed",
       "DL_LIMIT": "Download Limit",
       "UP_LIMIT": "Upload Limit",
       "NUM_SEEDS": "Active Seeders",

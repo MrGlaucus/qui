@@ -190,6 +190,7 @@
       "POPULARITY": "热门度",
       "DL_SPEED": "下载速度",
       "UP_SPEED": "上传速度",
+      "UP_SPEED_AVG": "平均上传速度",
       "DL_LIMIT": "下载限制",
       "UP_LIMIT": "上传限制",
       "NUM_SEEDS": "活跃做种者",

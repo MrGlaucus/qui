@@ -93,10 +93,11 @@ const (
 	FieldPopularity       = models.FieldPopularity
 
 	// Numeric fields (speeds)
-	FieldDlSpeed = models.FieldDlSpeed
-	FieldUpSpeed = models.FieldUpSpeed
-	FieldDlLimit = models.FieldDlLimit
-	FieldUpLimit = models.FieldUpLimit
+	FieldDlSpeed    = models.FieldDlSpeed
+	FieldUpSpeed    = models.FieldUpSpeed
+	FieldUpSpeedAvg = models.FieldUpSpeedAvg
+	FieldDlLimit    = models.FieldDlLimit
+	FieldUpLimit    = models.FieldUpLimit
 
 	// Numeric fields (counts/misc)
 	FieldNumSeeds      = models.FieldNumSeeds

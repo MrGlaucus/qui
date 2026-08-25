@@ -3821,3 +3821,59 @@ func TestEvaluateCondition_CrossSeedTags(t *testing.T) {
 		})
 	}
 }
+
+func TestEvaluateCondition_UpSpeedAvg(t *testing.T) {
+	f64 := func(v float64) *float64 { return &v }
+	torrent := qbt.Torrent{Hash: "hash123"}
+	ctx := &EvalContext{
+		UpSpeedAvgByHash: map[string]int64{
+			"hash123": 1_000_000, // 1 MB/s
+		},
+	}
+
+	tests := []struct {
+		name     string
+		cond     *RuleCondition
+		expected bool
+	}{
+		{
+			name:     "greater than",
+			cond:     &RuleCondition{Field: FieldUpSpeedAvg, Operator: OperatorGreaterThan, Value: "500000"},
+			expected: true,
+		},
+		{
+			name:     "less than",
+			cond:     &RuleCondition{Field: FieldUpSpeedAvg, Operator: OperatorLessThan, Value: "2000000"},
+			expected: true,
+		},
+		{
+			name:     "equal",
+			cond:     &RuleCondition{Field: FieldUpSpeedAvg, Operator: OperatorEqual, Value: "1000000"},
+			expected: true,
+		},
+		{
+			name:     "not equal",
+			cond:     &RuleCondition{Field: FieldUpSpeedAvg, Operator: OperatorNotEqual, Value: "1000000"},
+			expected: false,
+		},
+		{
+			name:     "between",
+			cond:     &RuleCondition{Field: FieldUpSpeedAvg, Operator: OperatorBetween, MinValue: f64(900000), MaxValue: f64(1100000)},
+			expected: true,
+		},
+		{
+			name:     "missing hash returns false",
+			cond:     &RuleCondition{Field: FieldUpSpeedAvg, Operator: OperatorGreaterThan, Value: "0"},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := EvaluateConditionWithContext(tt.cond, torrent, ctx, 0)
+			if got != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, got)
+			}
+		})
+	}
+}

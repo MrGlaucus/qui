@@ -110,6 +110,10 @@ type EvalContext struct {
 	// Populated by the automation service when rules use PUBLISHED_ON_AGE.
 	PublishedAtMap map[string]int64
 
+	// UpSpeedAvgByHash maps torrent hash → average upload speed (bytes/s).
+	// Populated by the automation service when rules use UP_SPEED_AVG.
+	UpSpeedAvgByHash map[string]int64
+
 	// CrossInstanceHashSet contains hashes of torrents that exist on at least one other instance.
 	// Built from SyncManager cached data when rules use EXISTS_ON_OTHER_INSTANCE.
 	CrossInstanceHashSet map[string]struct{}
@@ -522,6 +526,15 @@ func evaluateLeaf(cond *RuleCondition, torrent qbt.Torrent, ctx *EvalContext) bo
 		return compareInt64(torrent.DlSpeed, cond)
 	case FieldUpSpeed:
 		return compareInt64(torrent.UpSpeed, cond)
+	case FieldUpSpeedAvg:
+		if ctx == nil || ctx.UpSpeedAvgByHash == nil {
+			return false
+		}
+		val, ok := ctx.UpSpeedAvgByHash[torrent.Hash]
+		if !ok {
+			return false
+		}
+		return compareInt64(val, cond)
 	case FieldDlLimit:
 		if cond.Operator == models.OperatorIs {
 			return torrent.DlLimit <= 0
