@@ -194,7 +194,6 @@ func TestFormatEventAutomationsActionsAppliedMergesSamplesOutsideNotifiarrAPI(t 
 			"标签: +no_hl=1\n" +
 			"标签样本: Godzilla.Minus.One.2023.Hybrid.1080p.BluRay.DUAL.DDP7.1.x264-ZoroSenpai.mkv; Mercy.2026.720p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR\n" +
 			"影响种子:\n" +
-			"――――――――――――――――\n" +
 			"- 更新标签\n" +
 			"- 种子: Hamnet.2025.Hybrid.1080p.BluRay.DDP7.1.x264-ZoroSenpai.mkv",
 	}, true)
@@ -216,7 +215,6 @@ func TestFormatEventAutomationsActionsAppliedKeepsSamplesForNotifiarrAPI(t *test
 			"标签: +no_hl=1\n" +
 			"标签样本: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT\n" +
 			"影响种子:\n" +
-			"――――――――――――――――\n" +
 			"- 更新标签\n" +
 			"- 种子: Hamnet.2025.720p.Blu-ray.DD5.1.x264-TRT",
 	}, false)

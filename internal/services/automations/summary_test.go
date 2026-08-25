@@ -198,7 +198,6 @@ func TestAutomationSummaryMessageRendersRichTorrentSamples(t *testing.T) {
 	msg := summary.message("zh")
 	require.Contains(t, msg, "生效种子: 1")
 	require.Contains(t, msg, "影响种子:")
-	require.Contains(t, msg, "――――――――――――――――")
 	require.Contains(t, msg, "- 更新限速")
 	require.Contains(t, msg, "- 种子: Some.Release.2026.2160p.WEB-DL.H.265 (01234567)")
 	require.Contains(t, msg, "- 大小: 42.37 GiB")

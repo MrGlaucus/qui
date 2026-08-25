@@ -72,8 +72,10 @@ import type {
   DashboardSettings,
   InstanceMeta,
   InstanceResponse,
+  InstanceDailyTrafficResponse,
   QBittorrentAppInfo,
   ServerState,
+  TodayTraffic,
   TorrentResponse,
   TorrentCounts,
   TorrentStats,
@@ -97,11 +99,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { DashboardSettingsDialog } from "@/components/dashboard-settings-dialog"
+import { DailyTrafficCard } from "@/components/dashboard/DailyTrafficCard"
 import { createStreamKey, useSyncStreamManager } from "@/contexts/SyncStreamContext"
 import { DEFAULT_DASHBOARD_SETTINGS, useDashboardSettings, useUpdateDashboardSettings } from "@/hooks/useDashboardSettings"
+import { useDailyTraffic } from "@/hooks/useDailyTraffic"
 import { useCreateTrackerCustomization, useDeleteTrackerCustomization, useTrackerCustomizations, useUpdateTrackerCustomization } from "@/hooks/useTrackerCustomizations"
 import { useTrackerIcons } from "@/hooks/useTrackerIcons"
 import { getLinuxTrackerDomain, useIncognitoMode } from "@/lib/incognito"
+import { mergeLiveTodayTraffic } from "@/lib/dashboard-stream"
 import { formatSpeedWithUnit, useSpeedUnits } from "@/lib/speedUnits"
 import type { TorrentStreamPayload } from "@/types"
 
@@ -120,6 +125,7 @@ interface DashboardInstanceStats {
   isDashboardStatsFallbackActive: boolean
   cacheMetadata: CacheMetadata | null | undefined
   instanceMeta: InstanceMeta | null  // Real-time instance health from SSE
+  todayTraffic: TodayTraffic | null  // Real-time day totals from SSE
 }
 
 type InstanceStreamData = {
@@ -135,6 +141,7 @@ type InstanceStreamData = {
   hasLiveDashboardStatsPayload: boolean
   cacheMetadata: CacheMetadata | null | undefined
   instanceMeta: InstanceMeta | null  // Real-time instance health from SSE
+  todayTraffic: TodayTraffic | null  // Real-time day totals from SSE
 }
 
 const createDefaultInstanceStreamData = (): InstanceStreamData => ({
@@ -150,6 +157,7 @@ const createDefaultInstanceStreamData = (): InstanceStreamData => ({
   hasLiveDashboardStatsPayload: false,
   cacheMetadata: null,
   instanceMeta: null,
+  todayTraffic: null,
 })
 
 const STREAM_REFRESH_INTERVAL_MS = 2000
@@ -218,6 +226,7 @@ function instanceStreamDataFromResponse(
     hasLiveDashboardStatsPayload: current?.hasLiveDashboardStatsPayload ?? false,
     cacheMetadata: response.cacheMetadata ?? current?.cacheMetadata ?? null,
     instanceMeta: response.instanceMeta ?? current?.instanceMeta ?? null,
+    todayTraffic: response.todayTraffic ?? current?.todayTraffic ?? null,
   }
 }
 
@@ -302,6 +311,13 @@ function useGlobalStats(statsData: DashboardInstanceStats[]) {
       globalRatio = alltimeUl / alltimeDl
     }
 
+    // Instances without a live todayTraffic row (disabled or not yet recorded)
+    // contribute zero, so the total only aggregates enabled instances.
+    const todayDownloaded = statsData.reduce((sum, { todayTraffic }) =>
+      sum + (todayTraffic?.downloaded || 0), 0)
+    const todayUploaded = statsData.reduce((sum, { todayTraffic }) =>
+      sum + (todayTraffic?.uploaded || 0), 0)
+
     return {
       connected,
       total: statsData.length,
@@ -319,6 +335,8 @@ function useGlobalStats(statsData: DashboardInstanceStats[]) {
       alltimeUl,
       globalRatio,
       totalPeers,
+      todayDownloaded,
+      todayUploaded,
     }
   }, [statsData])
 }
@@ -573,6 +591,7 @@ function useAllInstanceStats(instances: InstanceResponse[], options: { enabled: 
               hasLiveDashboardStatsPayload: current.hasLiveDashboardStatsPayload || hasLiveDashboardStatsPayload,
               cacheMetadata: data.cacheMetadata ?? current.cacheMetadata,
               instanceMeta: data.instanceMeta ?? current.instanceMeta,
+              todayTraffic: data.todayTraffic ?? current.todayTraffic,
             }
 
             return {
@@ -718,6 +737,7 @@ function useAllInstanceStats(instances: InstanceResponse[], options: { enabled: 
       isDashboardStatsFallbackActive: isFallbackActive,
       cacheMetadata,
       instanceMeta: state.instanceMeta,
+      todayTraffic: state.todayTraffic ?? fallbackData?.todayTraffic ?? null,
     }
   })
 }
@@ -746,11 +766,24 @@ function InstanceCard({
     streamError,
     isDashboardStatsFallbackActive,
     cacheMetadata,
+    todayTraffic,
   } = instanceData
   const [showSpeedLimitDialog, setShowSpeedLimitDialog] = useState(false)
 
   // Alternative speed limits toggle - no need to track state, just provide toggle function
   const queryClient = useQueryClient()
+
+  // Daily traffic: 7-day history + live today totals for the card and chart.
+  const { data: dailyTrafficData } = useDailyTraffic(instance.id, 7, instance.dailyTrafficEnabled !== false)
+  useEffect(() => {
+    if (!todayTraffic) {
+      return
+    }
+    queryClient.setQueryData<InstanceDailyTrafficResponse>(
+      ["daily-traffic", instance.id, 7],
+      current => mergeLiveTodayTraffic(current, todayTraffic)
+    )
+  }, [todayTraffic, instance.id, queryClient])
   const { mutate: toggleAltSpeed, isPending: isToggling } = useMutation({
     mutationFn: () => api.toggleAlternativeSpeedLimits(instance.id),
     onSuccess: () => {
@@ -1113,6 +1146,21 @@ function InstanceCard({
                   <span className="ml-auto font-medium truncate">{formatSpeedWithUnit(stats?.totalUploadSpeed || 0, speedUnit)}</span>
                 </div>
 
+                {instanceData.instance?.dailyTrafficEnabled !== false && todayTraffic && (
+                  <>
+                    <div className="flex items-center gap-2 text-xs">
+                      <Download className="h-3 w-3 text-chart-2 flex-shrink-0" />
+                      <span className="text-muted-foreground">{t("instanceCard.todayDownloaded")}</span>
+                      <span className="ml-auto font-medium truncate">{formatBytes(todayTraffic.downloaded)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <Upload className="h-3 w-3 text-chart-3 flex-shrink-0" />
+                      <span className="text-muted-foreground">{t("instanceCard.todayUploaded")}</span>
+                      <span className="ml-auto font-medium truncate">{formatBytes(todayTraffic.uploaded)}</span>
+                    </div>
+                  </>
+                )}
+
                 <div className="flex items-center gap-2 text-xs">
                   <HardDrive className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                   <Tooltip>
@@ -1147,6 +1195,10 @@ function InstanceCard({
                   <span>{isAdvancedMetricsOpen ? t("instanceCard.showLess") : t("instanceCard.showMore")}</span>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2 mt-2">
+                  {instance.dailyTrafficEnabled !== false && dailyTrafficData && dailyTrafficData.items.length > 0 && (
+                    <DailyTrafficCard items={dailyTrafficData.items} />
+                  )}
+
                   {uptimeSeconds !== null && (
                     <div className="flex items-center gap-2 text-xs">
                       <Clock className="h-3 w-3 text-muted-foreground" />
@@ -1310,6 +1362,29 @@ function GlobalStatsCards({ globalStats }: { globalStats: GlobalStats }) {
           <p className="text-xs text-muted-foreground">
             {t("globalStats.seedingActive", { count: globalStats.seedingTorrents, size: formatBytes(globalStats.totalSeedingSize) })}
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{t("globalStats.todayTraffic")}</CardTitle>
+          <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Download className="h-3 w-3" />
+              {t("globalStats.todayDownload")}
+            </p>
+            <div className="text-lg font-bold">{formatBytes(globalStats.todayDownloaded)}</div>
+          </div>
+          <div className="space-y-1">
+            <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Upload className="h-3 w-3" />
+              {t("globalStats.todayUpload")}
+            </p>
+            <div className="text-lg font-bold">{formatBytes(globalStats.todayUploaded)}</div>
+          </div>
         </CardContent>
       </Card>
     </>

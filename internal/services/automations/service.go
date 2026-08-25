@@ -169,7 +169,10 @@ func (s *automationSummary) message(lang string) string {
 	}
 	if len(s.sampleTorrents) > 0 {
 		lines = append(lines, notifications.T("automations.summary.affected", lang)+":")
-		for _, sample := range s.sampleTorrents {
+		for i, sample := range s.sampleTorrents {
+			if i > 0 {
+				lines = append(lines, "")
+			}
 			lines = append(lines, sample.render(lang))
 		}
 	}
@@ -193,16 +196,12 @@ func (s *automationSummary) sampleTorrentNames() []string {
 }
 
 func (s *automationSampleTorrent) render(lang string) string {
-	const seedDivider = "――――――――――――――――"
-
 	action := automationActionLabel(s.action, lang)
 	if action == "" {
 		action = notifications.T("automations.sample.action", lang)
 	}
 
 	var b strings.Builder
-	b.WriteString(seedDivider)
-	b.WriteString("\n")
 	b.WriteString("- " + action)
 
 	seedLine := "- " + notifications.T("automations.sample.torrent", lang) + ": " + s.name
