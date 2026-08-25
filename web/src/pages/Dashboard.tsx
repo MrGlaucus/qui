@@ -47,6 +47,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { TrackerIconImage } from "@/components/ui/tracker-icon"
 import { useDelayedVisibility } from "@/hooks/useDelayedVisibility"
+import { useIsMobile } from "@/hooks/useMediaQuery"
 import { useInstancePreferences } from "@/hooks/useInstancePreferences"
 import { useInstances } from "@/hooks/useInstances"
 import { usePersistedTitleBarSpeeds } from "@/hooks/usePersistedTitleBarSpeeds"
@@ -107,7 +108,8 @@ import { useCreateTrackerCustomization, useDeleteTrackerCustomization, useTracke
 import { useTrackerIcons } from "@/hooks/useTrackerIcons"
 import { getLinuxTrackerDomain, useIncognitoMode } from "@/lib/incognito"
 import { mergeLiveTodayTraffic } from "@/lib/dashboard-stream"
-import { formatSpeedWithUnit, useSpeedUnits } from "@/lib/speedUnits"
+import { flagClass } from "@/lib/countryFlags"
+import { formatSpeedWithUnit, useSpeedUnits, type SpeedUnit } from "@/lib/speedUnits"
 import type { TorrentStreamPayload } from "@/types"
 
 interface DashboardInstanceStats {
@@ -270,6 +272,23 @@ function mergeCachedInstanceData(
   }
 
   return next
+}
+
+// Split a speed into its numeric value and unit so the card can render them
+// with different sizes/weights.
+function splitSpeed(value: number, unit: SpeedUnit): { value: string; unit: string } {
+  const formatted = formatSpeedWithUnit(value, unit)
+  const idx = formatted.lastIndexOf(" ")
+  if (idx === -1) return { value: formatted, unit: "" }
+  return { value: formatted.slice(0, idx), unit: formatted.slice(idx + 1) }
+}
+
+function formatSpeedValue(value: number, unit: SpeedUnit): string {
+  return splitSpeed(value, unit).value
+}
+
+function formatSpeedUnit(value: number, unit: SpeedUnit): string {
+  return splitSpeed(value, unit).unit
 }
 
 // Shared hook for computing global stats across all instances
@@ -770,20 +789,30 @@ function InstanceCard({
   } = instanceData
   const [showSpeedLimitDialog, setShowSpeedLimitDialog] = useState(false)
 
+  // On mobile each card collapses independently; on desktop they share state.
+  const isMobile = useIsMobile()
+  const [localAdvancedMetricsOpen, setLocalAdvancedMetricsOpen] = useState(false)
+  const advancedMetricsOpen = isMobile ? localAdvancedMetricsOpen : isAdvancedMetricsOpen
+  const setAdvancedMetricsOpen = isMobile ? setLocalAdvancedMetricsOpen : setIsAdvancedMetricsOpen
+
   // Alternative speed limits toggle - no need to track state, just provide toggle function
   const queryClient = useQueryClient()
 
   // Daily traffic: 7-day history + live today totals for the card and chart.
   const { data: dailyTrafficData } = useDailyTraffic(instance.id, 7, instance.dailyTrafficEnabled !== false)
+  // Prefer the live SSE day totals; fall back to the REST 7-day snapshot's
+  // first row (today) so the cards still show numbers when the stream is down.
+  const liveTodayTraffic = todayTraffic
+  const effectiveTodayTraffic = liveTodayTraffic ?? dailyTrafficData?.items?.[0]
   useEffect(() => {
-    if (!todayTraffic) {
+    if (!liveTodayTraffic) {
       return
     }
     queryClient.setQueryData<InstanceDailyTrafficResponse>(
       ["daily-traffic", instance.id, 7],
-      current => mergeLiveTodayTraffic(current, todayTraffic)
+      current => mergeLiveTodayTraffic(current, liveTodayTraffic)
     )
-  }, [todayTraffic, instance.id, queryClient])
+  }, [liveTodayTraffic, instance.id, queryClient])
   const { mutate: toggleAltSpeed, isPending: isToggling } = useMutation({
     mutationFn: () => api.toggleAlternativeSpeedLimits(instance.id),
     onSuccess: () => {
@@ -888,9 +917,12 @@ function InstanceCard({
               className="flex items-center gap-2 hover:underline overflow-hidden flex-1 min-w-0"
             >
               <CardTitle
-                className="text-lg truncate min-w-0"
+                className="text-lg truncate min-w-0 sm:max-w-[130px] md:max-w-[160px] lg:max-w-[190px] flex items-center gap-1.5"
                 title={instance.name}
               >
+                {flagClass(instance.countryCode) && (
+                  <span className={`${flagClass(instance.countryCode)} rounded-sm text-sm shrink-0`} />
+                )}
                 {instance.name}
               </CardTitle>
               <ExternalLink className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -1076,19 +1108,41 @@ function InstanceCard({
             /* Show normal stats */
             <div className="space-y-2 sm:space-y-3">
               <div className="mb-3 sm:mb-4">
-                {/* Main stats row */}
-                <div className="flex items-center justify-around text-center">
-                  <div>
-                    <div className="text-base sm:text-lg font-semibold">{torrentCounts?.status?.downloading || 0}</div>
-                    <div className="text-xs text-muted-foreground">{t("instanceCard.downloading")}</div>
+                {/* Main stats row: realtime speeds (left) + torrent counts (right) */}
+                <div className="grid grid-cols-2 items-stretch divide-x divide-border/90">
+                  <div className="grid grid-cols-2 items-stretch text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="whitespace-nowrap tabular-nums text-base sm:text-lg font-semibold">
+                        {formatSpeedValue(stats?.totalDownloadSpeed || 0, speedUnit)}
+                        <span className="ml-0.5 text-[10px] sm:text-xs text-muted-foreground font-normal">{formatSpeedUnit(stats?.totalDownloadSpeed || 0, speedUnit)}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {t("instanceCard.download")}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="whitespace-nowrap tabular-nums text-base sm:text-lg font-semibold">
+                        {formatSpeedValue(stats?.totalUploadSpeed || 0, speedUnit)}
+                        <span className="ml-0.5 text-[10px] sm:text-xs text-muted-foreground font-normal">{formatSpeedUnit(stats?.totalUploadSpeed || 0, speedUnit)}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {t("instanceCard.upload")}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-base sm:text-lg font-semibold">{torrentCounts?.status?.active || 0}</div>
-                    <div className="text-xs text-muted-foreground">{t("instanceCard.active")}</div>
-                  </div>
-                  <div>
-                    <div className="text-base sm:text-lg font-semibold">{torrentCounts?.total || 0}</div>
-                    <div className="text-xs text-muted-foreground">{t("instanceCard.total")}</div>
+                  <div className="flex items-center justify-around text-center">
+                    <div>
+                      <div className="text-base sm:text-lg font-semibold">{torrentCounts?.status?.downloading || 0}</div>
+                      <div className="text-xs text-muted-foreground">{t("instanceCard.downloading")}</div>
+                    </div>
+                    <div>
+                      <div className="text-base sm:text-lg font-semibold">{torrentCounts?.status?.active || 0}</div>
+                      <div className="text-xs text-muted-foreground">{t("instanceCard.active")}</div>
+                    </div>
+                    <div>
+                      <div className="text-base sm:text-lg font-semibold">{torrentCounts?.total || 0}</div>
+                      <div className="text-xs text-muted-foreground">{t("instanceCard.total")}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1159,17 +1213,17 @@ function InstanceCard({
                   <span className="ml-auto font-medium truncate">{formatSpeedWithUnit(stats?.totalUploadSpeed || 0, speedUnit)}</span>
                 </div>
 
-                {instanceData.instance?.dailyTrafficEnabled !== false && todayTraffic && (
+                {instanceData.instance?.dailyTrafficEnabled !== false && effectiveTodayTraffic && (
                   <>
                     <div className="flex items-center gap-2 text-xs">
                       <Download className="h-3 w-3 text-chart-2 flex-shrink-0" />
                       <span className="text-muted-foreground">{t("instanceCard.todayDownloaded")}</span>
-                      <span className="ml-auto font-medium truncate">{formatBytes(todayTraffic.downloaded)}</span>
+                      <span className="ml-auto font-medium truncate">{formatBytes(effectiveTodayTraffic.downloaded)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">
                       <Upload className="h-3 w-3 text-chart-3 flex-shrink-0" />
                       <span className="text-muted-foreground">{t("instanceCard.todayUploaded")}</span>
-                      <span className="ml-auto font-medium truncate">{formatBytes(todayTraffic.uploaded)}</span>
+                      <span className="ml-auto font-medium truncate">{formatBytes(effectiveTodayTraffic.uploaded)}</span>
                     </div>
                   </>
                 )}
@@ -1198,14 +1252,14 @@ function InstanceCard({
                 </div>
               )}
 
-              <Collapsible open={isAdvancedMetricsOpen} onOpenChange={setIsAdvancedMetricsOpen}>
+              <Collapsible open={advancedMetricsOpen} onOpenChange={setAdvancedMetricsOpen}>
                 <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
-                  {isAdvancedMetricsOpen ? (
+                  {advancedMetricsOpen ? (
                     <ChevronDown className="h-3 w-3" />
                   ) : (
                     <ChevronRight className="h-3 w-3" />
                   )}
-                  <span>{isAdvancedMetricsOpen ? t("instanceCard.showLess") : t("instanceCard.showMore")}</span>
+                  <span>{advancedMetricsOpen ? t("instanceCard.showLess") : t("instanceCard.showMore")}</span>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2 mt-2">
                   {instance.dailyTrafficEnabled !== false && dailyTrafficData && dailyTrafficData.items.length > 0 && (
@@ -1315,20 +1369,21 @@ function MobileGlobalStatsCard({ globalStats }: { globalStats: GlobalStats }) {
         ))}
       </div>
 
-      <div className="mt-3 space-y-1">
-        <div className="flex items-center gap-1.5">
-          <Download className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">{t("mobileOverview.todayDownload")}</span>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <Download className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate text-xs text-muted-foreground">{t("mobileOverview.todayDownload")}</span>
+          </div>
+          <div className="text-lg font-bold tabular-nums">{formatBytes(globalStats.todayDownloaded)}</div>
         </div>
-        <div className="text-xl font-bold">{formatBytes(globalStats.todayDownloaded)}</div>
-      </div>
-
-      <div className="space-y-1">
-        <div className="flex items-center gap-1.5">
-          <Upload className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">{t("mobileOverview.todayUpload")}</span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <Upload className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate text-xs text-muted-foreground">{t("mobileOverview.todayUpload")}</span>
+          </div>
+          <div className="text-lg font-bold tabular-nums">{formatBytes(globalStats.todayUploaded)}</div>
         </div>
-        <div className="text-xl font-bold">{formatBytes(globalStats.todayUploaded)}</div>
       </div>
     </Card>
   )
