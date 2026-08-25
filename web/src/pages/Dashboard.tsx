@@ -1035,6 +1035,19 @@ function InstanceCard({
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-4 w-4 p-0 shrink-0 hover:bg-muted/50"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  window.open(instance.host, "_blank", "noopener,noreferrer")
+                }}
+                aria-label={t("instanceCard.openInstance")}
+              >
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 // the icon stays small so the host line stays one line; the pseudo-element
                 // carries the 44px tap target on phones, over non-interactive neighbours
                 className={`${!isFirstLoad ? "h-4 w-4" : "h-5 w-5"} p-0 ${isFirstLoad ? "hover:bg-muted/50" : ""} shrink-0 relative max-sm:before:absolute max-sm:before:-inset-x-3.5 max-sm:before:-top-6 max-sm:before:-bottom-1 max-sm:before:content-['']`}
@@ -1300,6 +1313,22 @@ function MobileGlobalStatsCard({ globalStats }: { globalStats: GlobalStats }) {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-3 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <Download className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">{t("mobileOverview.todayDownload")}</span>
+        </div>
+        <div className="text-xl font-bold">{formatBytes(globalStats.todayDownloaded)}</div>
+      </div>
+
+      <div className="space-y-1">
+        <div className="flex items-center gap-1.5">
+          <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">{t("mobileOverview.todayUpload")}</span>
+        </div>
+        <div className="text-xl font-bold">{formatBytes(globalStats.todayUploaded)}</div>
       </div>
     </Card>
   )
@@ -3247,8 +3276,8 @@ export function Dashboard() {
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-muted rounded w-48"></div>
           <div className="h-4 bg-muted rounded w-64"></div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            {[...Array(5)].map((_, i) => (
               <div key={i} className="h-24 bg-muted rounded"></div>
             ))}
           </div>
@@ -3335,7 +3364,7 @@ export function Dashboard() {
                         {/* Mobile: Single combined card */}
                         <MobileGlobalStatsCard globalStats={globalStats} />
                         {/* Tablet/Desktop: Separate cards */}
-                        <div className="hidden sm:grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="hidden sm:grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                           <GlobalStatsCards globalStats={globalStats} />
                         </div>
                       </div>
