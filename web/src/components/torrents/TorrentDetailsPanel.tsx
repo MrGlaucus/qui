@@ -70,6 +70,7 @@ function isTabValue(value: string): value is TabValue {
 export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceId, torrent, initialTab, onInitialTabConsumed, layout = "vertical", onClose, onNavigateToTorrent }: TorrentDetailsPanelProps) {
   const { t } = useTranslation("torrents")
   const [activeTab, setActiveTab] = usePersistedTabState<TabValue>(TAB_STORAGE_KEY, DEFAULT_TAB, isTabValue)
+  const isGeneralTabActive = activeTab === "general"
 
   // Apply initialTab override when provided
   useEffect(() => {
@@ -207,7 +208,14 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
     queryKey: ["torrent-properties", instanceId, torrent?.hash],
     queryFn: () => api.getTorrentProperties(instanceId, torrent!.hash),
     enabled: !!torrent && isReady,
-    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: () => {
+      if (!isGeneralTabActive) return false
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        return 2000
+      }
+      return false
+    },
+    staleTime: 0,
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   })
 
