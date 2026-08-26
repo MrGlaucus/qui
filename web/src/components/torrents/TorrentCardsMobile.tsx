@@ -793,6 +793,16 @@ function SwipeableCard({
         </div>
       )}
 
+      {/* Instance name row - only shown in unified (all-instances) view */}
+      {instanceBadge && (
+        <div className={cn("flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5 min-w-0", selectionMode && "pr-8")}>
+          {flagClass(instanceBadge.countryCode) && (
+            <span className={`${flagClass(instanceBadge.countryCode)} rounded-sm text-[10px] flex-shrink-0`} />
+          )}
+          <span className="truncate">{instanceBadge.name}</span>
+        </div>
+      )}
+
       {viewMode === "ultra-compact" ? (
         /* Ultra Compact Layout - Single Line */
         <div className="flex items-center gap-2">
@@ -906,7 +916,7 @@ function SwipeableCard({
               <div className="flex items-center gap-2">
                 {/* ETA */}
                 {torrent.eta > 0 && torrent.eta !== 8640000 && (
-            <div className="flex items-center gap-0.5">
+                  <div className="flex items-center gap-0.5">
                     <Clock className="h-3 w-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">{formatEta(torrent.eta)}</span>
                   </div>
@@ -995,16 +1005,8 @@ function SwipeableCard({
             )}
           </div>
 
-          {/* Right side: Instance badge, Percentage and Speeds */}
+          {/* Right side: Percentage and Speeds */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {instanceBadge && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground" title={instanceBadge.name}>
-                {flagClass(instanceBadge.countryCode) && (
-                  <span className={`${flagClass(instanceBadge.countryCode)} rounded-sm text-[10px]`} />
-                )}
-                {instanceBadge.name}
-              </Badge>
-            )}
             <span className="text-muted-foreground">
               {torrent.progress >= 0.99 && torrent.progress < 1 ? (
                 (Math.floor(torrent.progress * 1000) / 10).toFixed(1)
@@ -1053,16 +1055,8 @@ function SwipeableCard({
             )}
           </div>
 
-          {/* Instance badge + Tags - aligned to the right */}
+          {/* Tags - aligned to the right */}
           <div className="flex items-center gap-1 flex-wrap justify-end ml-auto overflow-hidden max-h-5">
-            {instanceBadge && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground" title={instanceBadge.name}>
-                {flagClass(instanceBadge.countryCode) && (
-                  <span className={`${flagClass(instanceBadge.countryCode)} rounded-sm text-[10px]`} />
-                )}
-                {instanceBadge.name}
-              </Badge>
-            )}
             {displayTags && (
               <>
                 <Tag className="h-3 w-3 text-muted-foreground flex-shrink-0" />
@@ -2254,9 +2248,9 @@ export function TorrentCardsMobile({
             const crossInstance = torrent as Partial<CrossInstanceTorrent>
             const instanceBadge = isAllInstancesView && typeof crossInstance.instanceId === "number" && crossInstance.instanceId > 0
               ? (() => {
-                  const inst = instancesById.get(crossInstance.instanceId!)
-                  return inst ? { name: inst.name, countryCode: inst.countryCode } : { name: crossInstance.instanceName ?? "" }
-                })()
+                const inst = instancesById.get(crossInstance.instanceId!)
+                return inst ? { name: inst.name, countryCode: inst.countryCode } : { name: crossInstance.instanceName ?? "" }
+              })()
               : null
 
             return (
