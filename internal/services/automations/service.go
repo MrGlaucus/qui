@@ -1201,7 +1201,7 @@ func (s *Service) PreviewDeleteRule(ctx context.Context, instanceID int, rule *m
 
 	evalCtx, instance := s.initPreviewEvalContext(ctx, instanceID, torrents)
 	if ruleUsesCondition(rule, FieldUpSpeedAvg) {
-		evalCtx.UpSpeedAvgByHash = s.hydrateTorrentUpSpeedAvg(ctx, instanceID, torrents)
+		evalCtx.UpSpeedAvgByHash = s.hydrateTorrentUpSpeedAvg(torrents)
 	}
 	var deleteCondition *RuleCondition
 	if rule != nil && rule.Conditions != nil && rule.Conditions.Delete != nil {
@@ -1742,7 +1742,7 @@ func (s *Service) PreviewCategoryRule(ctx context.Context, instanceID int, rule 
 
 	evalCtx, instance := s.initPreviewEvalContext(ctx, instanceID, torrents)
 	if ruleUsesCondition(rule, FieldUpSpeedAvg) {
-		evalCtx.UpSpeedAvgByHash = s.hydrateTorrentUpSpeedAvg(ctx, instanceID, torrents)
+		evalCtx.UpSpeedAvgByHash = s.hydrateTorrentUpSpeedAvg(torrents)
 	}
 	if rule != nil && rule.Conditions != nil && rule.Conditions.Category != nil {
 		s.setupPreviewTrackerDisplayNames(ctx, instanceID, rule.Conditions.Category.Condition, evalCtx)
@@ -2227,7 +2227,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 
 	// Build average upload speed map if rules use UP_SPEED_AVG
 	if rulesUseCondition(eligibleRules, FieldUpSpeedAvg) {
-		evalCtx.UpSpeedAvgByHash = s.hydrateTorrentUpSpeedAvg(ctx, instanceID, torrents)
+		evalCtx.UpSpeedAvgByHash = s.hydrateTorrentUpSpeedAvg(torrents)
 	}
 
 	// Build category index for EXISTS_IN/CONTAINS_IN operators
@@ -5278,23 +5278,14 @@ func (s *Service) hydrateTorrentTrackersForRule(ctx context.Context, instanceID 
 	return s.syncManager.HydrateTorrentTrackers(ctx, instanceID, torrents)
 }
 
-// hydrateTorrentUpSpeedAvg fetches the average upload speed (up_speed_avg) for
-// each torrent from qBittorrent's per-torrent properties endpoint. It returns a
-// map of torrent hash -> average upload speed in bytes/s. This is only invoked
-// when a rule uses the UP_SPEED_AVG condition, so the per-torrent HTTP cost is
-// paid only when needed.
-func (s *Service) hydrateTorrentUpSpeedAvg(ctx context.Context, instanceID int, torrents []qbt.Torrent) map[string]int64 {
-	if s == nil || s.syncManager == nil || len(torrents) == 0 {
-		return nil
-	}
+func (s *Service) hydrateTorrentUpSpeedAvg(torrents []qbt.Torrent) map[string]int64 {
 	avgByHash := make(map[string]int64, len(torrents))
 	for i := range torrents {
-		props, err := s.syncManager.GetTorrentProperties(ctx, instanceID, torrents[i].Hash)
-		if err != nil {
-			log.Debug().Err(err).Int("instanceID", instanceID).Str("hash", torrents[i].Hash).Msg("automations: failed to get torrent properties for UP_SPEED_AVG")
+		t := torrents[i]
+		if t.TimeActive <= 0 {
 			continue
 		}
-		avgByHash[torrents[i].Hash] = int64(props.UpSpeedAvg)
+		avgByHash[t.Hash] = t.Uploaded / t.TimeActive
 	}
 	return avgByHash
 }
