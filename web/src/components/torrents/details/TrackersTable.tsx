@@ -74,7 +74,7 @@ export const TrackersTable = memo(function TrackersTable({
     }),
     columnHelper.accessor("url", {
       header: t("trackersTable.tracker"),
-      meta: { fullWidth: true },
+      size: 200,
       cell: (info) => {
         const url = info.getValue()
         const fullUrl = incognitoMode ? "https://tracker.example.com/announce" : url
@@ -117,7 +117,7 @@ export const TrackersTable = memo(function TrackersTable({
     }),
     columnHelper.accessor("msg", {
       header: t("trackersTable.message"),
-      size: 200,
+      meta: { fullWidth: true },
       cell: (info) => {
         const msg = info.getValue()
         if (!msg) return <span className="text-muted-foreground">-</span>
