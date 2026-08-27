@@ -21,6 +21,7 @@ import (
 	qbt "github.com/autobrr/go-qbittorrent"
 	"github.com/rs/zerolog/log"
 
+	"github.com/autobrr/qui/internal/fsops"
 	"github.com/autobrr/qui/internal/models"
 	"github.com/autobrr/qui/internal/qbittorrent"
 	"github.com/autobrr/qui/internal/services/activity"
@@ -92,6 +93,7 @@ type automationSampleTorrent struct {
 	sizeBytes     int64
 	ratio         float64
 	category      string
+	tags          string
 	trackerDomain string
 	state         string
 	uploaded      int64
@@ -221,6 +223,7 @@ func (s *automationSampleTorrent) render(lang string) string {
 	trafficLabel := notifications.T("automations.sample.traffic", lang)
 	speedLabel := notifications.T("automations.sample.speed", lang)
 	categoryLabel := notifications.T("automations.sample.category", lang)
+	tagsLabel := notifications.T("automations.sample.tags", lang)
 	stateLabel := notifications.T("automations.sample.state", lang)
 	trackerLabel := notifications.T("automations.sample.tracker", lang)
 
@@ -232,6 +235,9 @@ func (s *automationSampleTorrent) render(lang string) string {
 		"- " + categoryLabel + ": " + dashIfEmpty(s.category),
 		"- " + stateLabel + ": " + dashIfEmpty(s.state),
 		"- " + trackerLabel + ": " + dashIfEmpty(s.trackerDomain),
+	}
+	if strings.TrimSpace(s.tags) != "" {
+		fields = append(fields, "- "+tagsLabel+": "+s.tags)
 	}
 	for _, f := range fields {
 		b.WriteString("\n")
@@ -712,6 +718,7 @@ type Service struct {
 	externalProgramService    *externalprograms.Service // for executing external programs
 	crossMatcher              CrossMatcher
 	crossSeedLogStore         *models.CrossSeedLogStore
+	backendPool               *fsops.Pool
 	activityRuns              *activityRunStore
 	releaseParser             *releases.Parser
 	// language returns the user's notification language code (e.g. "zh-CN" or
@@ -728,7 +735,7 @@ type Service struct {
 	activityPublisher activity.Publisher
 }
 
-func NewService(cfg Config, instanceStore *models.InstanceStore, ruleStore *models.AutomationStore, activityStore *models.AutomationActivityStore, trackerCustomizationStore *models.TrackerCustomizationStore, syncManager *qbittorrent.SyncManager, notifier notifications.Notifier, externalProgramService *externalprograms.Service, crossMatcher CrossMatcher, crossSeedLogStore *models.CrossSeedLogStore) *Service {
+func NewService(cfg Config, instanceStore *models.InstanceStore, ruleStore *models.AutomationStore, activityStore *models.AutomationActivityStore, trackerCustomizationStore *models.TrackerCustomizationStore, syncManager *qbittorrent.SyncManager, notifier notifications.Notifier, externalProgramService *externalprograms.Service, crossMatcher CrossMatcher, crossSeedLogStore *models.CrossSeedLogStore, backendPool *fsops.Pool) *Service {
 	if cfg.ScanInterval <= 0 {
 		cfg.ScanInterval = DefaultConfig().ScanInterval
 	}
@@ -758,6 +765,7 @@ func NewService(cfg Config, instanceStore *models.InstanceStore, ruleStore *mode
 		externalProgramService:    externalProgramService,
 		crossMatcher:              crossMatcher,
 		crossSeedLogStore:         crossSeedLogStore,
+		backendPool:               backendPool,
 		activityRuns:              newActivityRunStore(cfg.ActivityRunRetention, cfg.ActivityRunMax),
 		releaseParser:             releases.NewDefaultParser(),
 		lastApplied:               make(map[int]map[string]time.Time),
@@ -1154,7 +1162,14 @@ func (s *Service) setupFreeSpaceContext(ctx context.Context, instanceID int, rul
 		return nil
 	}
 
-	freeSpace, err := GetFreeSpaceBytesForSource(ctx, s.syncManager, instance, rule.FreeSpaceSource)
+	backend, err := s.backendPool.GetBackend(ctx, instanceID)
+	if err != nil {
+		// The rule needs FREE_SPACE; evaluating without it would silently
+		// treat the disk as having no data. Fail the setup instead.
+		return fmt.Errorf("no filesystem backend for free space check: %w", err)
+	}
+
+	freeSpace, err := GetFreeSpaceBytesForSource(ctx, s.syncManager, instance, rule.FreeSpaceSource, backend)
 	if err != nil {
 		log.Error().Err(err).Int("instanceID", instanceID).Msg("automations: failed to get free space")
 		return fmt.Errorf("failed to get free space: %w", err)
@@ -1298,7 +1313,12 @@ func (s *Service) setupMissingFilesContext(
 		return
 	}
 
-	evalCtx.HasMissingFilesByHash = s.detectMissingFiles(ctx, instanceID, torrents)
+	missing, err := s.detectMissingFiles(ctx, instanceID, torrents)
+	if err != nil {
+		log.Warn().Err(err).Int("instanceID", instanceID).Msg("automations: missing files detection failed")
+		return
+	}
+	evalCtx.HasMissingFilesByHash = missing
 }
 
 func buildPreviewScoreMap(torrents []qbt.Torrent, rule *models.Automation, evalCtx *EvalContext) map[string]float64 {
@@ -2270,7 +2290,12 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 
 	// On-demand missing files detection (only if rules use HAS_MISSING_FILES and instance has local access)
 	if instance.HasLocalFilesystemAccess && rulesUseCondition(eligibleRules, FieldHasMissingFiles) {
-		evalCtx.HasMissingFilesByHash = s.detectMissingFiles(ctx, instanceID, torrents)
+		missing, err := s.detectMissingFiles(ctx, instanceID, torrents)
+		if err != nil {
+			log.Warn().Err(err).Int("instanceID", instanceID).Msg("automations: missing files detection failed")
+		} else {
+			evalCtx.HasMissingFilesByHash = missing
+		}
 	}
 
 	// On-demand cross-match lookup (same-instance and other-instance cross-seed detection)
@@ -2305,7 +2330,14 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			}
 
 			// Get free space for this source
-			freeSpace, err := GetFreeSpaceBytesForSource(ctx, s.syncManager, instance, r.FreeSpaceSource)
+			backend, backendErr := s.backendPool.GetBackend(ctx, instanceID)
+			if backendErr != nil {
+				log.Warn().Err(backendErr).Int("instanceID", instanceID).Str("sourceKey", sourceKey).Msg("automations: no backend for free space")
+				wrapped := fmt.Errorf("failed to get backend for free space source %s: %w", sourceKey, backendErr)
+				s.notifyAutomationFailure(ctx, instanceID, wrapped)
+				return nil, wrapped
+			}
+			freeSpace, err := GetFreeSpaceBytesForSource(ctx, s.syncManager, instance, r.FreeSpaceSource, backend)
 			if err != nil {
 				log.Error().Err(err).Int("instanceID", instanceID).Str("sourceKey", sourceKey).Msg("automations: failed to get free space for source")
 				wrapped := fmt.Errorf("failed to get free space for source %s: %w", sourceKey, err)
@@ -4590,6 +4622,7 @@ func sampleFromTorrent(action string, t qbt.Torrent) automationSampleTorrent {
 		sizeBytes:     t.Size,
 		ratio:         t.Ratio,
 		category:      t.Category,
+		tags:          t.Tags,
 		trackerDomain: trackerDomain(t.Tracker),
 		state:         string(t.State),
 		uploaded:      t.Uploaded,
@@ -5479,18 +5512,37 @@ func buildTrackerDisplayNameMap(customizations []*models.TrackerCustomization) m
 	return result
 }
 
-// buildFullPath constructs the full path for a torrent file.
-// qBittorrent always returns forward slashes, so we normalize using filepath.FromSlash.
-func buildFullPath(basePath, filePath string) string {
-	// Normalize forward slashes to OS-native path separators
-	normalizedFile := filepath.FromSlash(filePath)
-	normalizedBase := filepath.FromSlash(basePath)
-
-	cleaned := filepath.Clean(normalizedFile)
-	if filepath.IsAbs(cleaned) {
-		return cleaned
+// buildFullPath converts a torrent-internal (slash-delimited) file name into a
+// local filesystem path under basePath. Torrent metadata is untrusted on every
+// OS, so names that are absolute, drive-qualified, UNC, or escape basePath via
+// ".." are rejected in both POSIX and Windows form (ok=false). Names carrying
+// a literal backslash are rejected rather than rewritten: backslash is a legal
+// filename byte on Linux, and inventing a nested path from it makes
+// missing-files flag a file that exists (a skipped file is safe, a false
+// missing-files verdict can fire a destructive rule).
+//
+// basePath must be absolute in local form. An empty or relative save path would
+// otherwise join to a relative path that resolves against the process working
+// directory, so a file that exists would stat as missing.
+func buildFullPath(basePath, fileName string) (string, bool) {
+	base := filepath.FromSlash(basePath)
+	if base == "" || !filepath.IsAbs(base) {
+		return "", false
 	}
-	return filepath.Join(normalizedBase, cleaned)
+	if fileName == "" || strings.ContainsRune(fileName, '\\') ||
+		strings.HasPrefix(fileName, "/") || hasWindowsDrivePrefix(fileName) {
+		return "", false
+	}
+	cleaned := path.Clean(fileName)
+	if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", false
+	}
+	return filepath.Join(base, filepath.FromSlash(cleaned)), true
+}
+
+func hasWindowsDrivePrefix(p string) bool {
+	return len(p) >= 2 && p[1] == ':' &&
+		(('a' <= p[0] && p[0] <= 'z') || ('A' <= p[0] && p[0] <= 'Z'))
 }
 
 // applySpeedLimits applies upload or download limits in batches, logging and recording failures.

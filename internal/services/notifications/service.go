@@ -187,7 +187,15 @@ func (s *Service) SendTest(ctx context.Context, target *models.NotificationTarge
 		return errors.New("notification target required")
 	}
 
-	return s.send(ctx, target, Event{}, title, message)
+	event := Event{}
+	if targetScheme(target.URL) == "notifiarrapi" {
+		if len(target.EventTypes) == 0 {
+			return errors.New("notifiarr api test requires at least one event type")
+		}
+		event.Type = EventType(target.EventTypes[0])
+	}
+
+	return s.send(ctx, target, event, title, message)
 }
 
 func (s *Service) worker(ctx context.Context) {
@@ -585,9 +593,11 @@ func buildMessage(instanceLabel string, lines []string) string {
 		payload = append(payload, formatLine("实例", trimmed))
 	}
 	for _, line := range lines {
-		if trimmed := strings.TrimSpace(line); trimmed != "" {
-			payload = append(payload, trimmed)
+		if strings.TrimSpace(line) == "" {
+			payload = append(payload, "")
+			continue
 		}
+		payload = append(payload, line)
 	}
 	return strings.Join(payload, "\n")
 }
@@ -660,7 +670,7 @@ func formatAutomationsEvent(instanceLabel, defaultTitle, overrideTitle, message 
 		return title, ""
 	}
 
-	lines := splitMessageLines(message)
+	lines := strings.Split(strings.TrimSpace(message), "\n")
 	if dedupeSampleLines {
 		lines = mergeAutomationSampleLines(lines)
 	}

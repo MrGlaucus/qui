@@ -41,6 +41,7 @@ func init() {
 		"automations.sample.traffic":  {"zh": "流量", "en": "Traffic"},
 		"automations.sample.speed":    {"zh": "速度", "en": "Speed"},
 		"automations.sample.category": {"zh": "分类", "en": "Category"},
+		"automations.sample.tags":     {"zh": "标签", "en": "Tags"},
 		"automations.sample.state":    {"zh": "状态", "en": "State"},
 		"automations.sample.tracker":  {"zh": "站点", "en": "Tracker"},
 	})

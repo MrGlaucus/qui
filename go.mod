@@ -10,7 +10,7 @@ require (
 	github.com/andybalholm/brotli v1.2.2
 	github.com/autobrr/autobrr v1.82.1
 	github.com/autobrr/go-mediainfo v0.8.0
-	github.com/autobrr/go-qbittorrent v1.17.1-0.20260815045428-fe3b4cb79f3e
+	github.com/autobrr/go-qbittorrent v1.18.1-0.20260825200055-b0abc1c0134d
 	github.com/autobrr/go-torrent v1.1.1-0.20260811091921-e2224c4f4e34
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/cespare/xxhash/v2 v2.3.0
@@ -78,6 +78,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.70.1 // indirect
