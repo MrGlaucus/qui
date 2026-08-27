@@ -74,6 +74,7 @@ export const TrackersTable = memo(function TrackersTable({
     }),
     columnHelper.accessor("url", {
       header: t("trackersTable.tracker"),
+      meta: { fullWidth: true },
       cell: (info) => {
         const url = info.getValue()
         const fullUrl = incognitoMode ? "https://tracker.example.com/announce" : url
@@ -116,7 +117,7 @@ export const TrackersTable = memo(function TrackersTable({
     }),
     columnHelper.accessor("msg", {
       header: t("trackersTable.message"),
-      meta: { fullWidth: true },
+      size: 200,
       cell: (info) => {
         const msg = info.getValue()
         if (!msg) return <span className="text-muted-foreground">-</span>
@@ -156,18 +157,18 @@ export const TrackersTable = memo(function TrackersTable({
       cell: (info) => {
         const value = info.getValue()
         if (!value) return <span className="text-muted-foreground">-</span>
-        return <span className="tabular-nums">{formatTimestamp(value)}</span>
+        return <span className="tabular-nums whitespace-nowrap">{formatTimestamp(value)}</span>
       },
-      size: 170,
+      size: 200,
     }),
     columnHelper.accessor("min_announce", {
       header: t("trackersTable.minAnnounce"),
       cell: (info) => {
         const value = info.getValue()
         if (!value) return <span className="text-muted-foreground">-</span>
-        return <span className="tabular-nums">{formatTimestamp(value)}</span>
+        return <span className="tabular-nums whitespace-nowrap">{formatTimestamp(value)}</span>
       },
-      size: 170,
+      size: 200,
     }),
   ]), [incognitoMode, t, trackerIcons])
 
