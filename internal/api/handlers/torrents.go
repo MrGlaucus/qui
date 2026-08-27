@@ -2247,8 +2247,8 @@ func (h *TorrentsHandler) GetTorrentTrackers(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Get trackers
-	trackers, err := h.syncManager.GetTorrentTrackers(r.Context(), instanceID, hash)
+	// Get trackers (with announce timing where the qBittorrent version exposes it)
+	trackers, err := h.syncManager.GetTorrentTrackersView(r.Context(), instanceID, hash)
 	if err != nil {
 		if respondIfInstanceDisabled(w, err, instanceID, "torrents:getTrackers") {
 			return

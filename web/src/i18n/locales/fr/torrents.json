@@ -1232,6 +1232,8 @@
     "leeches": "Leeches",
     "downloaded": "Téléchargés",
     "message": "Message",
+    "nextAnnounce": "Next announce",
+    "minAnnounce": "Min announce",
     "noTrackersFound": "Aucun tracker trouvé"
   },
   "trackerContextMenu": {

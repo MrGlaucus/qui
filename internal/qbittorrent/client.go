@@ -65,7 +65,14 @@ var errInvalidWebAPIVersion = errors.New("invalid qBittorrent WebAPI version")
 
 type Client struct {
 	*qbt.Client
-	instanceID                 int
+	instanceID int
+	// host, apiKey and basic credentials are retained so qui can issue raw
+	// authenticated qBittorrent WebAPI requests (e.g. tracker announce times)
+	// without re-implementing the library's auth flow.
+	host                       string
+	apiKey                     string
+	basicUser                  string
+	basicPass                  string
 	webAPIVersion              string
 	supportsSetTags            bool
 	supportsSetComment         bool
@@ -171,9 +178,24 @@ func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiK
 		return nil, fmt.Errorf("failed to connect to qBittorrent instance: %w", err)
 	}
 
+	basicUser, basicPass := "", ""
+	if basicUsername != nil && *basicUsername != "" {
+		basicUser = *basicUsername
+		if basicPassword != nil {
+			basicPass = *basicPassword
+		}
+	} else if hostUser != "" || hostPass != "" {
+		basicUser = hostUser
+		basicPass = hostPass
+	}
+
 	client := &Client{
 		Client:          qbtClient,
 		instanceID:      instanceID,
+		host:            instanceHost,
+		apiKey:          apiKey,
+		basicUser:       basicUser,
+		basicPass:       basicPass,
 		lastHealthCheck: time.Now(),
 		isHealthy:       true,
 		optimisticUpdates: ttlcache.New(ttlcache.Options[string, *OptimisticTorrentUpdate]{}.

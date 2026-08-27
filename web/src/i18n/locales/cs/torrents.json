@@ -1232,6 +1232,8 @@
     "leeches": "Stahovatelé",
     "downloaded": "Stáhnuto",
     "message": "Zpráva",
+    "nextAnnounce": "Next announce",
+    "minAnnounce": "Min announce",
     "noTrackersFound": "Nenalezen žádný tracker"
   },
   "trackerContextMenu": {

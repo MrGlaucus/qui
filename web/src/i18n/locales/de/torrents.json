@@ -1232,6 +1232,8 @@
     "leeches": "Leeches",
     "downloaded": "DLs",
     "message": "Nachricht",
+    "nextAnnounce": "Next announce",
+    "minAnnounce": "Min announce",
     "noTrackersFound": "Keine Tracker gefunden"
   },
   "trackerContextMenu": {

@@ -1143,6 +1143,8 @@
     "leeches": "下載",
     "downloaded": "已完成",
     "message": "訊息",
+    "nextAnnounce": "下次匯報",
+    "minAnnounce": "最小匯報",
     "noTrackersFound": "未找到 Tracker"
   },
   "trackerContextMenu": {

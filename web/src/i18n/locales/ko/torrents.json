@@ -1173,6 +1173,8 @@
     "leeches": "리처",
     "downloaded": "DL",
     "message": "메시지",
+    "nextAnnounce": "Next announce",
+    "minAnnounce": "Min announce",
     "noTrackersFound": "트래커를 찾을 수 없습니다"
   },
   "trackerContextMenu": {

@@ -14,6 +14,8 @@ export interface TorrentTracker {
   num_leeches: number
   num_downloaded: number
   msg: string
+  next_announce?: number | null
+  min_announce?: number | null
 }
 
 export interface TorrentProperties {

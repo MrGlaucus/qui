@@ -1350,6 +1350,8 @@
     "leeches": "Лічі",
     "downloaded": "DLs",
     "message": "Повідомлення",
+    "nextAnnounce": "Next announce",
+    "minAnnounce": "Min announce",
     "noTrackersFound": "Трекерів не знайдено"
   },
   "trackerContextMenu": {

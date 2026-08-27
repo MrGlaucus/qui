@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { TrackerIconImage } from "@/components/ui/tracker-icon"
 import { useTrackerIcons } from "@/hooks/useTrackerIcons"
 import { containsLinks, renderTextWithLinks } from "@/lib/linkUtils"
+import { formatTimestamp } from "@/lib/dateTimeUtils"
 import { getTrackerStatusBadge } from "@/lib/tracker-utils"
 import { cn } from "@/lib/utils"
 import type { TorrentTracker } from "@/types"
@@ -149,6 +150,24 @@ export const TrackersTable = memo(function TrackersTable({
       header: t("trackersTable.downloaded"),
       cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
       size: 60,
+    }),
+    columnHelper.accessor("next_announce", {
+      header: t("trackersTable.nextAnnounce"),
+      cell: (info) => {
+        const value = info.getValue()
+        if (!value) return <span className="text-muted-foreground">-</span>
+        return <span className="tabular-nums">{formatTimestamp(value)}</span>
+      },
+      size: 170,
+    }),
+    columnHelper.accessor("min_announce", {
+      header: t("trackersTable.minAnnounce"),
+      cell: (info) => {
+        const value = info.getValue()
+        if (!value) return <span className="text-muted-foreground">-</span>
+        return <span className="tabular-nums">{formatTimestamp(value)}</span>
+      },
+      size: 170,
     }),
   ]), [incognitoMode, t, trackerIcons])
 
