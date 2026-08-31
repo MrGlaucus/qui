@@ -7,11 +7,12 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator,
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { canBanPeer, getPeerDisplayAddress } from "@/lib/torrent-peer-address"
 import { getPeerFlagDetails } from "@/lib/torrent-peer-flags"
 import { getCountryName } from "@/lib/countryNames"
 import { cn, copyTextToClipboard, formatBytes } from "@/lib/utils"
 import { formatSpeedWithUnit, type SpeedUnit } from "@/lib/speedUnits"
-import type { SortedPeer, TorrentPeer } from "@/types"
+import type { SortedPeer } from "@/types"
 import {
   createColumnHelper,
   flexRender,
@@ -32,7 +33,7 @@ interface PeersTableProps {
   speedUnit: SpeedUnit
   showFlags: boolean
   incognitoMode: boolean
-  onBanPeer?: (peer: TorrentPeer) => void
+  onBanPeer?: (peer: SortedPeer) => void
   ispData: Record<string, string | null | "loading">
   onRetryIsp?: (ip: string) => void
 }
@@ -98,19 +99,14 @@ export const PeersTable = memo(function PeersTable({
       size: 160,
       enableSorting: false,
     }),
-    columnHelper.accessor((row) => `${row.ip}:${row.port}`, {
+    columnHelper.accessor((row) => row.key, {
       id: "address",
       header: t("peersTable.address"),
-      cell: (info) => {
-        const ip = info.row.original.ip ?? ""
-        const displayIp = incognitoMode ? "192.168.x.x" : (ip.match(/:/) ? `[${ip}]` : ip)
-        const displayPort = incognitoMode ? "xxxxx" : (info.row.original.port ?? "")
-        return (
-          <span className="font-mono text-xs">
-            {displayIp}:{displayPort}
-          </span>
-        )
-      },
+      cell: (info) => (
+        <span className="font-mono text-xs">
+          {getPeerDisplayAddress(info.row.original, incognitoMode)}
+        </span>
+      ),
       size: 150,
     }),
     columnHelper.accessor((row) => ispData[row.ip] ?? "", {
@@ -246,9 +242,9 @@ export const PeersTable = memo(function PeersTable({
     onSortingChange: setSorting,
   })
 
-  const handleCopyIp = (peer: SortedPeer) => {
+  const handleCopyAddress = (peer: SortedPeer) => {
     if (incognitoMode) return
-    copyTextToClipboard(`${peer.ip}`)
+    copyTextToClipboard(peer.key)
     toast.success(t("peersTable.toast.ipCopied"))
   }
 
@@ -322,7 +318,7 @@ export const PeersTable = memo(function PeersTable({
                 </ContextMenuTrigger>
                 <ContextMenuContent>
                   <ContextMenuItem
-                    onClick={() => handleCopyIp(row.original)}
+                    onClick={() => handleCopyAddress(row.original)}
                     disabled={incognitoMode}
                   >
                     <Copy className="h-3.5 w-3.5 mr-2" />
@@ -335,7 +331,7 @@ export const PeersTable = memo(function PeersTable({
                     <Copy className="h-3.5 w-3.5 mr-2" />
                     {t("peersTable.copyIsp")}
                   </ContextMenuItem>
-                  {onBanPeer && (
+                  {onBanPeer && canBanPeer(row.original) && (
                     <>
                       <ContextMenuSeparator />
                       <ContextMenuItem

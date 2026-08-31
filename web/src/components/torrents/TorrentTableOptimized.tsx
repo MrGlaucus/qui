@@ -113,8 +113,6 @@ import { TableColumnHeader } from "./table/TableColumnHeader"
 import { TorrentTableRow, type CompactRowSharedProps, type TorrentRowMenuProps } from "./table/TorrentTableRow"
 import { TorrentTableDialogs } from "./table/TorrentTableDialogs"
 
-const TABLE_ALLOWED_VIEW_MODES = ["normal", "dense", "compact"] as const
-
 // Default values for persisted state hooks (module scope for stable references)
 const DEFAULT_COLUMN_VISIBILITY = {
   priority: true,
@@ -301,8 +299,7 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
     return map
   }, [instances])
 
-  // Desktop view mode state (separate from mobile view mode)
-  const { viewMode: desktopViewMode, cycleViewMode } = usePersistedCompactViewState("normal", TABLE_ALLOWED_VIEW_MODES)
+  const { viewMode: desktopViewMode, cycleViewMode } = usePersistedCompactViewState("desktop")
 
   // Spreadsheet theme: row numbers down the left edge, with a blank corner cell
   // in the header. Stacked (compact) rows have no column grid to number.

@@ -431,8 +431,8 @@ export interface TransferInfo {
 }
 
 export interface TorrentPeer {
-  ip: string
-  port: number
+  ip?: string
+  port?: number
   connection?: string
   flags?: string
   flags_desc?: string
