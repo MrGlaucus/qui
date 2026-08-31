@@ -109,7 +109,7 @@ export const PeersTable = memo(function PeersTable({
       ),
       size: 150,
     }),
-    columnHelper.accessor((row) => ispData[row.ip] ?? "", {
+    columnHelper.accessor((row) => row.ip ? ispData[row.ip] ?? "" : "", {
       id: "isp",
       header: "ISP",
       cell: (info) => {
