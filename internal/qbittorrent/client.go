@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/http"
 	"net/url"
 	"slices"
 	"strings"
@@ -21,6 +22,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/singleflight"
 )
 
 var (
@@ -107,6 +109,7 @@ type Client struct {
 	serverStateMu        sync.RWMutex
 	healthMu             sync.RWMutex
 	appInfoMu            sync.RWMutex
+	appInfoGroup         singleflight.Group
 	preferencesCache     *qbt.AppPreferences
 	preferencesJSON      json.RawMessage
 	preferencesFetchedAt time.Time
@@ -224,7 +227,6 @@ func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiK
 		client.updateHealthStatus(true)
 	}
 
-	// Initialize sync manager with default options
 	syncOpts := qbt.DefaultSyncOptions()
 	syncOpts.DynamicSync = true
 
@@ -243,6 +245,8 @@ func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiK
 	syncOpts.OnError = client.handleSyncManagerError
 
 	client.syncManager = qbtClient.NewSyncManager(syncOpts)
+	// The tracker manager did not exist during the capability refresh above.
+	client.syncManager.Trackers().SetUseIncludeTrackers(client.supportsTrackerInclude())
 
 	log.Debug().
 		Int("instanceID", instanceID).
@@ -631,7 +635,8 @@ func (c *Client) getTorrentsByHashes(hashes []string) []qbt.Torrent {
 }
 
 func (c *Client) HealthCheck(ctx context.Context) error {
-	if c.IsHealthy() && time.Now().Add(-minHealthCheckInterval).Before(c.GetLastHealthCheck()) {
+	// Empty version means capabilities never loaded; sync updates stamp health, so keep probing.
+	if c.GetWebAPIVersion() != "" && c.IsHealthy() && time.Since(c.GetLastHealthCheck()) < minHealthCheckInterval {
 		return nil
 	}
 
@@ -1142,6 +1147,72 @@ func (c *Client) getOptimisticUpdates() map[string]*OptimisticTorrentUpdate {
 func (c *Client) clearOptimisticUpdate(hash string) {
 	c.optimisticUpdates.Delete(hash)
 	log.Debug().Int("instanceID", c.instanceID).Str("hash", hash).Msg("Cleared optimistic update")
+}
+
+// TorrentTrackerAnnounce is the raw qBittorrent torrents/trackers payload with
+// the announce timing fields introduced in qBittorrent 5.2.0 (WebAPI 2.13.0,
+// PR #23045). next_announce and min_announce are Unix timestamps in seconds.
+type TorrentTrackerAnnounce struct {
+	Url           string `json:"url"`
+	Status        int    `json:"status"`
+	NumPeers      int    `json:"num_peers"`
+	NumSeeds      int    `json:"num_seeds"`
+	NumLeeches    int    `json:"num_leeches"`
+	NumDownloaded int    `json:"num_downloaded"`
+	Message       string `json:"msg"`
+	NextAnnounce  int64  `json:"next_announce"`
+	MinAnnounce   int64  `json:"min_announce"`
+}
+
+// TorrentTrackerView is the display representation of a torrent tracker, merging
+// the base tracker info with announce timing where available.
+type TorrentTrackerView struct {
+	Url           string `json:"url"`
+	Status        int    `json:"status"`
+	NumPeers      int    `json:"num_peers"`
+	NumSeeds      int    `json:"num_seeds"`
+	NumLeeches    int    `json:"num_leeches"`
+	NumDownloaded int    `json:"num_downloaded"`
+	Message       string `json:"msg"`
+	NextAnnounce  int64  `json:"next_announce"`
+	MinAnnounce   int64  `json:"min_announce"`
+}
+
+// GetTorrentTrackersWithAnnounce fetches the trackers for a torrent directly from
+// the qBittorrent WebAPI and decodes the announce timing fields. It reuses the
+// underlying authenticated HTTP client, mirroring the library's own request
+// authentication (cookie jar for session auth, Basic auth header, or Bearer API
+// key header).
+func (c *Client) GetTorrentTrackersWithAnnounce(ctx context.Context, hash string) ([]TorrentTrackerAnnounce, error) {
+	base := strings.TrimRight(c.host, "/") + "/api/v2/torrents/trackers"
+	reqURL := base + "?hash=" + url.QueryEscape(hash)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build trackers request: %w", err)
+	}
+	if c.basicUser != "" && c.basicPass != "" {
+		req.SetBasicAuth(c.basicUser, c.basicPass)
+	}
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+
+	resp, err := c.GetHTTPClient().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch torrent trackers: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to fetch torrent trackers: unexpected status %d", resp.StatusCode)
+	}
+
+	var out []TorrentTrackerAnnounce
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("failed to decode torrent trackers: %w", err)
+	}
+	return out, nil
 }
 
 // getTargetState returns the target state for the given action and progress

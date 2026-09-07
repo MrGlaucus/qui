@@ -1201,18 +1201,6 @@ function InstanceCard({
                   </Link>
                 )}
 
-                <div className="flex items-center gap-2 text-xs">
-                  <Download className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                  <span className="text-muted-foreground">{t("instanceCard.download")}</span>
-                  <span className="ml-auto font-medium truncate">{formatSpeedWithUnit(stats?.totalDownloadSpeed || 0, speedUnit)}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs">
-                  <Upload className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                  <span className="text-muted-foreground">{t("instanceCard.upload")}</span>
-                  <span className="ml-auto font-medium truncate">{formatSpeedWithUnit(stats?.totalUploadSpeed || 0, speedUnit)}</span>
-                </div>
-
                 {instanceData.instance?.dailyTrafficEnabled !== false && effectiveTodayTraffic && (
                   <>
                     <div className="flex items-center gap-2 text-xs">

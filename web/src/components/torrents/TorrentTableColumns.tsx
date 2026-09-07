@@ -21,6 +21,7 @@ import {
   getLinuxTracker
 } from "@/lib/incognito"
 import { isNeverCompletedTimestamp } from "@/lib/dateTimeUtils"
+import { formatTimestamp as formatStoredTimestamp } from "@/lib/dateTimeUtils"
 import { flagClass } from "@/lib/countryFlags"
 import { formatSpeedWithUnit, type SpeedUnit } from "@/lib/speedUnits"
 import { getStateLabel } from "@/lib/torrent-state-utils"
@@ -426,7 +427,7 @@ export const createColumns = (
   },
   speedUnit: SpeedUnit = "bytes",
   trackerIcons?: Record<string, string>,
-  formatTimestamp?: (timestamp: number) => string,
+  formatTimestamp: (timestamp: number) => string = formatStoredTimestamp,
   instancePreferences?: AppPreferences | null,
   supportsTrackerHealth: boolean = true,
   showInstanceColumn: boolean = false,
@@ -860,7 +861,7 @@ t?: TFunction,
         }
 
         return (
-          <div className="overflow-hidden whitespace-nowrap text-sm">{formatTimestamp ? formatTimestamp(addedOn) : new Date(addedOn * 1000).toLocaleString()}</div>
+          <div className="overflow-hidden whitespace-nowrap text-sm">{formatTimestamp(addedOn)}</div>
         )
       },
       size: 200,
@@ -875,7 +876,7 @@ t?: TFunction,
         }
 
         return (
-          <div className="overflow-hidden whitespace-nowrap text-sm">{formatTimestamp ? formatTimestamp(completionOn) : new Date(completionOn * 1000).toLocaleString()}</div>
+          <div className="overflow-hidden whitespace-nowrap text-sm">{formatTimestamp(completionOn)}</div>
         )
       },
       size: 200,
@@ -1124,7 +1125,7 @@ t?: TFunction,
         }
 
         return (
-          <div className="overflow-hidden whitespace-nowrap text-sm">{formatTimestamp ? formatTimestamp(lastSeenComplete) : new Date(lastSeenComplete * 1000).toLocaleString()}</div>
+          <div className="overflow-hidden whitespace-nowrap text-sm">{formatTimestamp(lastSeenComplete)}</div>
         )
       },
       size: 200,
@@ -1139,7 +1140,7 @@ t?: TFunction,
         }
 
         return (
-          <div className="overflow-hidden whitespace-nowrap text-sm">{formatTimestamp ? formatTimestamp(lastActivity) : new Date(lastActivity * 1000).toLocaleString()}</div>
+          <div className="overflow-hidden whitespace-nowrap text-sm">{formatTimestamp(lastActivity)}</div>
         )
       },
       size: 200,

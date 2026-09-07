@@ -58,6 +58,7 @@
     "searchCrossSeeds": "搜索辅种",
     "filterCrossSeeds": "筛选辅种",
     "filterCrossSeedsSingleOnly": "筛选辅种（仅限单选）",
+    "manualCrossSeed": "手动添加辅种",
     "setTags": "设置标签",
     "setLocation": "设置位置",
     "setShareLimits": "设置分享限制",
@@ -533,6 +534,31 @@
       "copyFailed": "复制到剪贴板失败"
     }
   },
+  "discScan": {
+    "action": "BDInfo",
+    "actionActive": "BDInfo 扫描进行中",
+    "actionReady": "BDInfo 报告已就绪",
+    "actionFailed": "BDInfo 扫描失败",
+    "quickSummary": "快速摘要",
+    "forum": "论坛",
+    "copyQuickSummary": "复制快速摘要",
+    "copyForum": "复制论坛代码块",
+    "rescan": "重新扫描",
+    "cancel": "取消扫描",
+    "retry": "重试",
+    "starting": "正在启动扫描…",
+    "queued": "排队中，位置 {{position}}",
+    "scanning": "正在扫描 {{processed}} / {{total}}",
+    "scanningUnknown": "正在扫描…",
+    "failed": "扫描失败",
+    "canceled": "扫描已取消",
+    "toast": {
+      "copied": "{{label}}已复制到剪贴板",
+      "copyFailed": "复制到剪贴板失败",
+      "completed": "BDInfo 报告已就绪",
+      "failed": "BDInfo 扫描失败：{{error}}"
+    }
+  },
   "categoryTree": {
     "uncategorized": "未分类",
     "expandCategory": "展开分类",
@@ -834,7 +860,10 @@
       }
     },
     "title": "筛选器",
-    "clearAll": "全部清除",
+    "clearOptions": "筛选清除选项",
+    "clearSidebarFilters": "清除侧边栏筛选",
+    "clearColumnFilters": "清除列筛选",
+    "clearFiltersAndSearch": "清除筛选和搜索",
     "loading": "加载中...",
     "customFilter": "自定义筛选器",
     "customFilterHelp": "活跃的自定义表达式筛选器（例如辅种结果）",
@@ -1598,7 +1627,7 @@
   "details": {
     "failedToUpdatePriorities": "更新文件优先级失败",
     "failedToRenameFile": "重命名文件失败",
-    "failedToRenameFolder": "重命名文件夹失败"
+"failedToRenameFolder": "重命名文件夹失败"
   },
   "reportDialog": {
     "title": "任务报告",
@@ -1647,6 +1676,35 @@
     "count": "数量",
     "pct": "%"
   },
+  "manualCrossSeed": {
+    "title": "手动辅种匹配",
+    "description": "选择已持有该数据的种子。qui 会将上传的种子添加到其位置，重新校验后开始做种。",
+    "fileLabel": "种子文件",
+    "sourceSummary_other": "{{size}} · {{count}} 个文件",
+    "loadingProposals": "正在按文件重叠度排序目标...",
+    "proposalsFailed": "加载目标建议失败",
+    "targetLabel": "目标种子",
+    "noProposals": "未找到重叠的种子。请手动选择目标。",
+    "overlap": "文件重叠 {{percent}}%",
+    "pickManually": "选择其他种子",
+    "pickerPlaceholder": "搜索种子...",
+    "pickerNoResults": "没有匹配的种子",
+    "zeroOverlapWarning": "所选种子与上传文件没有相同大小的文件。结果由重新校验决定；校验失败时种子保持暂停。",
+    "category": "分类",
+    "noCategory": "（无分类）",
+    "pinnedCategory": "交叉做种设置将每个匹配固定为“{{category}}”分类，因此无法在此更改。",
+    "tags": "标签",
+    "newTagPlaceholder": "输入标签后按 Enter",
+    "savePath": "保存路径（实际目标位置）",
+    "cancel": "取消",
+    "apply": "添加辅种",
+    "applying": "正在添加...",
+    "applySuccess": "辅种已添加",
+    "applyFailed": "辅种失败：{{message}}",
+    "addOptionTitle": "作为辅种添加",
+    "addOptionDescription": "将此种子与现有种子匹配，而不是重新下载。",
+    "addOptionButton": "手动匹配"
+  },
   "country.CN": "中国",
   "country.US": "美国",
   "country.DE": "德国",
@@ -1686,7 +1744,7 @@
     "noOtherInstances": "没有其他已配置的实例",
     "cancel": "取消",
     "confirm": "同步（{{count}} 个实例）",
-    "copying": "同步中…",
+"copying": "同步中…",
     "success": "已同步列设置到 {{count}} 个实例",
     "failed": "同步列设置失败"
   }

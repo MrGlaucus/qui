@@ -25,6 +25,7 @@ import (
 	"github.com/autobrr/qui/internal/auth"
 	"github.com/autobrr/qui/internal/backups"
 	"github.com/autobrr/qui/internal/config"
+	"github.com/autobrr/qui/internal/fsops"
 	"github.com/autobrr/qui/internal/models"
 	"github.com/autobrr/qui/internal/proxy"
 	"github.com/autobrr/qui/internal/qbittorrent"
@@ -33,6 +34,7 @@ import (
 	"github.com/autobrr/qui/internal/services/automations"
 	"github.com/autobrr/qui/internal/services/crossseed"
 	"github.com/autobrr/qui/internal/services/dirscan"
+	"github.com/autobrr/qui/internal/services/discscan"
 	"github.com/autobrr/qui/internal/services/externalprograms"
 	"github.com/autobrr/qui/internal/services/filesmanager"
 	"github.com/autobrr/qui/internal/services/jackett"
@@ -92,6 +94,9 @@ type Server struct {
 	seasonPackRunStore               *models.SeasonPackRunStore
 	orphanScanStore                  *models.OrphanScanStore
 	orphanScanService                *orphanscan.Service
+	discScanStore                    *models.DiscScanStore
+	discScanService                  *discscan.Service
+	backendPool                      *fsops.Pool
 	dirScanService                   *dirscan.Service
 	arrInstanceStore                 *models.ArrInstanceStore
 	arrService                       *arr.Service
@@ -139,6 +144,9 @@ type Dependencies struct {
 	SeasonPackRunStore               *models.SeasonPackRunStore
 	OrphanScanStore                  *models.OrphanScanStore
 	OrphanScanService                *orphanscan.Service
+	DiscScanStore                    *models.DiscScanStore
+	DiscScanService                  *discscan.Service
+	BackendPool                      *fsops.Pool
 	DirScanService                   *dirscan.Service
 	ArrInstanceStore                 *models.ArrInstanceStore
 	ArrService                       *arr.Service
@@ -229,6 +237,9 @@ func NewServer(deps *Dependencies) *Server {
 		seasonPackRunStore:               deps.SeasonPackRunStore,
 		orphanScanStore:                  deps.OrphanScanStore,
 		orphanScanService:                deps.OrphanScanService,
+		discScanStore:                    deps.DiscScanStore,
+		discScanService:                  deps.DiscScanService,
+		backendPool:                      deps.BackendPool,
 		dirScanService:                   deps.DirScanService,
 		arrInstanceStore:                 deps.ArrInstanceStore,
 		arrService:                       deps.ArrService,
@@ -405,6 +416,7 @@ func (s *Server) Handler() (*chi.Mux, error) {
 	)
 	automationsHandler := handlers.NewAutomationHandler(s.automationStore, s.automationActivityStore, s.instanceStore, s.externalProgramStore, s.automationService)
 	orphanScanHandler := handlers.NewOrphanScanHandler(s.orphanScanStore, s.instanceStore, s.orphanScanService)
+	discScanHandler := handlers.NewDiscScanHandler(s.discScanService, s.discScanStore, s.syncManager, s.backendPool)
 	var dirScanHandler *handlers.DirScanHandler
 	if s.dirScanService != nil {
 		dirScanHandler = handlers.NewDirScanHandler(s.dirScanService, s.instanceStore)
@@ -622,7 +634,14 @@ func (s *Server) Handler() (*chi.Mux, error) {
 							r.Put("/rename-folder", torrentsHandler.RenameTorrentFolder)
 							r.Get("/files/{fileIndex}/download", torrentsHandler.DownloadTorrentContentFile)
 							r.Get("/files/{fileIndex}/mediainfo", torrentsHandler.GetTorrentFileMediaInfo)
+							r.Get("/disc-scans", discScanHandler.ListForTorrent)
+							r.Post("/disc-scans", discScanHandler.Start)
 						})
+					})
+
+					r.Route("/disc-scans/{runID}", func(r chi.Router) {
+						r.Get("/", discScanHandler.Get)
+						r.Post("/cancel", discScanHandler.Cancel)
 					})
 
 					r.Get("/capabilities", instancesHandler.GetInstanceCapabilities)

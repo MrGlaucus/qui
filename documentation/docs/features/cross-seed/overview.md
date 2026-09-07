@@ -68,6 +68,14 @@ Library Scan searches other trackers for torrents you already seed. Configure it
 - **Cooldown**: qui skips torrents that it searched within this window (minimum 12 hours). qui records a Torznab cooldown after an indexer completes its search. If you enable Gazelle, qui records a cooldown when it sends a lookup or local checks find nothing to look up. If the search fails before a lookup, qui can try the torrent in the next run.
 - **Skip individual episodes**: The run does not search single TV episodes. If [automatic assembly](./season-packs.md#automatic-assembly) is on, groups of episodes still start season pack searches.
 
+#### What the scan card counts
+
+The unit of a run is a search candidate: one source torrent, or one season group that season pack automation formed from episodes you seed.
+
+- **Progress**: Processed candidates out of the due candidates. A due candidate still needs a search. Cooldown and per-indexer search history retire candidates, so the same filters give a smaller total on each later run. The total is not the size of your library.
+- **Results**: Each processed candidate lands in one bucket: with cross-seeds, skipped, or failed. The three buckets add up to the processed count when the run completes. A candidate with one added cross-seed and one failed apply counts as with cross-seeds. The failed apply stays in the run details.
+- **Cross-seeds added**: Successful adds into the client. One candidate can add several cross-seeds, so this number can be larger than the candidate count.
+
 :::warning
 Run this sparingly. The scan touches every matching torrent and queries Torznab and/or Gazelle for each one. Use RSS automation or autobrr for routine coverage. Reserve Library Scan for occasional catch-up passes.
 :::
@@ -101,7 +109,26 @@ qui still checks the downloaded torrent metadata, files, layout, and piece bound
 
 RSS uses the same classifier with its feed title and byte count. The [autobrr integration](./autobrr.md) uses passive announcement data during `/check`.
 
+Announce matching over alternate titles, such as an anime announced under its English or romaji name, needs a [Sonarr or Radarr integration](../search.md#sonarr-and-radarr-integrations). Without one, qui matches announces on the release name only.
+
+Sonarr also maps a single anime episode between numbering schemes. When Sonarr names exactly one episode for a release, qui reads its season, episode, and absolute number, and stores the map with the cached IDs. A search for an absolute-numbered episode (`Show - 81`) then asks ID-capable indexers for the mapped `S04E15`, and a `S04E15` announce or search result matches a local `Show - 81` file as a strict match, in both directions. The map only adds matches: when a tracker numbers the episode differently from Sonarr, qui treats the pair as an episode mismatch, as before. Season packs are not mapped. See [Season Packs](./season-packs.md#anime-absolute-numbering).
+
 If autobrr has no positive size, qui uses a narrow name-only preflight. This preflight can approve one download, but it cannot approve an add.
+
+### Manual Match
+
+A Manual match is a cross-seed apply where you choose the target torrent yourself. Use it when automatic matching fails, for example when the release name parses as the wrong content type, or when the tracker has no searchable indexer.
+
+Two entry points open the same flow:
+
+- **Add Torrent dialog**: select exactly one `.torrent` file, then click **Match manually**. Magnets, URLs, and multi-file adds cannot use this option.
+- **Right-click a torrent** and select **Add Cross-Seed Manually**. The flow opens with that torrent preselected as the target.
+
+qui ranks torrents from the same instance by file-size overlap with the uploaded file. You can also pick any other torrent. A pick with no file overlap shows a warning, but you can proceed.
+
+A manual selection bypasses candidate discovery and the category and content-type gates. Link mode per instance settings and tag and category treatment stay the same as the automatic pipeline. Every manual match runs a full recheck before it seeds; you cannot skip it, and it decides a wrong pick. A failed recheck leaves the torrent paused for manual review.
+
+The dialog prefills the category from the target torrent and the tags from the cross-seed tag settings. You can edit both. If **Use Custom Category** is on, every cross-seed goes to that one category. The dialog then shows the category and locks it. The save path shows the effective destination and is read-only. With **By Tracker** directory organization, the tracker folder comes from the announce URL in the uploaded file. The tracker does not need a configured indexer.
 
 ### Season Pack Assembly
 

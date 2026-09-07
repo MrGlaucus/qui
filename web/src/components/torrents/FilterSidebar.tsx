@@ -71,6 +71,7 @@ import {
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { CategoryTree } from "./CategoryTree"
+import { FilterClearButton } from "./FilterClearButton"
 import { FilterViewsSection } from "./FilterViewsSection"
 import {
   CreateCategoryDialog,
@@ -1799,7 +1800,7 @@ const FilterSidebarComponent = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Virtualizers are stable refs, only re-measure on viewMode change
   }, [viewMode])
 
-  const clearFilters = () => {
+  const clearSidebarFilters = () => {
     applyFilterChange({
       status: [],
       excludeStatus: [],
@@ -1809,10 +1810,8 @@ const FilterSidebarComponent = ({
       excludeTags: [],
       trackers: [],
       excludeTrackers: [],
-      expr: undefined, // Clear custom expression filters
+      expr: undefined,
     })
-    // Optionally reset accordion state to defaults
-    // setExpandedItems(['status', 'categories', 'tags'])
   }
 
   const clearStatusFilter = () => {
@@ -1997,14 +1996,11 @@ const FilterSidebarComponent = ({
                 <span className="text-xs text-muted-foreground animate-pulse">{t("filterSidebar.loading")}</span>
               )}
             </div>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="text-xs text-muted-foreground hover:text-foreground shrink-0"
-              >
-                {t("filterSidebar.clearAll")}
-              </button>
-            )}
+            <FilterClearButton
+              instanceId={instanceId}
+              hasSidebarFilters={hasActiveFilters}
+              onClearSidebar={clearSidebarFilters}
+            />
           </div>
 
           {/* View Mode Toggle - only show on mobile */}

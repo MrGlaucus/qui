@@ -569,8 +569,8 @@ func (cp *ClientPool) performHealthChecks() {
 	for _, client := range clients {
 		instanceID := client.GetInstanceID()
 
-		// Skip if recently checked
-		if time.Since(client.GetLastHealthCheck()) < minHealthCheckInterval {
+		// Skip if recently checked, unless capabilities never loaded
+		if client.GetWebAPIVersion() != "" && time.Since(client.GetLastHealthCheck()) < minHealthCheckInterval {
 			continue
 		}
 

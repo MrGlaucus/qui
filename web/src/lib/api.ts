@@ -37,6 +37,10 @@ import type {
   CrossSeedSearchSettings,
   CrossSeedSearchSettingsPatch,
   CrossSeedSearchStatus,
+  DiscScanRun,
+  ManualCrossSeedApplyResponse,
+  ManualCrossSeedProposal,
+  ManualCrossSeedProposalsResponse,
   SeasonPackRun,
   CrossSeedTorrentInfo,
   CrossSeedTorrentSearchResponse,
@@ -442,6 +446,38 @@ export class APIError extends Error {
   }
 }
 
+type RawCrossSeedMatchedTorrent = {
+  hash?: string
+  name?: string
+  progress?: number
+  size?: number
+}
+
+type RawCrossSeedInstanceResult = {
+  instance_id: number
+  instance_name: string
+  success: boolean
+  status: string
+  message?: string
+  matched_torrent?: RawCrossSeedMatchedTorrent
+}
+
+function mapRawCrossSeedInstanceResult(instance: RawCrossSeedInstanceResult): CrossSeedInstanceResult {
+  return {
+    instanceId: instance.instance_id,
+    instanceName: instance.instance_name,
+    success: instance.success,
+    status: instance.status,
+    message: instance.message,
+    matchedTorrent: instance.matched_torrent? {
+      hash: instance.matched_torrent.hash ?? "",
+      name: instance.matched_torrent.name ?? "",
+      progress: instance.matched_torrent.progress ?? 0,
+      size: instance.matched_torrent.size ?? 0,
+    }: undefined,
+  }
+}
+
 class ApiClient {
   private async request<T>(
     endpoint: string,
@@ -819,6 +855,26 @@ class ApiClient {
     return this.request<TorrentFileMediaInfoResponse>(
       `/instances/${instanceId}/torrents/${encodeURIComponent(hash)}/files/${fileIndex}/mediainfo`
     )
+  }
+
+  // Disc scan (BDInfo) endpoints
+  async listDiscScans(instanceId: number, hash: string): Promise<DiscScanRun[]> {
+    return this.request<DiscScanRun[]>(`/instances/${instanceId}/torrents/${encodeURIComponent(hash)}/disc-scans`)
+  }
+
+  async startDiscScan(instanceId: number, hash: string, discPath: string, force = false): Promise<DiscScanRun> {
+    return this.request<DiscScanRun>(`/instances/${instanceId}/torrents/${encodeURIComponent(hash)}/disc-scans`, {
+      method: "POST",
+      body: JSON.stringify({ discPath, force }),
+    })
+  }
+
+  async getDiscScan(instanceId: number, runId: number): Promise<DiscScanRun> {
+    return this.request<DiscScanRun>(`/instances/${instanceId}/disc-scans/${runId}`)
+  }
+
+  async cancelDiscScan(instanceId: number, runId: number): Promise<DiscScanRun> {
+    return this.request<DiscScanRun>(`/instances/${instanceId}/disc-scans/${runId}/cancel`, { method: "POST" })
   }
 
   // Torrent endpoints
@@ -1421,29 +1477,13 @@ class ApiClient {
       body.find_individual_episodes = payload.findIndividualEpisodes
     }
 
-    type RawMatchedTorrent = {
-      hash?: string
-      name?: string
-      progress?: number
-      size?: number
-    }
-
-    type RawInstanceResult = {
-      instance_id: number
-      instance_name: string
-      success: boolean
-      status: string
-      message?: string
-      matched_torrent?: RawMatchedTorrent
-    }
-
     type RawApplyResult = {
       title: string
       indexer: string
       torrent_name?: string
       info_hash?: string
       success: boolean
-      instance_results?: RawInstanceResult[]
+      instance_results?: RawCrossSeedInstanceResult[]
       error?: string
     }
 
@@ -1463,21 +1503,97 @@ class ApiClient {
         torrentName: result.torrent_name ?? undefined,
         infoHash: result.info_hash ?? undefined,
         success: result.success,
-        instanceResults: (result.instance_results ?? []).map((instance): CrossSeedInstanceResult => ({
-          instanceId: instance.instance_id,
-          instanceName: instance.instance_name,
-          success: instance.success,
-          status: instance.status,
-          message: instance.message,
-          matchedTorrent: instance.matched_torrent? {
-            hash: instance.matched_torrent.hash ?? "",
-            name: instance.matched_torrent.name ?? "",
-            progress: instance.matched_torrent.progress ?? 0,
-            size: instance.matched_torrent.size ?? 0,
-          }: undefined,
-        })),
+        instanceResults: (result.instance_results ?? []).map(mapRawCrossSeedInstanceResult),
         error: result.error ?? undefined,
       })),
+    }
+  }
+
+  async getManualCrossSeedProposals(payload: {
+    instanceId: number
+    torrentData: string
+    targetHash?: string
+  }): Promise<ManualCrossSeedProposalsResponse> {
+    type RawProposal = {
+      hash: string
+      name: string
+      size: number
+      category?: string
+      effective_save_path?: string
+      overlap_bytes: number
+      overlap_fraction: number
+    }
+    type RawResponse = {
+      source_name: string
+      source_size: number
+      source_file_count: number
+      default_tags?: string[]
+      pinned_category?: string
+      proposals?: RawProposal[]
+    }
+
+    const body: Record<string, unknown> = {
+      instance_id: payload.instanceId,
+      torrent_data: payload.torrentData,
+    }
+    if (payload.targetHash) {
+      body.target_hash = payload.targetHash
+    }
+
+    const raw = await this.request<RawResponse>("/cross-seed/manual/proposals", {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
+
+    return {
+      sourceName: raw.source_name,
+      sourceSize: raw.source_size,
+      sourceFileCount: raw.source_file_count,
+      defaultTags: raw.default_tags ?? [],
+      pinnedCategory: raw.pinned_category ?? "",
+      proposals: (raw.proposals ?? []).map((proposal): ManualCrossSeedProposal => ({
+        hash: proposal.hash,
+        name: proposal.name,
+        size: proposal.size,
+        category: proposal.category ?? "",
+        effectiveSavePath: proposal.effective_save_path ?? "",
+        overlapBytes: proposal.overlap_bytes,
+        overlapFraction: proposal.overlap_fraction,
+      })),
+    }
+  }
+
+  async applyManualCrossSeed(payload: {
+    instanceId: number
+    torrentData: string
+    targetHash: string
+    category?: string
+    tags?: string[]
+  }): Promise<ManualCrossSeedApplyResponse> {
+    type RawResponse = {
+      success: boolean
+      results?: RawCrossSeedInstanceResult[]
+    }
+
+    const body: Record<string, unknown> = {
+      instance_id: payload.instanceId,
+      torrent_data: payload.torrentData,
+      target_hash: payload.targetHash,
+    }
+    if (payload.category) {
+      body.category = payload.category
+    }
+    if (payload.tags && payload.tags.length > 0) {
+      body.tags = payload.tags
+    }
+    const raw = await this.request<RawResponse>("/cross-seed/manual/apply", {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
+
+    return {
+      success: raw.success,
+      results: (raw.results ?? []).map(mapRawCrossSeedInstanceResult),
     }
   }
 

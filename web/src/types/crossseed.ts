@@ -144,6 +144,31 @@ export interface CrossSeedApplyResponse {
   results: CrossSeedApplyResult[]
 }
 
+export interface ManualCrossSeedProposal {
+  hash: string
+  name: string
+  size: number
+  category: string
+  effectiveSavePath: string
+  overlapBytes: number
+  overlapFraction: number
+}
+
+export interface ManualCrossSeedProposalsResponse {
+  sourceName: string
+  sourceSize: number
+  sourceFileCount: number
+  defaultTags: string[]
+  /** Set when settings pin every cross-seed to one category; the apply discards any pick. */
+  pinnedCategory: string
+  proposals: ManualCrossSeedProposal[]
+}
+
+export interface ManualCrossSeedApplyResponse {
+  success: boolean
+  results: CrossSeedInstanceResult[]
+}
+
 export interface CrossSeedBlocklistEntry {
   instanceId: number
   infoHash: string
@@ -171,9 +196,9 @@ export interface CrossSeedRun {
   completedAt?: string
   totalFeedItems: number
   candidatesFound: number
-  torrentsAdded: number
-  torrentsFailed: number
-  torrentsSkipped: number
+  crossSeedsAdded: number
+  candidatesFailed: number
+  candidatesSkipped: number
   message?: string
   errorMessage?: string
   results?: CrossSeedRunResult[]
@@ -377,7 +402,8 @@ export interface CrossSeedSearchRun {
   completedAt?: string
   totalTorrents: number
   processed: number
-  torrentsAdded: number
+  torrentsWithCrossSeeds: number
+  crossSeedsAdded: number
   torrentsFailed: number
   torrentsSkipped: number
   message?: string

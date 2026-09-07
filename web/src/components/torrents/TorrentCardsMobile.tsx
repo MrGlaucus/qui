@@ -70,6 +70,7 @@ import {
   EyeOff,
   FastForward,
   FileEdit,
+  FileUp,
   Filter,
   Folder,
   FolderOpen,
@@ -455,6 +456,7 @@ interface TorrentCardsMobileProps {
   canCrossSeedSearch?: boolean
   onCrossSeedSearch?: (torrent: Torrent) => void
   isCrossSeedSearching?: boolean
+  onManualCrossSeed?: (torrent: Torrent) => void
 }
 
 function formatEta(seconds: number): string {
@@ -1086,6 +1088,7 @@ export function TorrentCardsMobile({
   canCrossSeedSearch,
   onCrossSeedSearch,
   isCrossSeedSearching,
+  onManualCrossSeed,
 }: TorrentCardsMobileProps) {
   const { t } = useTranslation("torrents")
   const isAllInstancesView = isAllInstancesScope(instanceId)
@@ -1872,14 +1875,14 @@ export function TorrentCardsMobile({
     const deleteActionTargets = torrentToDelete? buildTorrentActionTargets([torrentToDelete], instanceId): (isAllSelected ? undefined : selectedActionTargets)
 
     const crossSeedTagHashesToBlock = deleteCrossSeeds ? getTorrentHashesWithTag(crossSeedWarning.affectedTorrents, "cross-seed") : []
+    const crossSeedDeleteTargets = [
+      ...(deleteActionTargets ?? []),
+      ...buildTorrentActionTargets(crossSeedWarning.affectedTorrents, instanceId),
+    ]
 
     if (shouldBlockCrossSeeds) {
       const taggedHashes = getTorrentHashesWithTag(deleteTorrents, "cross-seed")
-      const blocklistTargets = [
-        ...(deleteActionTargets ?? []),
-        ...buildTorrentActionTargets(crossSeedWarning.affectedTorrents, instanceId),
-      ]
-      await blockCrossSeedHashes([...taggedHashes, ...crossSeedTagHashesToBlock], blocklistTargets)
+      await blockCrossSeedHashes([...taggedHashes, ...crossSeedTagHashesToBlock], crossSeedDeleteTargets)
     }
 
     let hashes: string[]
@@ -1930,7 +1933,7 @@ export function TorrentCardsMobile({
       {
         clientHashes: visibleHashesToDelete,
         totalSelected: totalToDelete,
-        actionTargets: deleteActionTargets,
+        actionTargets: deleteCrossSeeds && deleteActionTargets ? crossSeedDeleteTargets : deleteActionTargets,
         excludeTargets: !torrentToDelete && isAllSelected? buildTorrentActionTargets(excludedTorrents, instanceId): undefined,
       }
     )
@@ -2154,7 +2157,7 @@ export function TorrentCardsMobile({
                 </>
               )}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -2162,7 +2165,7 @@ export function TorrentCardsMobile({
                     size="sm"
                     className="h-7 px-1.5 text-xs font-medium text-muted-foreground hover:text-foreground md:hidden"
                   >
-                    {currentSortOption.label}
+                    {t(`torrents.sortOptions.${currentSortOption.value}`)}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 max-h-100 overflow-y-auto">
@@ -2173,7 +2176,7 @@ export function TorrentCardsMobile({
                   >
                     {TORRENT_SORT_OPTIONS.map(option => (
                       <DropdownMenuRadioItem key={option.value} value={option.value} className="text-xs">
-                        {option.label}
+                        {t(`torrents.sortOptions.${option.value}`)}
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
@@ -2369,13 +2372,13 @@ export function TorrentCardsMobile({
 
       {/* More actions sheet */}
       <Sheet open={showActionsSheet} onOpenChange={setShowActionsSheet}>
-        <SheetContent side="bottom" className="h-auto pb-8">
+        <SheetContent side="bottom" className="max-h-[85dvh] pb-8">
           <SheetHeader>
             <SheetTitle>
               {isAllSelected? t("mobileCards.actionsForAll", { count: effectiveSelectionCount }): t("mobileCards.actionsForCount", { count: effectiveSelectionCount })}
             </SheetTitle>
           </SheetHeader>
-          <div className="grid gap-2 py-4 px-4">
+          <div className="grid gap-2 py-4 px-4 min-h-0 overflow-y-auto">
             {(() => {
               const { allEnabled: allForceStarted, mixed: forceStartMixed } = getToggleSelectionState(getSelectedTorrents.map(t => t.force_start), stateUnknownForSelection)
 
@@ -2490,11 +2493,28 @@ export function TorrentCardsMobile({
                   onCrossSeedSearch(singleSelectedTorrent)
                   setShowActionsSheet(false)
                 }}
-                disabled={!singleSelectedTorrent || isCrossSeedSearching}
+                disabled={effectiveSelectionCount !== 1 || !singleSelectedTorrent || isCrossSeedSearching}
                 className="justify-start"
               >
                 <Search className="mr-2 h-4 w-4" />
                 {t("contextMenu.searchCrossSeeds")}
+              </Button>
+            )}
+            {onManualCrossSeed && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!singleSelectedTorrent) {
+                    return
+                  }
+                  onManualCrossSeed(singleSelectedTorrent)
+                  setShowActionsSheet(false)
+                }}
+                disabled={effectiveSelectionCount !== 1 || !singleSelectedTorrent || singleSelectedTorrent.progress < 1}
+                className="justify-start"
+              >
+                <FileUp className="mr-2 h-4 w-4" />
+                {t("contextMenu.manualCrossSeed")}
               </Button>
             )}
             <Button

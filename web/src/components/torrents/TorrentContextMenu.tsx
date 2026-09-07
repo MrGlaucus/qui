@@ -30,6 +30,7 @@ import {
   Copy,
   Download,
   FastForward,
+  FileUp,
   FolderOpen,
   Gauge,
   GitBranch,
@@ -72,10 +73,10 @@ export interface TorrentContextMenuProps {
   onPrepareCreateCategory: (hashes: string[], torrents?: Torrent[]) => void
   onPrepareShareLimit: (hashes: string[], torrents?: Torrent[]) => void
   onPrepareSpeedLimits: (hashes: string[], torrents?: Torrent[]) => void
-  onPrepareRecheck: (hashes: string[], count?: number) => void
-  onPrepareReannounce: (hashes: string[], count?: number) => void
+  onPrepareRecheck: (hashes: string[], count?: number, torrents?: Torrent[]) => void
+  onPrepareReannounce: (hashes: string[], count?: number, torrents?: Torrent[]) => void
   onPrepareLocation: (hashes: string[], torrents?: Torrent[], count?: number) => void
-  onPrepareTmm?: (hashes: string[], count: number, enable: boolean) => void
+  onPrepareTmm?: (hashes: string[], count: number, enable: boolean, torrents?: Torrent[]) => void
   onPrepareRenameTorrent: (hashes: string[], torrents?: Torrent[]) => void
   onPrepareTransfer?: (hashes: string[], torrents?: Torrent[]) => void
   availableCategories?: Record<string, Category>
@@ -88,6 +89,7 @@ export interface TorrentContextMenuProps {
   canCrossSeedSearch?: boolean
   onCrossSeedSearch?: (torrent: Torrent) => void
   isCrossSeedSearching?: boolean
+  onManualCrossSeed?: (torrent: Torrent) => void
   onFilterChange?: (filters: TorrentFilters) => void
   onFetchTorrentField?: (
     field: TorrentFieldName,
@@ -128,6 +130,7 @@ export const TorrentContextMenu = memo(function TorrentContextMenu({
   canCrossSeedSearch = false,
   onCrossSeedSearch,
   isCrossSeedSearching = false,
+  onManualCrossSeed,
   onFilterChange,
   onFetchTorrentField,
 }: TorrentContextMenuProps) {
@@ -360,11 +363,11 @@ export const TorrentContextMenu = memo(function TorrentContextMenu({
 
   const handleTmmToggle = useCallback((enable: boolean) => {
     if (onPrepareTmm) {
-      onPrepareTmm(hashes, count, enable)
+      onPrepareTmm(hashes, count, enable, torrents)
     } else {
       onAction(TORRENT_ACTIONS.TOGGLE_AUTO_TMM, hashes, { enable, targets: actionTargets })
     }
-  }, [onPrepareTmm, onAction, hashes, count, actionTargets])
+  }, [onPrepareTmm, onAction, hashes, count, torrents, actionTargets])
 
   const handleLocationClick = useCallback(() => {
     onPrepareLocation(hashes, torrents, count)
@@ -452,14 +455,14 @@ export const TorrentContextMenu = memo(function TorrentContextMenu({
               {t("contextMenu.pause")} {count > 1 ? `(${count})` : ""}
             </ContextMenuItem>
             <ContextMenuItem
-              onClick={() => onPrepareRecheck(hashes, count)}
+              onClick={() => onPrepareRecheck(hashes, count, torrents)}
               disabled={isPending}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
               {t("contextMenu.forceRecheck")} {count > 1 ? `(${count})` : ""}
             </ContextMenuItem>
             <ContextMenuItem
-              onClick={() => onPrepareReannounce(hashes, count)}
+              onClick={() => onPrepareReannounce(hashes, count, torrents)}
               disabled={isPending}
             >
               <Radio className="mr-2 h-4 w-4" />
@@ -508,6 +511,15 @@ export const TorrentContextMenu = memo(function TorrentContextMenu({
                 {t("contextMenu.searchCrossSeeds")}
               </ContextMenuItem>
             )}
+            {onManualCrossSeed && (
+              <ContextMenuItem
+                onClick={() => onManualCrossSeed(torrent)}
+                disabled={isPending || torrent.progress < 1}
+              >
+                <FileUp className="mr-2 h-4 w-4" />
+                {t("contextMenu.manualCrossSeed")}
+              </ContextMenuItem>
+            )}
             {onFilterChange && supportsInstanceScopedActions && (
               <ContextMenuItem
                 onClick={handleFilterCrossSeeds}
@@ -523,7 +535,7 @@ export const TorrentContextMenu = memo(function TorrentContextMenu({
                 {isFilteringCrossSeeds && <span className="ml-1 text-xs text-muted-foreground">...</span>}
               </ContextMenuItem>
             )}
-            {(canCrossSeedSearch || (onFilterChange && supportsInstanceScopedActions)) && <ContextMenuSeparator />}
+            {(canCrossSeedSearch || onManualCrossSeed || (onFilterChange && supportsInstanceScopedActions)) && <ContextMenuSeparator />}
             <ContextMenuItem
               onClick={() => onPrepareTags(hashes, torrents)}
               disabled={isPending}
