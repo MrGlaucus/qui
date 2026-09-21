@@ -99,6 +99,7 @@ type Client struct {
 	peerSyncManager            map[string]*qbt.PeerSyncManager // Map of torrent hash to PeerSyncManager
 	dailyTrafficRecorder       *DailyTrafficRecorder
 	dailyTrafficEnabled        bool
+	trackerTrafficRecorder     *TrackerTrafficRecorder
 	// optimisticUpdates stores temporary optimistic state changes for this instance
 	optimisticUpdates    *ttlcache.Cache[string, *OptimisticTorrentUpdate]
 	trackerExclusions    map[string]map[string]struct{} // Domains to hide hashes from until fresh sync arrives
@@ -235,6 +236,8 @@ func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiK
 		client.countsGen.Add(1)
 		client.updateHealthStatus(true)
 		client.updateServerState(data)
+		client.recordTrackerTraffic(data.Torrents, true)
+		client.removeTrackerTrafficCheckpoints(data.TorrentsRemoved)
 		client.handleCompletionUpdates(data)
 		client.handleAddedUpdates(data)
 		log.Trace().Int("instanceID", instanceID).Int("torrentCount", len(data.Torrents)).Msg("Sync manager update received, marking client as healthy")
@@ -408,6 +411,38 @@ func (c *Client) SetDailyTrafficRecorder(recorder *DailyTrafficRecorder, enabled
 	c.dailyTrafficRecorder = recorder
 	c.dailyTrafficEnabled = enabled
 	c.mu.Unlock()
+}
+
+func (c *Client) SetTrackerTrafficRecorder(recorder *TrackerTrafficRecorder) {
+	c.mu.Lock()
+	c.trackerTrafficRecorder = recorder
+	c.mu.Unlock()
+}
+
+func (c *Client) recordTrackerTraffic(torrents map[string]qbt.Torrent, completeSnapshot bool) {
+	c.mu.RLock()
+	recorder := c.trackerTrafficRecorder
+	c.mu.RUnlock()
+	if recorder == nil || len(torrents) == 0 {
+		return
+	}
+	samples := make([]qbt.Torrent, 0, len(torrents))
+	for hash, torrent := range torrents {
+		if torrent.Hash == "" {
+			torrent.Hash = hash
+		}
+		samples = append(samples, torrent)
+	}
+	recorder.Record(context.Background(), c.instanceID, samples, completeSnapshot)
+}
+
+func (c *Client) removeTrackerTrafficCheckpoints(hashes []string) {
+	c.mu.RLock()
+	recorder := c.trackerTrafficRecorder
+	c.mu.RUnlock()
+	if recorder != nil {
+		recorder.Remove(c.instanceID, hashes)
+	}
 }
 
 // recordDailyTraffic ingests the latest server state into the daily traffic

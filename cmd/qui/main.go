@@ -627,6 +627,7 @@ func (app *Application) runServer() {
 	// preference (updated at runtime from client_settings), falling back to
 	// server-local time.
 	dailyTrafficStore := models.NewInstanceDailyTrafficStore(db)
+	trackerTrafficStore := models.NewTrackerTrafficStore(db)
 	timezoneProvider := timeutil.NewProvider()
 	clientPool.SetDailyTrafficRecorder(qbittorrent.NewDailyTrafficRecorderWithTimezone(dailyTrafficStore, 7, timezoneProvider))
 
@@ -638,6 +639,7 @@ func (app *Application) runServer() {
 	}
 	// Initialize managers
 	syncManager := qbittorrent.NewSyncManager(clientPool, trackerCustomizationStore)
+	clientPool.SetTrackerTrafficRecorder(qbittorrent.NewTrackerTrafficRecorder(trackerTrafficStore, timezoneProvider))
 
 	// Initialize files manager for caching torrent file information
 	filesManagerService := filesmanager.NewService(db) // implements qbittorrent.FilesManager
@@ -897,6 +899,7 @@ func (app *Application) runServer() {
 		CrossSeedService:                 crossSeedService,
 		CrossSeedLogStore:                crossSeedLogStore,
 		DailyTrafficStore:                dailyTrafficStore,
+		TrackerTrafficStore:              trackerTrafficStore,
 		JackettService:                   jackettService,
 		TorznabIndexerStore:              torznabIndexerStore,
 		AutomationStore:                  automationStore,

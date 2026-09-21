@@ -32,15 +32,19 @@ One row per tracker, aggregated across all instances:
 | Column | Content |
 |--------|---------|
 | Tracker | Display name or announce domain, with the tracker icon |
-| Uploaded / Downloaded | All-time totals for the torrents on this tracker |
-| Uploaded (Session) / Downloaded (Session) | Totals for this qBittorrent session |
+| Selected date upload / download | Traffic recorded for the date selected above the table |
+| Historical upload / download | Traffic recorded since tracker collection began |
 | Ratio | Upload divided by download |
 | Buffer | Upload minus download |
 | Torrents | Number of torrents |
 | Size | Total content size |
 | Seeded | Upload divided by content size |
 
+Each row also shows its current aggregate upload and download speeds. Traffic history starts with the first sample after upgrading; qui does not assign a torrent's older counters to that day. Removing a torrent through qui records one final fresh counter sample before deletion, so its collected traffic remains in the daily and historical totals.
+
 Click a column header to sort. The row actions rename trackers or merge several announce domains into one entry. See [Tracker Customizations](./tracker-customizations.md).
+
+For a merged tracker entry, qui combines the domains by torrent hash before calculating live totals. Persistent traffic remains associated with each announce domain and is summed with the current grouping, so renaming or regrouping domains keeps their history.
 
 ### Global Stats Cards
 

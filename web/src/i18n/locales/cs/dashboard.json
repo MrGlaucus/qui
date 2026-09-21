@@ -131,10 +131,10 @@
     "sort": "Řazení: {{column}}",
     "sortOptions": {
       "tracker": "Název trackeru",
-      "uploaded": "Nahráno",
-      "downloaded": "Stáhnuto",
-      "downloadedSession": "Stáhnuto (relace)",
-      "uploadedSession": "Nahráno (relace)",
+      "uploaded": "Odesláno ve vybraný den",
+      "downloaded": "Staženo ve vybraný den",
+      "downloadedSession": "Historicky staženo",
+      "uploadedSession": "Historicky odesláno",
       "ratio": "Poměr",
       "torrents": "Torrenty",
       "size": "Velikost",
@@ -142,10 +142,10 @@
     },
     "tableHeaders": {
       "tracker": "Název trackeru",
-      "uploaded": "Nahráno",
-      "downloaded": "Stáhnuto",
-      "downloadedSession": "Stáhnuto (relace)",
-      "uploadedSession": "Nahráno (relace)",
+      "uploaded": "Odesláno ve vybraný den",
+      "downloaded": "Staženo ve vybraný den",
+      "downloadedSession": "Historicky staženo",
+      "uploadedSession": "Historicky odesláno",
       "ratio": "Poměr",
       "buffer": "Náskok",
       "torrents": "Torrenty",
@@ -177,8 +177,7 @@
       "displayNamePlaceholder": "např. TorrentLeech",
       "domains": "Domény",
       "selectedTrackers": "Vybrané trackery",
-      "uncheckDuplicate": "Vypnout duplicitní URL trackerů, aby se nepočítaly stejné torrenty dvakrát.",
-      "primary": "Hlavní",
+      "primary": "Zobrazená doména",
       "cancel": "Zrušit",
       "saving": "Ukládám...",
       "save": "Uložit",
@@ -217,7 +216,8 @@
       "importedCount": "Importováno {{count}} vlastního nastavení trackeru",
       "importedCount_plural": "Importováno {{count}} vlastních nastavení trackerů",
       "noCustomizationsImported": "Žádná vlastní nastavení nejsou importována"
-    }
+    },
+    "trafficDate": "Datum provozu"
   },
   "quickActions": {
     "addTorrent": "Přidat torrent",

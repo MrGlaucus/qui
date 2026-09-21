@@ -133,25 +133,26 @@ func InstanceHealthBlockerMessage(err error) (string, bool) {
 
 // ClientPool manages multiple qBittorrent client connections
 type ClientPool struct {
-	clients              map[int]*Client
-	instanceStore        *models.InstanceStore
-	errorStore           *models.InstanceErrorStore
-	dailyTrafficRecorder *DailyTrafficRecorder
-	cache                *ttlcache.Cache[string, *TorrentResponse]
-	mu                   sync.RWMutex
-	creationMu           sync.Mutex          // Serialize client creation operations
-	creationLocks        map[int]*sync.Mutex // Per-instance creation locks
-	closed               bool
-	healthTicker         *time.Ticker
-	stopHealth           chan struct{}
-	failureTracker       map[int]*failureInfo
-	decryptionTracker    map[int]*decryptionErrorInfo
-	syncEventSink        SyncEventSink
-	syncEventSinkSeq     uint64
-	completionHandler    TorrentCompletionHandler
-	addedHandler         TorrentAddedHandler
-	syncManager          *SyncManager // Reference for starting background tasks
-	clientTimeout        time.Duration // HTTP transport timeout for every pooled client
+	clients                map[int]*Client
+	instanceStore          *models.InstanceStore
+	errorStore             *models.InstanceErrorStore
+	dailyTrafficRecorder   *DailyTrafficRecorder
+	trackerTrafficRecorder *TrackerTrafficRecorder
+	cache                  *ttlcache.Cache[string, *TorrentResponse]
+	mu                     sync.RWMutex
+	creationMu             sync.Mutex          // Serialize client creation operations
+	creationLocks          map[int]*sync.Mutex // Per-instance creation locks
+	closed                 bool
+	healthTicker           *time.Ticker
+	stopHealth             chan struct{}
+	failureTracker         map[int]*failureInfo
+	decryptionTracker      map[int]*decryptionErrorInfo
+	syncEventSink          SyncEventSink
+	syncEventSinkSeq       uint64
+	completionHandler      TorrentCompletionHandler
+	addedHandler           TorrentAddedHandler
+	syncManager            *SyncManager  // Reference for starting background tasks
+	clientTimeout          time.Duration // HTTP transport timeout for every pooled client
 }
 
 // NewClientPool creates a new client pool. clientTimeout is the HTTP transport
@@ -212,6 +213,20 @@ func (cp *ClientPool) SetDailyTrafficRecorder(recorder *DailyTrafficRecorder) {
 	for _, client := range clients {
 		enabled := recorder != nil
 		client.SetDailyTrafficRecorder(recorder, enabled)
+	}
+}
+
+// SetTrackerTrafficRecorder enables tracker traffic collection for all clients.
+func (cp *ClientPool) SetTrackerTrafficRecorder(recorder *TrackerTrafficRecorder) {
+	cp.mu.Lock()
+	cp.trackerTrafficRecorder = recorder
+	clients := make([]*Client, 0, len(cp.clients))
+	for _, client := range cp.clients {
+		clients = append(clients, client)
+	}
+	cp.mu.Unlock()
+	for _, client := range clients {
+		client.SetTrackerTrafficRecorder(recorder)
 	}
 }
 
@@ -463,6 +478,9 @@ func (cp *ClientPool) createClientWithTimeout(ctx context.Context, instanceID in
 	}
 	if cp.dailyTrafficRecorder != nil {
 		client.SetDailyTrafficRecorder(cp.dailyTrafficRecorder, instance.DailyTrafficEnabled)
+	}
+	if cp.trackerTrafficRecorder != nil {
+		client.SetTrackerTrafficRecorder(cp.trackerTrafficRecorder)
 	}
 	cp.clients[instanceID] = client
 	// Reset failure tracking on successful connection

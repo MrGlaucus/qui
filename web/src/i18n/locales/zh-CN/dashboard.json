@@ -131,10 +131,10 @@
     "sort": "排序：{{column}}",
     "sortOptions": {
       "tracker": "Tracker",
-      "uploaded": "已上传",
-      "downloaded": "已下载",
-      "downloadedSession": "已下载（本次）",
-      "uploadedSession": "已上传（本次）",
+      "uploaded": "所选日期上传",
+      "downloaded": "所选日期下载",
+      "downloadedSession": "历史总下载",
+      "uploadedSession": "历史总上传",
       "ratio": "分享率",
       "torrents": "种子数",
       "size": "大小",
@@ -142,10 +142,10 @@
     },
     "tableHeaders": {
       "tracker": "Tracker",
-      "uploaded": "已上传",
-      "downloaded": "已下载",
-      "downloadedSession": "已下载（本次）",
-      "uploadedSession": "已上传（本次）",
+      "uploaded": "所选日期上传",
+      "downloaded": "所选日期下载",
+      "downloadedSession": "历史总下载",
+      "uploadedSession": "历史总上传",
       "ratio": "分享率",
       "buffer": "缓冲",
       "torrents": "种子数",
@@ -177,8 +177,7 @@
       "displayNamePlaceholder": "例如 TorrentLeech",
       "domains": "域名",
       "selectedTrackers": "已选 Tracker",
-      "uncheckDuplicate": "取消勾选重复的 Tracker URL，避免重复统计同一种子。",
-      "primary": "主要",
+      "primary": "显示域名",
       "cancel": "取消",
       "saving": "保存中……",
       "save": "保存",
@@ -217,7 +216,8 @@
       "importedCount": "已导入 {{count}} 项自定义配置",
       "importedCount_plural": "已导入 {{count}} 项自定义配置",
       "noCustomizationsImported": "未导入任何自定义配置"
-    }
+    },
+    "trafficDate": "流量日期"
   },
   "quickActions": {
     "addTorrent": "添加种子",

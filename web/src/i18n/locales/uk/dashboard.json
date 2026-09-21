@@ -131,10 +131,10 @@
     "sort": "Сортування: {{column}}",
     "sortOptions": {
       "tracker": "Трекер",
-      "uploaded": "Вивантажено",
-      "downloaded": "Завантажено",
-      "downloadedSession": "Завантажено (сесія)",
-      "uploadedSession": "Вивантажено (сесія)",
+      "uploaded": "Вивантажено за вибрану дату",
+      "downloaded": "Завантажено за вибрану дату",
+      "downloadedSession": "Історично завантажено",
+      "uploadedSession": "Історично вивантажено",
       "ratio": "Співвідношення",
       "torrents": "Торенти",
       "size": "Розмір",
@@ -142,10 +142,10 @@
     },
     "tableHeaders": {
       "tracker": "Трекер",
-      "uploaded": "Вивантажено",
-      "downloaded": "Завантажено",
-      "downloadedSession": "Завантажено (сесія)",
-      "uploadedSession": "Вивантажено (сесія)",
+      "uploaded": "Вивантажено за вибрану дату",
+      "downloaded": "Завантажено за вибрану дату",
+      "downloadedSession": "Історично завантажено",
+      "uploadedSession": "Історично вивантажено",
       "ratio": "Співвідношення",
       "buffer": "Буфер",
       "torrents": "Торенти",
@@ -177,8 +177,7 @@
       "displayNamePlaceholder": "наприклад, TorrentLeech",
       "domains": "Домен(и)",
       "selectedTrackers": "Вибраний(-і) трекер(-и)",
-      "uncheckDuplicate": "Зніміть позначку з дублікатів URL трекерів, щоб уникнути подвійного підрахунку торентів.",
-      "primary": "Основний",
+      "primary": "Домен для показу",
       "cancel": "Скасувати",
       "saving": "Збереження...",
       "save": "Зберегти",
@@ -217,7 +216,8 @@
       "importedCount": "Імпортовано {{count}} налаштування",
       "importedCount_plural": "Імпортовано {{count}} налаштувань",
       "noCustomizationsImported": "Налаштувань не імпортовано"
-    }
+    },
+    "trafficDate": "Дата трафіку"
   },
   "quickActions": {
     "addTorrent": "Додати торент",

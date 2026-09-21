@@ -31,9 +31,11 @@ If a tracker announces on several domains, you can combine the domains into a si
 2. Click the link icon on one of the selected rows (**Add to merge**).
 3. Enter the **Display Name** for the merged entry and save.
 
-The merge dialog marks the first domain **Primary**. Its torrents always count toward the group's Dashboard statistics. The other domains start unticked and do not count until you tick them.
+The merge dialog marks the first domain as the **Display domain**. qui uses it for presentation, including the group icon. It does not control which torrents count.
 
-That default avoids double-counting. Trackers often announce the same torrents on several domains. If every domain counts, the same torrents count twice and inflate your upload and ratio figures. If a domain holds torrents that the primary domain does not, tick that domain.
+Dashboard statistics use the union of the torrents announced on every domain in the group. If the same torrent appears on several domains, qui counts it once. Torrents that appear on only one of the domains still count. Tracker announce status does not change group membership, so a tracker returning `-1` does not make the totals jump between domains.
+
+Traffic history remains associated with each announce domain and follows the current grouping. Renaming or regrouping domains keeps their history. Newly observed torrents establish a counter baseline first, so traffic from before collection began is not added to the current day.
 
 If you want to add another domain to an existing group later, select the domain and click the link icon on the group's row.
 
@@ -53,14 +55,13 @@ The **Tracker Breakdown** header has import and export buttons.
   "trackerCustomizations": [
     {
       "displayName": "MyTracker",
-      "domains": ["tracker.example.com", "tracker2.example.com"],
-      "includedInStats": ["tracker2.example.com"]
+      "domains": ["tracker.example.com", "tracker2.example.com"]
     }
   ]
 }
 ```
 
-The first entry in `domains` is the primary domain and always counts toward Dashboard statistics. `includedInStats` is optional and lists the other domains that you also want to count. If you leave it out, only the primary domain counts.
+The first entry in `domains` is the display domain. All domains participate in the deduplicated Dashboard statistics.
 
 ## Where display names are used
 

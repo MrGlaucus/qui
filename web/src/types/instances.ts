@@ -195,3 +195,16 @@ export interface InstanceDailyTrafficResponse {
   items: InstanceDailyTraffic[]
   total: number
 }
+
+export interface TrackerTrafficRow {
+  trackerKey: string
+  date: string
+  uploaded: number
+  downloaded: number
+}
+
+export interface TrackerTrafficResponse {
+  date: string
+  items: TrackerTrafficRow[]
+  totals: TrackerTrafficRow[]
+}

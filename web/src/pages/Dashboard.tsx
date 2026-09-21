@@ -106,6 +106,7 @@ import { DEFAULT_DASHBOARD_SETTINGS, useDashboardSettings, useUpdateDashboardSet
 import { useDailyTraffic } from "@/hooks/useDailyTraffic"
 import { useCreateTrackerCustomization, useDeleteTrackerCustomization, useTrackerCustomizations, useUpdateTrackerCustomization } from "@/hooks/useTrackerCustomizations"
 import { useTrackerIcons } from "@/hooks/useTrackerIcons"
+import { useTrackerTraffic } from "@/hooks/useTrackerTraffic"
 import { getLinuxTrackerDomain, useIncognitoMode } from "@/lib/incognito"
 import { mergeLiveTodayTraffic } from "@/lib/dashboard-stream"
 import { flagClass } from "@/lib/countryFlags"
@@ -1771,6 +1772,12 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
   const setAccordionValue = (value: string) => onCollapsedChange(value === "")
   const { data: trackerIcons } = useTrackerIcons()
   const [incognitoMode] = useIncognitoMode()
+  const [speedUnit] = useSpeedUnits()
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+  })
+  const { data: trackerTraffic } = useTrackerTraffic(selectedDate)
 
   // Use settings directly - React Query handles optimistic updates
   const sortColumn = (settings.trackerBreakdownSortColumn as TrackerSortColumn) || "uploaded"
@@ -1787,8 +1794,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
   const [showCustomizeDialog, setShowCustomizeDialog] = useState(false)
   const [customizeDisplayName, setCustomizeDisplayName] = useState("")
-  const [editingCustomization, setEditingCustomization] = useState<{ id: number; domains: string[]; includedInStats: string[] } | null>(null)
-  const [includedInStats, setIncludedInStats] = useState<Set<string>>(new Set())
+  const [editingCustomization, setEditingCustomization] = useState<{ id: number; domains: string[] } | null>(null)
 
   // Import/Export state
   const [showImportDialog, setShowImportDialog] = useState(false)
@@ -1798,20 +1804,38 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
   const trackerStats = useMemo(() => {
     // aggregate tracker transfer stats across all instances
     const aggregated = new Map<string, TrackerTransferStats>()
+    const aggregatedGroups = new Map<string, TrackerTransferStats>()
 
     for (const { torrentCounts } of statsData) {
-      if (!torrentCounts?.trackerTransfers) continue
-      for (const [domain, stats] of Object.entries(torrentCounts.trackerTransfers)) {
+      if (!torrentCounts) continue
+      for (const [domain, stats] of Object.entries(torrentCounts.trackerTransfers ?? {})) {
         const existing = aggregated.get(domain)
         if (existing) {
           existing.uploaded += stats.uploaded
           existing.downloaded += stats.downloaded
           existing.uploadedSession += stats.uploadedSession
           existing.downloadedSession += stats.downloadedSession
+          existing.uploadSpeed += stats.uploadSpeed ?? 0
+          existing.downloadSpeed += stats.downloadSpeed ?? 0
           existing.totalSize += stats.totalSize
           existing.count += stats.count
         } else {
-          aggregated.set(domain, { ...stats })
+          aggregated.set(domain, { ...stats, uploadSpeed: stats.uploadSpeed ?? 0, downloadSpeed: stats.downloadSpeed ?? 0 })
+        }
+      }
+      for (const [groupId, stats] of Object.entries(torrentCounts.trackerGroupTransfers ?? {})) {
+        const existing = aggregatedGroups.get(groupId)
+        if (existing) {
+          existing.uploaded += stats.uploaded
+          existing.downloaded += stats.downloaded
+          existing.uploadedSession += stats.uploadedSession
+          existing.downloadedSession += stats.downloadedSession
+          existing.uploadSpeed += stats.uploadSpeed ?? 0
+          existing.downloadSpeed += stats.downloadSpeed ?? 0
+          existing.totalSize += stats.totalSize
+          existing.count += stats.count
+        } else {
+          aggregatedGroups.set(groupId, { ...stats, uploadSpeed: stats.uploadSpeed ?? 0, downloadSpeed: stats.downloadSpeed ?? 0 })
         }
       }
     }
@@ -1824,29 +1848,37 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
       }
     }
 
-    // Apply customizations: sum non-excluded domains, use display names
-    // Two-pass approach to handle domains appearing in any order in the aggregated map
+    const daily = new Map((trackerTraffic?.items ?? []).map(item => [item.trackerKey, item]))
+    const totals = new Map((trackerTraffic?.totals ?? []).map(item => [item.trackerKey, item]))
+    const emptyStats: TrackerTransferStats = {
+      uploaded: 0,
+      downloaded: 0,
+      uploadedSession: 0,
+      downloadedSession: 0,
+      uploadSpeed: 0,
+      downloadSpeed: 0,
+      totalSize: 0,
+      count: 0,
+    }
+
     const processed = new Map<string, ProcessedTrackerStats>()
 
-    // Pass 1: Create entries for primary domains and standalone domains
-    for (const [domain, stats] of aggregated) {
+    const standaloneDomains = new Set(aggregated.keys())
+    for (const key of [...daily.keys(), ...totals.keys()]) {
+      if (key.startsWith("domain:")) standaloneDomains.add(key.slice("domain:".length))
+    }
+    for (const domain of standaloneDomains) {
       const customization = domainToCustomization.get(domain.toLowerCase())
-
-      if (customization) {
-        const isPrimary = customization.domains[0]?.toLowerCase() === domain.toLowerCase()
-        if (isPrimary) {
-          processed.set(customization.displayName, {
-            ...stats,
-            domain,
-            displayName: customization.displayName,
-            originalDomains: customization.domains,
-            customizationId: customization.id,
-          })
-        }
-      } else {
-        // No customization - use domain as-is
+      if (!customization) {
+        const live = aggregated.get(domain) ?? emptyStats
+        const day = daily.get(`domain:${domain}`)
+        const total = totals.get(`domain:${domain}`)
         processed.set(domain, {
-          ...stats,
+          ...live,
+          uploaded: day?.uploaded ?? 0,
+          downloaded: day?.downloaded ?? 0,
+          uploadedSession: total?.uploaded ?? 0,
+          downloadedSession: total?.downloaded ?? 0,
           domain,
           displayName: domain,
           originalDomains: [domain],
@@ -1854,63 +1886,36 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
       }
     }
 
-    // Pass 2: Add stats from explicitly included secondary domains
-    for (const [domain, stats] of aggregated) {
-      const customization = domainToCustomization.get(domain.toLowerCase())
-
-      if (customization) {
-        const isPrimary = customization.domains[0]?.toLowerCase() === domain.toLowerCase()
-        const isIncluded = customization.includedInStats?.some(
-          d => d.toLowerCase() === domain.toLowerCase()
-        )
-
-        // Secondary domains only contribute if explicitly in includedInStats
-        if (!isPrimary && isIncluded) {
-          const existing = processed.get(customization.displayName)
-          if (existing) {
-            existing.uploaded += stats.uploaded
-            existing.downloaded += stats.downloaded
-            existing.uploadedSession += stats.uploadedSession
-            existing.downloadedSession += stats.downloadedSession
-            existing.totalSize += stats.totalSize
-            existing.count += stats.count
-            continue
-          }
-
-          processed.set(customization.displayName, {
-            ...stats,
-            domain: customization.domains[0] ?? domain,
-            displayName: customization.displayName,
-            originalDomains: customization.domains,
-            customizationId: customization.id,
-          })
+    for (const customization of customizations ?? []) {
+      // The primary-domain fallback keeps the row visible during rolling
+      // upgrades or a transient backend customization lookup failure.
+      const primaryDomain = customization.domains[0]
+      const live = aggregatedGroups.get(String(customization.id)) ?? (
+        primaryDomain ? aggregated.get(primaryDomain) : undefined
+      )
+      const day = customization.domains.reduce((sum, domain) => {
+        const row = daily.get(`domain:${domain.toLowerCase()}`)
+        return {
+          uploaded: sum.uploaded + (row?.uploaded ?? 0),
+          downloaded: sum.downloaded + (row?.downloaded ?? 0),
         }
-      }
-    }
-
-    // Pass 3: Ensure merged groups remain visible even if the primary domain has no torrents.
-    // If no primary/included domain produced a group entry, fall back to whichever domain in the group
-    // currently has stats (pick the one with the highest torrent count to avoid double-counting).
-    const fallbackByDisplayName = new Map<string, { customization: TrackerCustomization; stats: TrackerTransferStats; domain: string }>()
-    for (const [domain, stats] of aggregated) {
-      const customization = domainToCustomization.get(domain.toLowerCase())
-      if (!customization) continue
-      if (processed.has(customization.displayName)) continue
-
-      const existing = fallbackByDisplayName.get(customization.displayName)
-      if (
-        !existing ||
-        stats.count > existing.stats.count ||
-        (stats.count === existing.stats.count && stats.uploaded > existing.stats.uploaded)
-      ) {
-        fallbackByDisplayName.set(customization.displayName, { customization, stats, domain })
-      }
-    }
-
-    for (const { customization, stats, domain } of fallbackByDisplayName.values()) {
-      processed.set(customization.displayName, {
-        ...stats,
-        domain: customization.domains[0] ?? domain,
+      }, { uploaded: 0, downloaded: 0 })
+      const total = customization.domains.reduce((sum, domain) => {
+        const row = totals.get(`domain:${domain.toLowerCase()}`)
+        return {
+          uploaded: sum.uploaded + (row?.uploaded ?? 0),
+          downloaded: sum.downloaded + (row?.downloaded ?? 0),
+        }
+      }, { uploaded: 0, downloaded: 0 })
+      const hasTraffic = day.uploaded > 0 || day.downloaded > 0 || total.uploaded > 0 || total.downloaded > 0
+      if (!live && !hasTraffic) continue
+      processed.set(`customization:${customization.id}`, {
+        ...(live ?? emptyStats),
+        uploaded: day.uploaded,
+        downloaded: day.downloaded,
+        uploadedSession: total.uploaded,
+        downloadedSession: total.downloaded,
+        domain: primaryDomain ?? customization.displayName,
         displayName: customization.displayName,
         originalDomains: customization.domains,
         customizationId: customization.id,
@@ -1918,7 +1923,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
     }
 
     return Array.from(processed.values())
-  }, [statsData, customizations])
+  }, [statsData, customizations, trackerTraffic])
 
   // sort the tracker stats based on current sort state
   const sortedTrackerStats = useMemo(() => {
@@ -2012,7 +2017,6 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
       data: {
         displayName: group.displayName,
         domains: mergedDomains,
-        includedInStats: group.includedInStats ?? [],
       },
     }, {
       onSuccess: () => {
@@ -2029,9 +2033,6 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
 
     if (domains.length === 0) return
 
-    // Get included domains from state (secondary domains that contribute to stats)
-    const included = editingCustomization? editingCustomization.includedInStats: Array.from(includedInStats)
-
     if (editingCustomization) {
       // Update existing
       updateCustomization.mutate(
@@ -2040,7 +2041,6 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
           data: {
             displayName: customizeDisplayName.trim(),
             domains,
-            includedInStats: included,
           },
         },
         {
@@ -2056,15 +2056,12 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
       )
 
       if (existing) {
-        // Merge into existing - combine inclusions
-        const mergedIncluded = [...(existing.includedInStats ?? []), ...included]
         updateCustomization.mutate(
           {
             id: existing.id,
             data: {
               displayName: existing.displayName,
               domains: [...existing.domains, ...domains],
-              includedInStats: mergedIncluded,
             },
           },
           {
@@ -2080,7 +2077,6 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
           {
             displayName: customizeDisplayName.trim(),
             domains,
-            includedInStats: included,
           },
           {
             onSuccess: () => {
@@ -2115,12 +2111,9 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
 
   // Open customize dialog for editing existing customization
   const openEditDialog = (customizationId: number, currentName: string, domains: string[]) => {
-    // Look up the full customization to get includedInStats
-    const fullCustomization = customizations?.find(c => c.id === customizationId)
     setEditingCustomization({
       id: customizationId,
       domains,
-      includedInStats: fullCustomization?.includedInStats ?? [],
     })
     setCustomizeDisplayName(currentName)
     setShowCustomizeDialog(true)
@@ -2156,47 +2149,21 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
     setShowCustomizeDialog(false)
     setCustomizeDisplayName("")
     setEditingCustomization(null)
-    setIncludedInStats(new Set())
   }
 
   // Remove a domain from the customize dialog
   const handleRemoveDomainFromDialog = (domainToRemove: string) => {
     if (editingCustomization) {
       const newDomains = editingCustomization.domains.filter(d => d !== domainToRemove)
-      const newIncluded = editingCustomization.includedInStats.filter(
-        d => d.toLowerCase() !== domainToRemove.toLowerCase()
-      )
       if (newDomains.length > 0) {
-        setEditingCustomization({ ...editingCustomization, domains: newDomains, includedInStats: newIncluded })
+        setEditingCustomization({ ...editingCustomization, domains: newDomains })
       }
     } else {
       const newSelected = new Set(selectedDomains)
       newSelected.delete(domainToRemove)
-      // Also remove from includedInStats for new customizations
-      const newIncluded = new Set(includedInStats)
-      newIncluded.delete(domainToRemove)
-      setIncludedInStats(newIncluded)
       if (newSelected.size > 0) {
         setSelectedDomains(newSelected)
       }
-    }
-  }
-
-  // Toggle stats inclusion for a domain in the dialog
-  // include=true means "add to includedInStats", include=false means "remove from includedInStats"
-  const handleToggleStatsInclusion = (domain: string, include: boolean) => {
-    if (editingCustomization) {
-      const domainLower = domain.toLowerCase()
-      const newIncluded = include? [...editingCustomization.includedInStats.filter(d => d.toLowerCase() !== domainLower), domain]: editingCustomization.includedInStats.filter(d => d.toLowerCase() !== domainLower)
-      setEditingCustomization({ ...editingCustomization, includedInStats: newIncluded })
-    } else {
-      const newIncluded = new Set(includedInStats)
-      if (include) {
-        newIncluded.add(domain)
-      } else {
-        newIncluded.delete(domain)
-      }
-      setIncludedInStats(newIncluded)
     }
   }
 
@@ -2210,13 +2177,9 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
     const exportData = {
       comment: "qui tracker customizations for Dashboard",
       trackerCustomizations: customizations.map(c => {
-        const entry: { displayName: string; domains: string[]; includedInStats?: string[] } = {
+        const entry: { displayName: string; domains: string[] } = {
           displayName: c.displayName,
           domains: c.domains,
-        }
-        // Only include includedInStats if non-empty
-        if (c.includedInStats && c.includedInStats.length > 0) {
-          entry.includedInStats = c.includedInStats
         }
         return entry
       }),
@@ -2279,7 +2242,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
         }
       }
 
-      const entriesWithConflicts = entries.map((entry: { displayName: string; domains: string[]; includedInStats?: string[] }, index: number) => {
+      const entriesWithConflicts = entries.map((entry: { displayName: string; domains: string[] }, index: number) => {
         const conflictingDomain = entry.domains.find((d: string) => existingDomains.has(d.toLowerCase()))
         const existingCustomization = conflictingDomain ? existingDomains.get(conflictingDomain.toLowerCase()) : null
 
@@ -2297,7 +2260,6 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
 
         return {
           ...entry,
-          includedInStats: entry.includedInStats ?? [],
           index,
           conflict: existingCustomization,
           isIdentical,
@@ -2340,7 +2302,6 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
             data: {
               displayName: entry.displayName,
               domains: entry.domains,
-              includedInStats: entry.includedInStats,
             },
           })
           imported++
@@ -2349,7 +2310,6 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
           await createCustomization.mutateAsync({
             displayName: entry.displayName,
             domains: entry.domains,
-            includedInStats: entry.includedInStats,
           })
           imported++
         } else {
@@ -2516,6 +2476,19 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-0 pb-0">
+            <div className="flex items-center justify-end gap-2 border-b px-4 py-2">
+              <Label htmlFor="tracker-traffic-date" className="text-xs text-muted-foreground">
+                {t("trackerBreakdown.trafficDate")}
+              </Label>
+              <Input
+                id="tracker-traffic-date"
+                type="date"
+                value={selectedDate}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(event) => setSelectedDate(event.target.value)}
+                className="h-8 w-auto"
+              />
+            </div>
             {/* Mobile Sort Dropdown and Import/Export */}
             <div className="sm:hidden px-4 py-2 border-b flex items-center gap-2">
               <DropdownMenu>
@@ -2558,7 +2531,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
             {/* Mobile row list */}
             <div className="sm:hidden divide-y">
               {paginatedTrackerStats.map((tracker) => {
-                const { domain, displayName, originalDomains, uploaded, downloaded, count, customizationId } = tracker
+                const { domain, displayName, originalDomains, uploaded, downloaded, uploadSpeed, downloadSpeed, count, customizationId } = tracker
                 const { isInfinite, ratio, color: ratioColor } = getTrackerRatioDisplay(uploaded, downloaded)
                 const displayValue = incognitoMode ? getLinuxTrackerDomain(displayName) : displayName
                 const iconDomain = incognitoMode ? getLinuxTrackerDomain(domain) : domain
@@ -2606,6 +2579,8 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                           <span className="shrink-0" style={{ color: ratioColor }}>
                             {isInfinite ? "∞" : ratio.toFixed(2)}
                           </span>
+                          <span className="shrink-0">↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)}</span>
+                          <span className="shrink-0">↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}</span>
                         </div>
                       </div>
                       {/* torrent count, or the sorted metric when it is not on the line above */}
@@ -2736,7 +2711,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
               </TableHeader>
               <TableBody>
                 {paginatedTrackerStats.map((tracker, index) => {
-                  const { domain, displayName, originalDomains, uploaded, downloaded, uploadedSession, downloadedSession, totalSize, count, customizationId } = tracker
+                  const { domain, displayName, originalDomains, uploaded, downloaded, uploadedSession, downloadedSession, uploadSpeed, downloadSpeed, totalSize, count, customizationId } = tracker
                   const { isInfinite, ratio, color: ratioColor } = getTrackerRatioDisplay(uploaded, downloaded)
                   const displayValue = incognitoMode ? getLinuxTrackerDomain(displayName) : displayName
                   const iconDomain = incognitoMode ? getLinuxTrackerDomain(domain) : domain
@@ -2789,6 +2764,9 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                             )}
                           </Tooltip>
                           {isMerged && <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />}
+                          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                            ↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)} · ↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}
+                          </span>
                           <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 shrink-0">
                             {hasCustomization && customizationId ? (
                             // Show group merge if domains selected and if no other group is selected
@@ -3016,32 +2994,14 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
             </div>
             <div className="space-y-2 min-h-0 flex-1 flex flex-col overflow-hidden">
               <Label>{editingCustomization ? t("trackerBreakdown.customizeDialog.domains") : t("trackerBreakdown.customizeDialog.selectedTrackers")}</Label>
-              {((editingCustomization && editingCustomization.domains.length > 1) || (!editingCustomization && selectedDomains.size > 1)) && (
-                <p className="text-xs text-muted-foreground">
-                  {t("trackerBreakdown.customizeDialog.uncheckDuplicate")}
-                </p>
-              )}
               <ScrollArea className="h-[300px]">
                 <div className="text-sm text-muted-foreground space-y-1.5 pr-4">
                   {(editingCustomization ? editingCustomization.domains : Array.from(selectedDomains)).map((domain, index, arr) => {
                     const hasMultiple = arr.length > 1
                     const isPrimary = index === 0
-                    // Get inclusion state from appropriate source
-                    // Primary is always included; secondary domains only if in includedInStats
-                    const currentIncluded = editingCustomization? editingCustomization.includedInStats: Array.from(includedInStats)
-                    const isInList = currentIncluded.some(d => d.toLowerCase() === domain.toLowerCase())
-                    const isIncluded = isPrimary || isInList
 
                     return (
-                      <div key={domain} className={`grid items-center gap-2 ${hasMultiple ? "grid-cols-[auto_1fr_auto_auto]" : "grid-cols-[1fr]"}`}>
-                        {hasMultiple && (
-                          <Checkbox
-                            checked={isIncluded}
-                            disabled={isPrimary}
-                            onCheckedChange={(checked) => handleToggleStatsInclusion(domain, !!checked)}
-                            className="h-4 w-4"
-                          />
-                        )}
+                      <div key={domain} className={`grid items-center gap-2 ${hasMultiple ? "grid-cols-[1fr_auto_auto]" : "grid-cols-[1fr]"}`}>
                         <span className={`truncate${isPrimary ? " font-medium" : ""}`} title={domain}>{domain}</span>
                         {hasMultiple && (
                           isPrimary ? (

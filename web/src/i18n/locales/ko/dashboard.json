@@ -131,10 +131,10 @@
     "sort": "정렬: {{column}}",
     "sortOptions": {
       "tracker": "트래커",
-      "uploaded": "업로드됨",
-      "downloaded": "다운로드됨",
-      "downloadedSession": "다운로드됨 (세션)",
-      "uploadedSession": "업로드됨 (세션)",
+      "uploaded": "선택 날짜 업로드",
+      "downloaded": "선택 날짜 다운로드",
+      "downloadedSession": "누적 다운로드",
+      "uploadedSession": "누적 업로드",
       "ratio": "비율",
       "torrents": "토렌트",
       "size": "크기",
@@ -142,10 +142,10 @@
     },
     "tableHeaders": {
       "tracker": "트래커",
-      "uploaded": "업로드됨",
-      "downloaded": "다운로드됨",
-      "downloadedSession": "다운로드됨 (세션)",
-      "uploadedSession": "업로드됨 (세션)",
+      "uploaded": "선택 날짜 업로드",
+      "downloaded": "선택 날짜 다운로드",
+      "downloadedSession": "누적 다운로드",
+      "uploadedSession": "누적 업로드",
       "ratio": "비율",
       "buffer": "버퍼",
       "torrents": "토렌트",
@@ -177,8 +177,7 @@
       "displayNamePlaceholder": "예: TorrentLeech",
       "domains": "도메인",
       "selectedTrackers": "선택한 트래커",
-      "uncheckDuplicate": "동일한 토렌트를 두 번 계산하지 않도록 중복 트래커 URL의 선택을 해제하세요.",
-      "primary": "기본",
+      "primary": "표시 도메인",
       "cancel": "취소",
       "saving": "저장 중...",
       "save": "저장",
@@ -217,7 +216,8 @@
       "importedCount": "사용자 지정 {{count}}개 가져옴",
       "importedCount_plural": "사용자 지정 {{count}}개 가져옴",
       "noCustomizationsImported": "가져온 사용자 지정이 없습니다"
-    }
+    },
+    "trafficDate": "트래픽 날짜"
   },
   "quickActions": {
     "addTorrent": "토렌트 추가",

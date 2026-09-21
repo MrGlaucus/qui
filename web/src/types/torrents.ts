@@ -186,6 +186,8 @@ export interface TrackerTransferStats {
   downloaded: number
   uploadedSession: number
   downloadedSession: number
+  uploadSpeed: number
+  downloadSpeed: number
   totalSize: number
   count: number
 }
@@ -204,6 +206,8 @@ export interface TorrentCounts {
   tagSizes?: Record<string, number>
   trackers: Record<string, number>
   trackerTransfers?: Record<string, TrackerTransferStats>
+  /** Deduplicated tracker customization totals keyed by customization ID. */
+  trackerGroupTransfers?: Record<string, TrackerTransferStats>
   /**
    * Per-instance torrent counts (unified view only). Keys are stringified
    * instance IDs.

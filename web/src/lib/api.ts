@@ -72,6 +72,7 @@ import type {
   InstanceCrossSeedCompletionSettings,
   InstanceFormData,
   InstanceDailyTrafficResponse,
+  TrackerTrafficResponse,
   InstanceReannounceActivity,
   InstanceReannounceCandidate,
   InstanceResponse,
@@ -698,6 +699,10 @@ class ApiClient {
 
   async getDailyTraffic(id: number, days = 7): Promise<InstanceDailyTrafficResponse> {
     return this.request<InstanceDailyTrafficResponse>(`/instances/${id}/traffic/daily?days=${days}`)
+  }
+
+  async getTrackerTraffic(date: string): Promise<TrackerTrafficResponse> {
+    return this.request<TrackerTrafficResponse>(`/tracker-traffic?date=${encodeURIComponent(date)}`)
   }
 
   async getInstanceReannounceActivity(

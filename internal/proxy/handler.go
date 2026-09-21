@@ -2072,6 +2072,14 @@ func (h *Handler) handleDeleteTorrents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hashes := r.Form.Get("hashes")
+	if hashes != "" && h.syncManager != nil {
+		hashList := strings.Split(hashes, "|")
+		if err := h.syncManager.SettleTrackerTraffic(ctx, instanceID, hashList); err != nil {
+			log.Warn().Err(err).Int("instanceId", instanceID).Msg("Failed to settle tracker traffic before proxied deletion")
+			http.Error(w, "Failed to settle tracker traffic before deletion", http.StatusBadGateway)
+			return
+		}
+	}
 
 	log.Debug().
 		Int("instanceId", instanceID).

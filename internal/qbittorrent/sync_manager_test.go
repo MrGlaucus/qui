@@ -3020,6 +3020,48 @@ func TestTrackerDomainCountsDedupeSharedDomainFromMainData(t *testing.T) {
 	}, counts.TrackerTransfers["dupe.example"])
 }
 
+func TestTrackerGroupTransfersDeduplicateDomainUnion(t *testing.T) {
+	t.Parallel()
+
+	sm := NewSyncManager(nil, &stubTrackerCustomizationLister{
+		customizations: []*models.TrackerCustomization{
+			{
+				ID:          42,
+				DisplayName: "Example PT",
+				Domains:     []string{"one.example", "two.example", "three.example"},
+			},
+		},
+	})
+	sm.validatedTrackerMapping[12] = &ValidatedTrackerMapping{
+		DomainToHashes: map[string]map[string]struct{}{
+			"one.example":   {"hash-a": {}, "hash-b": {}},
+			"two.example":   {"hash-a": {}, "hash-c": {}},
+			"three.example": {"hash-a": {}, "hash-d": {}},
+		},
+		UpdatedAt: time.Now(),
+	}
+	client := &Client{instanceID: 12}
+	torrents := []qbt.Torrent{
+		{Hash: "hash-a", ContentPath: "/data/a", Size: 100, Uploaded: 10, Downloaded: 1},
+		{Hash: "hash-b", ContentPath: "/data/b", Size: 200, Uploaded: 20, Downloaded: 2},
+		{Hash: "hash-c", ContentPath: "/data/c", Size: 300, Uploaded: 30, Downloaded: 3},
+		{Hash: "hash-d", ContentPath: "/data/d", Size: 400, Uploaded: 40, Downloaded: 4},
+	}
+
+	counts, _, _ := sm.calculateCountsFromTorrentsWithTrackers(t.Context(), client, torrents, nil, nil, false, false)
+
+	require.Equal(t, TrackerTransferStats{
+		Uploaded:   100,
+		Downloaded: 10,
+		TotalSize:  1000,
+		Count:      4,
+	}, counts.TrackerGroupTransfers["42"])
+	// Raw domain totals remain available and intentionally overlap.
+	require.Equal(t, 2, counts.TrackerTransfers["one.example"].Count)
+	require.Equal(t, 2, counts.TrackerTransfers["two.example"].Count)
+	require.Equal(t, 2, counts.TrackerTransfers["three.example"].Count)
+}
+
 // Category and tag counts share one accumulator per key, so this pins the whole
 // contract of that pass: what counts, what dedupes, and how tags are split.
 func TestCategoryAndTagCountsFromTorrents(t *testing.T) {

@@ -131,10 +131,10 @@
     "sort": "Trier : {{column}}",
     "sortOptions": {
       "tracker": "Tracker",
-      "uploaded": "Envoyé",
-      "downloaded": "Téléchargé",
-      "downloadedSession": "Téléchargé (Session)",
-      "uploadedSession": "Envoyé (Session)",
+      "uploaded": "Envoi à la date choisie",
+      "downloaded": "Téléchargement à la date choisie",
+      "downloadedSession": "Téléchargement historique",
+      "uploadedSession": "Envoi historique",
       "ratio": "Ratio",
       "torrents": "Torrents",
       "size": "Taille",
@@ -142,10 +142,10 @@
     },
     "tableHeaders": {
       "tracker": "Tracker",
-      "uploaded": "Envoyé",
-      "downloaded": "Téléchargé",
-      "downloadedSession": "Téléchargé (Session)",
-      "uploadedSession": "Envoyé (Session)",
+      "uploaded": "Envoi à la date choisie",
+      "downloaded": "Téléchargement à la date choisie",
+      "downloadedSession": "Téléchargement historique",
+      "uploadedSession": "Envoi historique",
       "ratio": "Ratio",
       "buffer": "Tampon",
       "torrents": "Torrents",
@@ -177,8 +177,7 @@
       "displayNamePlaceholder": "ex: TorrentLeech",
       "domains": "Domaine(s)",
       "selectedTrackers": "Tracker(s) Sélectionné(s)",
-      "uncheckDuplicate": "Décochez les URL de trackers en double pour éviter de compter les mêmes torrents deux fois.",
-      "primary": "Principal",
+      "primary": "Domaine affiché",
       "cancel": "Annuler",
       "saving": "Sauvegarde...",
       "save": "Sauvegarder",
@@ -217,7 +216,8 @@
       "importedCount": "{{count}} personnalisation importée",
       "importedCount_plural": "{{count}} personnalisations importées",
       "noCustomizationsImported": "Aucune personnalisation importée"
-    }
+    },
+    "trafficDate": "Date du trafic"
   },
   "quickActions": {
     "addTorrent": "Ajouter un Torrent",

@@ -440,6 +440,8 @@ type SyncManager struct {
 	trackerCustomizationStore TrackerCustomizationLister
 	// Cached tracker display name map (domain -> displayName), refreshed periodically
 	trackerDisplayNameCache *ttlcache.Cache[string, map[string]string]
+	// Cached tracker customizations used to build deduplicated dashboard groups.
+	trackerCustomizationCache *ttlcache.Cache[string, []*models.TrackerCustomization]
 
 	// Backend pool for filesystem operations (managed delete cleanup).
 	backendPool atomic.Value // stores backendPoolGetter interface value
@@ -501,6 +503,7 @@ func NewSyncManager(clientPool *ClientPool, trackerCustomizationStore TrackerCus
 		trackerHealthRefresh:      60 * time.Second,
 		validatedTrackerMapping:   make(map[int]*ValidatedTrackerMapping),
 		trackerDisplayNameCache:   ttlcache.New(ttlcache.Options[string, map[string]string]{}.SetDefaultTTL(60 * time.Second)),
+		trackerCustomizationCache: ttlcache.New(ttlcache.Options[string, []*models.TrackerCustomization]{}.SetDefaultTTL(60 * time.Second)),
 		peakCache:                 make(map[int]map[string]*peakEntry),
 	}
 
@@ -568,10 +571,39 @@ func (sm *SyncManager) getFilesManager() FilesManager {
 // Call this when tracker customizations are created, updated, or deleted to ensure
 // sorting uses the latest custom display names.
 func (sm *SyncManager) InvalidateTrackerDisplayNameCache() {
-	if sm == nil || sm.trackerDisplayNameCache == nil {
+	if sm == nil {
 		return
 	}
-	sm.trackerDisplayNameCache.Delete("tracker_display_names")
+	if sm.trackerDisplayNameCache != nil {
+		sm.trackerDisplayNameCache.Delete("tracker_display_names")
+	}
+	if sm.trackerCustomizationCache != nil {
+		sm.trackerCustomizationCache.Delete("tracker_customizations")
+	}
+	// Dashboard tracker groups are part of cached TorrentCounts.
+	sm.trackerMappingGen.Add(1)
+}
+
+func (sm *SyncManager) getTrackerCustomizations(ctx context.Context) []*models.TrackerCustomization {
+	const cacheKey = "tracker_customizations"
+	if sm == nil || sm.trackerCustomizationStore == nil {
+		return nil
+	}
+	if sm.trackerCustomizationCache != nil {
+		if cached, found := sm.trackerCustomizationCache.Get(cacheKey); found {
+			return cached
+		}
+	}
+
+	customizations, err := sm.trackerCustomizationStore.List(ctx)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to load tracker customizations for dashboard statistics")
+		return nil
+	}
+	if sm.trackerCustomizationCache != nil {
+		sm.trackerCustomizationCache.Set(cacheKey, customizations, ttlcache.DefaultTTL)
+	}
+	return customizations
 }
 
 // getTrackerDisplayNameMap returns a cached map of lowercase domain -> display name.
@@ -2368,13 +2400,14 @@ func mergeTorrentCounts(base *TorrentCounts, next *TorrentCounts) *TorrentCounts
 
 	if base == nil {
 		base = &TorrentCounts{
-			Status:           make(map[string]int, len(next.Status)),
-			Categories:       make(map[string]int, len(next.Categories)),
-			CategorySizes:    make(map[string]int64, len(next.CategorySizes)),
-			Tags:             make(map[string]int, len(next.Tags)),
-			TagSizes:         make(map[string]int64, len(next.TagSizes)),
-			Trackers:         make(map[string]int, len(next.Trackers)),
-			TrackerTransfers: make(map[string]TrackerTransferStats, len(next.TrackerTransfers)),
+			Status:                make(map[string]int, len(next.Status)),
+			Categories:            make(map[string]int, len(next.Categories)),
+			CategorySizes:         make(map[string]int64, len(next.CategorySizes)),
+			Tags:                  make(map[string]int, len(next.Tags)),
+			TagSizes:              make(map[string]int64, len(next.TagSizes)),
+			Trackers:              make(map[string]int, len(next.Trackers)),
+			TrackerTransfers:      make(map[string]TrackerTransferStats, len(next.TrackerTransfers)),
+			TrackerGroupTransfers: make(map[string]TrackerTransferStats, len(next.TrackerGroupTransfers)),
 		}
 	}
 
@@ -2398,6 +2431,9 @@ func mergeTorrentCounts(base *TorrentCounts, next *TorrentCounts) *TorrentCounts
 	}
 	if base.TrackerTransfers == nil {
 		base.TrackerTransfers = make(map[string]TrackerTransferStats, len(next.TrackerTransfers))
+	}
+	if base.TrackerGroupTransfers == nil {
+		base.TrackerGroupTransfers = make(map[string]TrackerTransferStats, len(next.TrackerGroupTransfers))
 	}
 
 	for key, value := range next.Status {
@@ -2428,6 +2464,10 @@ func mergeTorrentCounts(base *TorrentCounts, next *TorrentCounts) *TorrentCounts
 			TotalSize:         current.TotalSize + value.TotalSize,
 			Count:             current.Count + value.Count,
 		}
+	}
+	for key, value := range next.TrackerGroupTransfers {
+		current := base.TrackerGroupTransfers[key]
+		base.TrackerGroupTransfers[key] = addTrackerTransferStats(current, value)
 	}
 
 	base.Total += next.Total
@@ -2472,6 +2512,21 @@ func sortedTagKeys(values map[string]struct{}) []string {
 func (sm *SyncManager) GetQBittorrentSyncManager(ctx context.Context, instanceID int) (*qbt.SyncManager, error) {
 	_, syncManager, err := sm.getClientAndSyncManager(ctx, instanceID)
 	return syncManager, err
+}
+
+// SettleTrackerTraffic refreshes qBittorrent and records the latest counters
+// before a QUI-initiated deletion removes the torrents from the sync stream.
+func (sm *SyncManager) SettleTrackerTraffic(ctx context.Context, instanceID int, hashes []string) error {
+	client, syncManager, err := sm.getClientAndSyncManager(ctx, instanceID)
+	if err != nil {
+		return err
+	}
+	if err := syncManager.Sync(ctx); err != nil {
+		return err
+	}
+	torrentMap := syncManager.GetTorrentMap(qbt.TorrentFilterOptions{Hashes: hashes})
+	client.recordTrackerTraffic(torrentMap, false)
+	return nil
 }
 
 // BulkAction performs bulk operations on torrents
@@ -2598,6 +2653,12 @@ func (sm *SyncManager) BulkAction(ctx context.Context, instanceID int, hashes []
 				return err
 			}
 			return fmt.Errorf("%w: %s", err, action)
+		}
+	}
+
+	if action == "delete" || action == "deleteWithFiles" {
+		if settleErr := sm.SettleTrackerTraffic(ctx, instanceID, canonicalHashes); settleErr != nil {
+			return fmt.Errorf("settle tracker traffic before deletion: %w", settleErr)
 		}
 	}
 
@@ -3867,6 +3928,8 @@ type TrackerTransferStats struct {
 	Downloaded        int64 `json:"downloaded"`
 	UploadedSession   int64 `json:"uploadedSession"`
 	DownloadedSession int64 `json:"downloadedSession"`
+	UploadSpeed       int64 `json:"uploadSpeed"`
+	DownloadSpeed     int64 `json:"downloadSpeed"`
 	TotalSize         int64 `json:"totalSize"`
 	Count             int   `json:"count"`
 }
@@ -3880,6 +3943,10 @@ type TorrentCounts struct {
 	TagSizes         map[string]int64                `json:"tagSizes,omitempty"`
 	Trackers         map[string]int                  `json:"trackers"`
 	TrackerTransfers map[string]TrackerTransferStats `json:"trackerTransfers,omitempty"`
+	// TrackerGroupTransfers contains deduplicated transfer totals for tracker
+	// customizations, keyed by the customization ID. Raw per-domain totals above
+	// remain available for filtering and diagnostics.
+	TrackerGroupTransfers map[string]TrackerTransferStats `json:"trackerGroupTransfers,omitempty"`
 	// Instances holds per-instance torrent counts for the unified view,
 	// keyed by stringified instance ID. Only populated for cross-instance
 	// responses.
@@ -4209,7 +4276,7 @@ func (sm *SyncManager) cachedCountsForRequest(ctx context.Context, client *Clien
 // Tracker health counts (unregistered, tracker_down) are fetched from a background cache
 // that is refreshed every 60 seconds per instance. This avoids blocking API requests
 // while still providing accurate counts in the sidebar for qBittorrent 5.1+ users.
-func (sm *SyncManager) calculateCountsFromTorrentsWithTrackers(_ context.Context, client *Client, allTorrents []qbt.Torrent, mainData *qbt.MainData, trackerMap map[string][]qbt.TorrentTracker, trackerHealthSupported bool, useSubcategories bool) (*TorrentCounts, map[string][]qbt.TorrentTracker, []qbt.Torrent) {
+func (sm *SyncManager) calculateCountsFromTorrentsWithTrackers(ctx context.Context, client *Client, allTorrents []qbt.Torrent, mainData *qbt.MainData, trackerMap map[string][]qbt.TorrentTracker, trackerHealthSupported bool, useSubcategories bool) (*TorrentCounts, map[string][]qbt.TorrentTracker, []qbt.Torrent) {
 	// Initialize counts
 	counts := &TorrentCounts{
 		Status: map[string]int{
@@ -4251,6 +4318,7 @@ func (sm *SyncManager) calculateCountsFromTorrentsWithTrackers(_ context.Context
 	if client != nil {
 		domainToHashes = sm.getAuthoritativeDomainToHashes(client.instanceID)
 	}
+	groupDomainToHashes := make(map[string]map[string]struct{})
 
 	// Only the tracker passes look torrents up by hash, so the index is not
 	// built without one. Positions rather than pointers, because
@@ -4283,6 +4351,10 @@ func (sm *SyncManager) calculateCountsFromTorrentsWithTrackers(_ context.Context
 				if _, skip := hashesToSkip[hash]; skip {
 					continue
 				}
+				if groupDomainToHashes[domain] == nil {
+					groupDomainToHashes[domain] = make(map[string]struct{})
+				}
+				groupDomainToHashes[domain][hash] = struct{}{}
 				stats.add(&allTorrents[idx], sharedContentPaths[idx])
 			}
 
@@ -4370,7 +4442,11 @@ func (sm *SyncManager) calculateCountsFromTorrentsWithTrackers(_ context.Context
 			counts.Trackers[domain] = len(hashSet)
 
 			var stats trackerDomainStats
-			for _, idx := range hashSet {
+			for hash, idx := range hashSet {
+				if groupDomainToHashes[domain] == nil {
+					groupDomainToHashes[domain] = make(map[string]struct{})
+				}
+				groupDomainToHashes[domain][hash] = struct{}{}
 				stats.add(&allTorrents[idx], sharedContentPaths[idx])
 			}
 			counts.TrackerTransfers[domain] = stats.totals()
@@ -4389,6 +4465,14 @@ func (sm *SyncManager) calculateCountsFromTorrentsWithTrackers(_ context.Context
 			client.clearTrackerExclusions(domainsToClear)
 		}
 	}
+
+	counts.TrackerGroupTransfers = sm.calculateTrackerGroupTransfers(
+		ctx,
+		groupDomainToHashes,
+		torrentIndex,
+		allTorrents,
+		sharedContentPaths,
+	)
 
 	categoryStats := make(map[string]*countWithSize)
 	tagStats := make(map[string]*countWithSize)
@@ -6638,6 +6722,8 @@ func (t *trackerDomainStats) add(torrent *qbt.Torrent, sharedPath bool) {
 	t.sum.Downloaded += torrent.Downloaded
 	t.sum.UploadedSession += torrent.UploadedSession
 	t.sum.DownloadedSession += torrent.DownloadedSession
+	t.sum.UploadSpeed += torrent.UpSpeed
+	t.sum.DownloadSpeed += torrent.DlSpeed
 
 	t.size.add(torrent, sharedPath && torrent.ContentPath != "")
 }
@@ -6646,6 +6732,66 @@ func (t *trackerDomainStats) totals() TrackerTransferStats {
 	stats := t.sum
 	stats.TotalSize += t.size.total()
 	return stats
+}
+
+func addTrackerTransferStats(a, b TrackerTransferStats) TrackerTransferStats {
+	return TrackerTransferStats{
+		Uploaded:          a.Uploaded + b.Uploaded,
+		Downloaded:        a.Downloaded + b.Downloaded,
+		UploadedSession:   a.UploadedSession + b.UploadedSession,
+		DownloadedSession: a.DownloadedSession + b.DownloadedSession,
+		UploadSpeed:       a.UploadSpeed + b.UploadSpeed,
+		DownloadSpeed:     a.DownloadSpeed + b.DownloadSpeed,
+		TotalSize:         a.TotalSize + b.TotalSize,
+		Count:             a.Count + b.Count,
+	}
+}
+
+// calculateTrackerGroupTransfers counts each torrent once per customized
+// tracker group, even when that torrent contains several domains in the group.
+func (sm *SyncManager) calculateTrackerGroupTransfers(
+	ctx context.Context,
+	domainToHashes map[string]map[string]struct{},
+	torrentIndex map[string]int,
+	torrents []qbt.Torrent,
+	sharedContentPaths []bool,
+) map[string]TrackerTransferStats {
+	customizations := sm.getTrackerCustomizations(ctx)
+	if len(customizations) == 0 || len(domainToHashes) == 0 {
+		return nil
+	}
+
+	groups := make(map[string]TrackerTransferStats, len(customizations))
+	for _, customization := range customizations {
+		if customization == nil || customization.ID <= 0 || len(customization.Domains) == 0 {
+			continue
+		}
+
+		hashes := make(map[string]struct{})
+		for _, configuredDomain := range customization.Domains {
+			domain := strings.ToLower(strings.TrimSpace(configuredDomain))
+			for hash := range domainToHashes[domain] {
+				hashes[hash] = struct{}{}
+			}
+		}
+
+		var stats trackerDomainStats
+		for hash := range hashes {
+			idx, ok := torrentIndex[hash]
+			if !ok {
+				continue
+			}
+			stats.add(&torrents[idx], sharedContentPaths[idx])
+		}
+		if stats.sum.Count > 0 {
+			groups[strconv.Itoa(customization.ID)] = stats.totals()
+		}
+	}
+
+	if len(groups) == 0 {
+		return nil
+	}
+	return groups
 }
 
 // calculateStats calculates torrent statistics from a list of torrents.

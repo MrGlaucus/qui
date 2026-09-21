@@ -1200,6 +1200,28 @@ paths:
         '503':
           description: Instance unavailable
 
+  /api/tracker-traffic:
+    get:
+      tags:
+        - Trackers
+      summary: Get tracker traffic history
+      description: Returns traffic for one calendar date and totals recorded since collection began.
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Tracker traffic history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackerTrafficResponse'
+        '400':
+          description: Invalid date
+
   /api/instances/{instanceID}/transfer-info:
     get:
       tags:
@@ -6237,6 +6259,36 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
+    TrackerTrafficRow:
+      type: object
+      required: [trackerKey, date, uploaded, downloaded]
+      properties:
+        trackerKey:
+          type: string
+        date:
+          type: string
+        uploaded:
+          type: integer
+          format: int64
+        downloaded:
+          type: integer
+          format: int64
+    TrackerTrafficResponse:
+      type: object
+      required: [date, items, totals]
+      properties:
+        date:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackerTrafficRow'
+        totals:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackerTrafficRow'
+
     ErrorResponse:
       type: object
       required:

@@ -270,7 +270,7 @@ func TestBulkAction_UnifiedScopeTargetsReachOneInstance(t *testing.T) {
 	}
 	setUnexportedField(t, clientPool, "clients", clients)
 
-	handler := NewTorrentsHandler(qbittorrent.NewSyncManager(clientPool, nil), nil, instanceStore)
+	handler := NewTorrentsHandler(qbittorrent.NewSyncManager(clientPool, nil), nil, instanceStore, nil)
 	req := newTorrentFieldRequest(t, allInstancesID, map[string]any{
 		"action":      "recheck",
 		"hashes":      []string{"shared"},

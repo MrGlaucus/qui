@@ -77,6 +77,7 @@ type Server struct {
 	crossSeedService                 *crossseed.Service
 	crossSeedLogStore                *models.CrossSeedLogStore
 	dailyTrafficStore                *models.InstanceDailyTrafficStore
+	trackerTrafficStore              *models.TrackerTrafficStore
 	jackettService                   *jackett.Service
 	torznabIndexerStore              *models.TorznabIndexerStore
 	automationStore                  *models.AutomationStore
@@ -127,6 +128,7 @@ type Dependencies struct {
 	CrossSeedService                 *crossseed.Service
 	CrossSeedLogStore                *models.CrossSeedLogStore
 	DailyTrafficStore                *models.InstanceDailyTrafficStore
+	TrackerTrafficStore              *models.TrackerTrafficStore
 	JackettService                   *jackett.Service
 	TorznabIndexerStore              *models.TorznabIndexerStore
 	AutomationStore                  *models.AutomationStore
@@ -219,6 +221,7 @@ func NewServer(deps *Dependencies) *Server {
 		crossSeedService:                 deps.CrossSeedService,
 		crossSeedLogStore:                deps.CrossSeedLogStore,
 		dailyTrafficStore:                deps.DailyTrafficStore,
+		trackerTrafficStore:              deps.TrackerTrafficStore,
 		reannounceService:                deps.ReannounceService,
 		jackettService:                   deps.JackettService,
 		torznabIndexerStore:              deps.TorznabIndexerStore,
@@ -392,6 +395,7 @@ func (s *Server) Handler() (*chi.Mux, error) {
 	}
 	instancesHandler := handlers.NewInstancesHandler(s.instanceStore, s.instanceReannounce, s.reannounceCache, s.clientPool, s.syncManager, s.reannounceService)
 	trafficHandler := handlers.NewTrafficHandler(s.dailyTrafficStore)
+	trackerTrafficHandler := handlers.NewTrackerTrafficHandler(s.trackerTrafficStore, s.timezone)
 	torrentsHandler := handlers.NewTorrentsHandler(s.syncManager, s.jackettService, s.instanceStore, s.crossSeedLogStore)
 	preferencesHandler := handlers.NewPreferencesHandler(s.syncManager)
 	clientAPIKeysHandler := handlers.NewClientAPIKeysHandler(s.clientAPIKeyStore, s.instanceStore, s.config.Config.BaseURL)
@@ -586,6 +590,7 @@ func (s *Server) Handler() (*chi.Mux, error) {
 			r.Get("/application/info", applicationHandler.GetInfo)
 
 			r.Get("/stream", s.streamManager.Serve)
+			r.Get("/tracker-traffic", trackerTrafficHandler.Get)
 
 			// GeoIP lookup for peer ISP information
 			geoIPHandler := handlers.NewGeoIPHandler()

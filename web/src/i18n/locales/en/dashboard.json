@@ -149,10 +149,10 @@
     "sort": "Sort: {{column}}",
     "sortOptions": {
       "tracker": "Tracker",
-      "uploaded": "Uploaded",
-      "downloaded": "Downloaded",
-      "downloadedSession": "Downloaded (Session)",
-      "uploadedSession": "Uploaded (Session)",
+      "uploaded": "Selected date upload",
+      "downloaded": "Selected date download",
+      "downloadedSession": "Historical download",
+      "uploadedSession": "Historical upload",
       "ratio": "Ratio",
       "torrents": "Torrents",
       "size": "Size",
@@ -160,17 +160,17 @@
     },
     "tableHeaders": {
       "tracker": "Tracker",
-      "uploaded": "Uploaded",
-      "downloaded": "Downloaded",
-      "downloadedSession": "Downloaded (Session)",
-      "uploadedSession": "Uploaded (Session)",
+      "uploaded": "Selected date upload",
+      "downloaded": "Selected date download",
+      "downloadedSession": "Historical download",
+      "uploadedSession": "Historical upload",
       "ratio": "Ratio",
       "buffer": "Buffer",
       "torrents": "Torrents",
       "size": "Size",
       "seeded": "Seeded"
     },
-    "seededTooltip": "Uploaded \u00f7 Content Size \u2014 how many times you've seeded your content",
+    "seededTooltip": "Uploaded ÷ Content Size — how many times you've seeded your content",
     "mergedFrom": "Merged from: {{domains}}",
     "original": "Original: {{domain}}",
     "mergeTooltip": "Merge selected trackers into this group",
@@ -195,8 +195,7 @@
       "displayNamePlaceholder": "e.g., TorrentLeech",
       "domains": "Domain(s)",
       "selectedTrackers": "Selected Tracker(s)",
-      "uncheckDuplicate": "Uncheck duplicate tracker URLs to avoid counting the same torrents twice.",
-      "primary": "Primary",
+      "primary": "Display domain",
       "cancel": "Cancel",
       "saving": "Saving...",
       "save": "Save",
@@ -235,7 +234,8 @@
       "importedCount": "Imported {{count}} customization",
       "importedCount_plural": "Imported {{count}} customizations",
       "noCustomizationsImported": "No customizations imported"
-    }
+    },
+    "trafficDate": "Traffic date"
   },
   "quickActions": {
     "addTorrent": "Add Torrent",
@@ -246,7 +246,7 @@
     "noInstances": "No instances configured",
     "getStarted": "Get started by adding your first qBittorrent instance",
     "allDisabled": "All instances are disabled",
-    "enableInstance": "Enable an instance from Settings \u2192 Instances to see dashboard stats.",
+    "enableInstance": "Enable an instance from Settings → Instances to see dashboard stats.",
     "manageInstances": "Manage Instances"
   }
 }

@@ -350,6 +350,15 @@ func countsFingerprint(c *qbittorrent.TorrentCounts) uint64 {
 		b.i64(v.TotalSize)
 		b.i64(int64(v.Count))
 	})
+	fpSortedMap(&b, c.TrackerGroupTransfers, func(b *fpBuf, v qbittorrent.TrackerTransferStats) {
+		b.i64(v.Uploaded)
+		b.i64(v.Downloaded)
+		b.i64(v.UploadedSession)
+		b.i64(v.DownloadedSession)
+		b.i64(v.TotalSize)
+		b.i64(int64(v.Count))
+	})
+	fpSortedMap(&b, c.Instances, func(b *fpBuf, v int) { b.i64(int64(v)) })
 	return b.sum()
 }
 

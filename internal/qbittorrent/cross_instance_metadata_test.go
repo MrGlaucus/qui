@@ -89,6 +89,9 @@ func TestMergeTorrentCounts(t *testing.T) {
 				Count:             1,
 			},
 		},
+		TrackerGroupTransfers: map[string]TrackerTransferStats{
+			"7": {Uploaded: 100, Count: 1},
+		},
 		Total: 1,
 	}
 	next := &TorrentCounts{
@@ -134,6 +137,10 @@ func TestMergeTorrentCounts(t *testing.T) {
 				Count:             1,
 			},
 		},
+		TrackerGroupTransfers: map[string]TrackerTransferStats{
+			"7": {Uploaded: 50, Count: 1},
+			"8": {Uploaded: 10, Count: 1},
+		},
 		Total: 3,
 	}
 
@@ -163,6 +170,9 @@ func TestMergeTorrentCounts(t *testing.T) {
 	require.EqualValues(t, 2, merged.TrackerTransfers["tracker.two"].DownloadedSession)
 	require.EqualValues(t, 30, merged.TrackerTransfers["tracker.two"].TotalSize)
 	require.Equal(t, 1, merged.TrackerTransfers["tracker.two"].Count)
+	require.EqualValues(t, 150, merged.TrackerGroupTransfers["7"].Uploaded)
+	require.Equal(t, 2, merged.TrackerGroupTransfers["7"].Count)
+	require.EqualValues(t, 10, merged.TrackerGroupTransfers["8"].Uploaded)
 	require.Equal(t, 4, merged.Total)
 }
 
