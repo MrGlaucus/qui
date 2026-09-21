@@ -2421,7 +2421,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
     <>
       <Accordion type="single" collapsible className="rounded-lg border bg-card" value={accordionValue} onValueChange={setAccordionValue}>
         <AccordionItem value="tracker-breakdown" className="border-0">
-          <AccordionTrigger className="px-4 py-4 hover:no-underline hover:bg-muted/50 transition-colors [&>svg]:hidden group">
+          <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/50 transition-colors [&>svg]:hidden group">
             {/* Mobile layout */}
             <div className="sm:hidden w-full">
               <div className="flex items-center justify-between">
@@ -2476,10 +2476,8 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-0 pb-0">
-            <div className="flex items-center justify-end gap-2 border-b px-4 py-2">
-              <Label htmlFor="tracker-traffic-date" className="text-xs text-muted-foreground">
-                {t("trackerBreakdown.trafficDate")}
-              </Label>
+            <div className="hidden sm:flex items-center justify-end gap-2 border-b px-4 py-2">
+              <Label htmlFor="tracker-traffic-date" className="text-xs text-muted-foreground">{t("trackerBreakdown.trafficDate")}</Label>
               <Input
                 id="tracker-traffic-date"
                 type="date"
@@ -2489,15 +2487,15 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                 className="h-8 w-auto"
               />
             </div>
-            {/* Mobile Sort Dropdown and Import/Export */}
-            <div className="sm:hidden px-4 py-2 border-b flex items-center gap-2">
+            {/* Mobile controls share one compact row. */}
+            <div className="sm:hidden flex items-center gap-1.5 border-b p-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="h-11 flex-1 justify-between">
-                    <span className="flex items-center gap-2 text-xs">
+                  <Button variant="outline" className="h-9 min-w-0 flex-1 justify-between px-2">
+                    <span className="truncate text-xs">
                       {t("trackerBreakdown.sort", { column: t(`trackerBreakdown.sortOptions.${sortColumn === "count" ? "torrents" : sortColumn === "performance" ? "seeded" : sortColumn}`) })}
                     </span>
-                    {sortDirection === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+                    {sortDirection === "asc" ? <ArrowUp className="ml-1 h-3.5 w-3.5 shrink-0" /> : <ArrowDown className="ml-1 h-3.5 w-3.5 shrink-0" />}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-full">
@@ -2512,13 +2510,21 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                   <DropdownMenuItem onClick={() => handleSort("performance")}>{t("trackerBreakdown.sortOptions.seeded")}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" size="icon" className="size-11" onClick={openImportDialog} aria-label={t("trackerBreakdown.importTooltip")}>
+              <Input
+                type="date"
+                value={selectedDate}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(event) => setSelectedDate(event.target.value)}
+                aria-label={t("trackerBreakdown.trafficDate")}
+                className="h-9 w-[8.25rem] shrink-0 px-2 text-xs"
+              />
+              <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={openImportDialog} aria-label={t("trackerBreakdown.importTooltip")}>
                 <Download className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-11"
+                className="size-9 shrink-0"
                 onClick={handleExport}
                 disabled={!customizations || customizations.length === 0}
                 aria-label={t("trackerBreakdown.exportTooltip")}
@@ -2528,8 +2534,8 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
             </div>
 
 
-            {/* Mobile row list */}
-            <div className="sm:hidden divide-y">
+            {/* Mobile card list */}
+            <div className="sm:hidden space-y-2 bg-muted/20 p-2">
               {paginatedTrackerStats.map((tracker) => {
                 const { domain, displayName, originalDomains, uploaded, downloaded, uploadSpeed, downloadSpeed, count, customizationId } = tracker
                 const { isInfinite, ratio, color: ratioColor } = getTrackerRatioDisplay(uploaded, downloaded)
@@ -2545,10 +2551,10 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                 return (
                   <div
                     key={displayName}
-                    className={`flex items-center ${isSelected || isGroupSelected ? "bg-primary/5" : ""}`}
+                    className={`flex items-stretch overflow-hidden rounded-lg border bg-card shadow-sm ${isSelected || isGroupSelected ? "border-primary/30 bg-primary/5" : ""}`}
                   >
-                    {/* reserves the width when the checkbox is hidden, so rows stay aligned */}
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+                    {/* reserves the width when the checkbox is hidden, so cards stay aligned */}
+                    <div className="flex w-10 shrink-0 items-center justify-center border-r bg-muted/20">
                       {showCheckbox && (
                         <Checkbox
                           checked={hasCustomization ? isGroupSelected : isSelected}
@@ -2561,33 +2567,47 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                     <button
                       type="button"
                       onClick={() => setDetailsDomain(domain)}
-                      className="flex min-w-0 flex-1 items-center gap-2 py-2 pr-3 text-left"
+                      className="min-w-0 flex-1 px-3 py-2 text-left"
                     >
-                      <TrackerIconImage tracker={iconDomain} trackerIcons={trackerIcons} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <TrackerIconImage tracker={iconDomain} trackerIcons={trackerIcons} />
+                        <div className="flex min-w-0 flex-1 items-center gap-1">
                           <span className="truncate text-sm font-medium">{displayValue}</span>
                           {isMerged && <Link2 className="h-3 w-3 shrink-0 text-muted-foreground" />}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
-                          <span className="flex shrink-0 items-center gap-0.5">
-                            <ChevronUp className="h-3 w-3" />{formatBytes(uploaded)}
-                          </span>
-                          <span className="flex shrink-0 items-center gap-0.5">
-                            <ChevronDown className="h-3 w-3" />{formatBytes(downloaded)}
-                          </span>
-                          <span className="shrink-0" style={{ color: ratioColor }}>
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground tabular-nums">
+                          {extraMetric ?? count}
+                        </span>
+                        <MoreVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-3 gap-x-2 text-xs tabular-nums">
+                        <div className="min-w-0">
+                          <div className="text-[10px] leading-3 text-muted-foreground">{t("trackerBreakdown.tableHeaders.uploaded")}</div>
+                          <div className="mt-0.5 flex items-center gap-0.5 truncate font-medium">
+                            <ChevronUp className="h-3 w-3 shrink-0 text-emerald-500" />
+                            {formatBytes(uploaded)}
+                          </div>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-[10px] leading-3 text-muted-foreground">{t("trackerBreakdown.tableHeaders.downloaded")}</div>
+                          <div className="mt-0.5 flex items-center gap-0.5 truncate font-medium">
+                            <ChevronDown className="h-3 w-3 shrink-0 text-blue-500" />
+                            {formatBytes(downloaded)}
+                          </div>
+                        </div>
+                        <div className="min-w-0 text-right">
+                          <div className="text-[10px] leading-3 text-muted-foreground">{t("trackerBreakdown.tableHeaders.ratio")}</div>
+                          <div className="mt-0.5 truncate font-medium" style={{ color: ratioColor }}>
                             {isInfinite ? "∞" : ratio.toFixed(2)}
-                          </span>
-                          <span className="shrink-0">↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)}</span>
-                          <span className="shrink-0">↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}</span>
+                          </div>
                         </div>
                       </div>
-                      {/* torrent count, or the sorted metric when it is not on the line above */}
-                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                        {extraMetric ?? count}
-                      </span>
-                      <MoreVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+
+                      <div className="mt-1.5 grid grid-cols-2 gap-2 border-t pt-1.5 text-[11px] text-muted-foreground tabular-nums">
+                        <span className="truncate">↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)}</span>
+                        <span className="truncate text-right">↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}</span>
+                      </div>
                     </button>
                   </div>
                 )
