@@ -48,7 +48,7 @@ qui provides several ways to find cross-seed opportunities:
 
 qui polls tracker RSS feeds on a schedule. Configure this in the **Auto** tab on the Cross-Seed page.
 
-- **Run interval**: How often qui polls the feeds (minimum 30 minutes)
+- **Run interval**: How often qui polls the feeds (minimum 1 minute)
 - **Target instances**: The qBittorrent instances that receive cross-seeds
 - **Target indexers**: Limit to specific indexers, or use all enabled ones
 

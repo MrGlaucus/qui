@@ -83,7 +83,7 @@ import { toast } from "sonner"
 // RSS Automation settings
 interface AutomationFormState {
   enabled: boolean
-  runIntervalMinutes: number  // RSS Automation: interval between RSS feed polls (min: 30 minutes)
+  runIntervalMinutes: number  // RSS Automation: interval between RSS feed polls (min: 1 minute)
   targetInstanceIds: number[]
   targetIndexerIds: number[]
   // RSS source filtering: filter which local torrents to search when checking RSS feeds

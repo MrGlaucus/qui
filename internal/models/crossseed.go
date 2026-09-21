@@ -51,7 +51,7 @@ type CategoryMappingRule struct {
 type CrossSeedAutomationSettings struct {
 	// RSS Automation settings
 	Enabled            bool    `json:"enabled"`            // Enable/disable RSS automation
-	RunIntervalMinutes int     `json:"runIntervalMinutes"` // RSS: interval between RSS feed polls (min: 30 minutes, default: 120)
+	RunIntervalMinutes int     `json:"runIntervalMinutes"` // RSS: interval between RSS feed polls (min: 1 minute, default: 120)
 	StartPaused        bool    `json:"startPaused"`        // RSS: start added torrents paused
 	Category           *string `json:"category,omitempty"` // RSS: category for added torrents
 	TargetInstanceIDs  []int   `json:"targetInstanceIds"`  // RSS: instances to add cross-seeds to

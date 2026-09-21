@@ -7466,6 +7466,7 @@ components:
           description: Orpheus (OPS) API key. Responses may return a redacted placeholder instead of the real value.
         runIntervalMinutes:
           type: integer
+          description: RSS polling interval in minutes. Positive values start at 1; zero or negative values use the default of 120.
         startPaused:
           type: boolean
         category:
@@ -7614,6 +7615,7 @@ components:
           description: Orpheus (OPS) API key. Responses may return a redacted placeholder instead of the real value.
         runIntervalMinutes:
           type: integer
+          description: RSS polling interval in minutes. Positive values start at 1; zero or negative values use the default of 120.
         startPaused:
           type: boolean
         category:

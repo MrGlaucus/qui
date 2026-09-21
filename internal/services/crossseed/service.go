@@ -290,10 +290,12 @@ const (
 	maxMissingFilesResumeAttempts         = 3
 	// Forgiveness ceiling for byte-budget auto-resume: even when every missing
 	// file is an irrelevant sidecar, never auto-resume above this much missing data.
-	irrelevantResumeForgivenessCapBytes   = int64(200) << 20
-	minSearchIntervalSecondsTorznab       = 60
-	minSearchIntervalSecondsGazelleOnly   = 5
-	minSearchCooldownMinutes              = 720
+	irrelevantResumeForgivenessCapBytes = int64(200) << 20
+	minSearchIntervalSecondsTorznab     = 60
+	minSearchIntervalSecondsGazelleOnly = 5
+	minSearchCooldownMinutes            = 720
+	// Keep in sync with MIN_RSS_INTERVAL_MINUTES in web/src/pages/CrossSeedPage.tsx.
+	minRSSIntervalMinutes                 = 1
 	maxCompletionCheckingAttempts         = 3
 	torznabCrossSeedSearchLimit           = 100
 	defaultCompletionCheckingRetryDelay   = 30 * time.Second
@@ -1860,7 +1862,6 @@ func (s *Service) DeleteCrossSeedLogOlderThan(ctx context.Context, age time.Dura
 	return s.crossSeedLogStore.DeleteOlderThan(ctx, time.Now().Add(-age))
 }
 
-
 // UpdateAutomationSettings persists automation configuration and wakes the scheduler.
 func (s *Service) UpdateAutomationSettings(ctx context.Context, settings *models.CrossSeedAutomationSettings) (*models.CrossSeedAutomationSettings, error) {
 	if settings == nil {
@@ -1888,11 +1889,9 @@ func (s *Service) UpdateAutomationSettings(ctx context.Context, settings *models
 // validateAndNormalizeSettings validates and normalizes automation settings.
 // These settings apply to RSS Automation only, not Seeded Torrent Search.
 func (s *Service) validateAndNormalizeSettings(settings *models.CrossSeedAutomationSettings) {
-	// RSS Automation: minimum 30 minutes between RSS feed polls, default 120 minutes
+	// RSS Automation: default 120 minutes; positive intervals start at 1 minute.
 	if settings.RunIntervalMinutes <= 0 {
 		settings.RunIntervalMinutes = 120
-	} else if settings.RunIntervalMinutes < 30 {
-		settings.RunIntervalMinutes = 30
 	}
 	// RSS Automation: maximum number of RSS results to process per run
 	if settings.MaxResultsPerRun <= 0 {
@@ -2193,7 +2192,7 @@ func (s *Service) RunAutomation(ctx context.Context, opts AutomationRunOptions) 
 		if intervalMinutes <= 0 {
 			intervalMinutes = 120
 		}
-		cooldown := max(time.Duration(intervalMinutes)*time.Minute, 30*time.Minute)
+		cooldown := max(time.Duration(intervalMinutes)*time.Minute, minRSSIntervalMinutes*time.Minute)
 
 		lastRun, err := s.automationStore.GetLatestRun(ctx)
 		if err != nil {
@@ -3664,12 +3663,12 @@ func (s *Service) computeNextRunDelay(ctx context.Context, settings *models.Cros
 		return time.Hour, false
 	}
 
-	// RSS Automation: enforce minimum 30 minutes between runs
+	// RSS Automation: enforce the minimum interval between runs.
 	intervalMinutes := settings.RunIntervalMinutes
 	if intervalMinutes <= 0 {
 		intervalMinutes = 120
 	}
-	interval := max(time.Duration(intervalMinutes)*time.Minute, 30*time.Minute)
+	interval := max(time.Duration(intervalMinutes)*time.Minute, minRSSIntervalMinutes*time.Minute)
 
 	lastRun, err := s.automationStore.GetLatestRun(ctx)
 	if err != nil {
@@ -5574,7 +5573,7 @@ func (s *Service) processCrossSeedCandidate(
 		hashes = append(hashes, trimmed)
 	}
 
-		// Cross-seed log dedup: prevents re-adding previously cross-seeded torrents
+	// Cross-seed log dedup: prevents re-adding previously cross-seeded torrents
 	// (even if deleted by user) and deduplicates across all instances.
 	if s.crossSeedLogStore != nil {
 		logHash, found, err := s.crossSeedLogStore.FindByHashes(ctx, hashes)
@@ -5597,7 +5596,7 @@ func (s *Service) processCrossSeedCandidate(
 		}
 	}
 
-if s.blocklistStore != nil {
+	if s.blocklistStore != nil {
 		blockedHash, blocked, err := s.blocklistStore.FindBlocked(ctx, candidate.InstanceID, hashes)
 		if err != nil {
 			result.Message = fmt.Sprintf("Failed to check cross-seed blocklist: %v", err)
@@ -6537,7 +6536,7 @@ if s.blocklistStore != nil {
 		// User wanted auto-start, but policy forces paused
 		result.Message += addPolicy.StatusSuffix()
 	}
-		result.Success = true
+	result.Success = true
 
 	// Record in cross-seed log so future attempts (even after manual deletion)
 	// are blocked globally across all instances.
