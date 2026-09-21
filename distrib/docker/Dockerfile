@@ -1,5 +1,5 @@
-# Build stage
-FROM node:24.15-alpine AS frontend-builder
+# Build frontend assets natively and share them across target architectures.
+FROM --platform=$BUILDPLATFORM node:24.15-alpine AS frontend-builder
 
 # Install git for cloning
 RUN apk add --no-cache git
