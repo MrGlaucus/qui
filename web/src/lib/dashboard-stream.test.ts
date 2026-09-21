@@ -32,6 +32,8 @@ function makeCounts(overrides: Partial<TorrentCounts> = {}): TorrentCounts {
         downloaded: 20,
         uploadedSession: 5,
         downloadedSession: 7,
+        uploadSpeed: 0,
+        downloadSpeed: 0,
         totalSize: 30,
         count: 1,
       },
