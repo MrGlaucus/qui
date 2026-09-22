@@ -12690,47 +12690,22 @@ func (s *Service) notifyAutomationRun(ctx context.Context, run *models.CrossSeed
 	} else if runErr != nil {
 		errorMessage = runErr.Error()
 	}
-	if errorMessage == "" && eventType == notifications.EventCrossSeedAutomationFailed {
-		errorMessage = fmt.Sprintf("status: %s", run.Status)
-	}
-
-	lines := []string{
-		fmt.Sprintf("Run: %d", run.ID),
-		fmt.Sprintf("Mode: %s", run.Mode),
-		fmt.Sprintf("Status: %s", run.Status),
-		fmt.Sprintf("Feed items: %d", run.TotalFeedItems),
-		fmt.Sprintf("Candidates: %d", run.CandidatesFound),
-		fmt.Sprintf("Added: %d", run.CrossSeedsAdded),
-		fmt.Sprintf("Failed: %d", run.CandidatesFailed),
-		fmt.Sprintf("Skipped: %d", run.CandidatesSkipped),
-	}
-	if run.Message != nil && strings.TrimSpace(*run.Message) != "" {
-		lines = append(lines, "Message: "+strings.TrimSpace(*run.Message))
-	}
-	if run.ErrorMessage != nil && strings.TrimSpace(*run.ErrorMessage) != "" {
-		lines = append(lines, "Error: "+strings.TrimSpace(*run.ErrorMessage))
-	} else if runErr != nil {
-		lines = append(lines, "Error: "+runErr.Error())
-	}
 	samples := collectCrossSeedRunSamples(run.Results, 0)
-	if sampleText := formatSamplesForMessage(samples, 3); sampleText != "" {
-		lines = append(lines, "Samples: "+sampleText)
-	}
 
 	s.notifier.Notify(ctx, notifications.Event{
 		Type:         eventType,
 		InstanceName: "Cross-seed RSS",
-		Message:      strings.Join(lines, "\n"),
 		CrossSeed: &notifications.CrossSeedEventData{
-			RunID:      run.ID,
-			Mode:       string(run.Mode),
-			Status:     string(run.Status),
-			FeedItems:  run.TotalFeedItems,
-			Candidates: run.CandidatesFound,
-			Added:      run.CrossSeedsAdded,
-			Failed:     run.CandidatesFailed,
-			Skipped:    run.CandidatesSkipped,
-			Samples:    samples,
+			RunID:             run.ID,
+			Mode:              string(run.Mode),
+			Status:            string(run.Status),
+			FeedItems:         run.TotalFeedItems,
+			Candidates:        run.CandidatesFound,
+			Added:             run.CrossSeedsAdded,
+			Failed:            run.CandidatesFailed,
+			Skipped:           run.CandidatesSkipped,
+			TargetIndexerAdds: collectRSSTargetIndexerAdds(run.Results),
+			Samples:           samples,
 		},
 		ErrorMessage: errorMessage,
 		ErrorMessages: func() []string {
@@ -12813,6 +12788,32 @@ func (s *Service) notifySearchRun(ctx context.Context, state *searchRunState, ca
 		StartedAt:   &state.run.StartedAt,
 		CompletedAt: state.run.CompletedAt,
 	})
+}
+
+// IndexerName comes from the RSS item being added, not the already-downloaded torrent.
+func collectRSSTargetIndexerAdds(results []models.CrossSeedRunResult) []notifications.LabelCount {
+	counts := make(map[string]int)
+	for _, result := range results {
+		if !result.Success {
+			continue
+		}
+		name := strings.TrimSpace(result.IndexerName)
+		if name != "" {
+			counts[name]++
+		}
+	}
+
+	names := make([]string, 0, len(counts))
+	for name := range counts {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+
+	indexers := make([]notifications.LabelCount, 0, len(names))
+	for _, name := range names {
+		indexers = append(indexers, notifications.LabelCount{Label: name, Count: counts[name]})
+	}
+	return indexers
 }
 
 func collectCrossSeedRunSamples(results []models.CrossSeedRunResult, limit int) []string {

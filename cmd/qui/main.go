@@ -765,6 +765,7 @@ func (app *Application) runServer() {
 	automationService := automations.NewService(automations.DefaultConfig(), instanceStore, automationStore, automationActivityStore, trackerCustomizationStore, syncManager, notificationService, externalProgramService, crossSeedService, crossSeedLogStore, backendPool)
 	automationService.SetActivityPublisher(activityHub)
 	automationService.SetLanguage(clientSettingsLanguage(clientSettingsStore))
+	notificationService.SetLanguage(clientSettingsLanguage(clientSettingsStore))
 
 	orphanScanStore := models.NewOrphanScanStore(db)
 	orphanScanService := orphanscan.NewService(orphanscan.DefaultConfig(), instanceStore, orphanScanStore, syncManager, notificationService, backendPool)

@@ -78,6 +78,7 @@ type Event struct {
 type Service struct {
 	store         *models.NotificationTargetStore
 	instanceStore *models.InstanceStore
+	language      func() string
 	logger        zerolog.Logger
 	queue         chan Event
 	startOnce     sync.Once
@@ -100,6 +101,20 @@ func (s *Service) SetTimezone(provider *timeutil.Provider) {
 	}
 	s.now = provider.Now
 	s.loc = provider.Location
+}
+
+// SetLanguage uses the current client language when rendering notifications.
+func (s *Service) SetLanguage(fn func() string) {
+	if s != nil {
+		s.language = fn
+	}
+}
+
+func (s *Service) lang() string {
+	if s == nil || s.language == nil {
+		return "zh"
+	}
+	return NormalizeLang(s.language())
 }
 
 // location returns the current timezone location for formatting stored
@@ -440,11 +455,15 @@ func (s *Service) formatEvent(ctx context.Context, event Event, humanReadableMet
 		}
 		return title, buildMessage(instanceLabel, lines)
 	case EventCrossSeedAutomationSucceeded:
-		title := "Cross-seed RSS 自动化完成"
-		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
+		if event.CrossSeed != nil {
+			return formatRSSAutomationEvent(event, s.lang())
+		}
+		return formatCustomEvent(instanceLabel, "Cross-seed RSS 自动化完成", event.Title, customMessage)
 	case EventCrossSeedAutomationFailed:
-		title := "Cross-seed RSS 自动化失败"
-		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)
+		if event.CrossSeed != nil {
+			return formatRSSAutomationEvent(event, s.lang())
+		}
+		return formatCustomEvent(instanceLabel, "Cross-seed RSS 自动化失败", event.Title, customMessage)
 	case EventCrossSeedSearchSucceeded:
 		title := "Cross-seed 做种搜索完成"
 		return formatCustomEvent(instanceLabel, title, event.Title, customMessage)

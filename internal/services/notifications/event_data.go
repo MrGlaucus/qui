@@ -22,11 +22,12 @@ type CrossSeedEventData struct {
 	Added      int    `json:"added,omitempty"`
 	// TorrentsWithCrossSeeds is set for seeded search runs only: the number of
 	// search candidates that produced at least one cross-seed.
-	TorrentsWithCrossSeeds int      `json:"torrents_with_cross_seeds,omitzero"`
-	Failed                 int      `json:"failed,omitempty"`
-	Skipped                int      `json:"skipped,omitempty"`
-	Recommendation         string   `json:"recommendation,omitempty"`
-	Samples                []string `json:"samples,omitempty"`
+	TorrentsWithCrossSeeds int          `json:"torrents_with_cross_seeds,omitzero"`
+	Failed                 int          `json:"failed,omitempty"`
+	Skipped                int          `json:"skipped,omitempty"`
+	TargetIndexerAdds      []LabelCount `json:"target_indexer_adds,omitempty"`
+	Recommendation         string       `json:"recommendation,omitempty"`
+	Samples                []string     `json:"samples,omitempty"`
 }
 
 type AutomationActionSummary struct {

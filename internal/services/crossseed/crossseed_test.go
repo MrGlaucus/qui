@@ -1517,12 +1517,29 @@ func TestNotifyAutomationRun_SuccessRequiresMeaningfulChange(t *testing.T) {
 			if tt.wantEvent {
 				require.Len(t, events, 1)
 				assert.Equal(t, tt.wantEventType, events[0].Type)
+				assert.Empty(t, events[0].Message)
+				require.NotNil(t, events[0].CrossSeed)
+				assert.Equal(t, tt.run.TotalFeedItems, events[0].CrossSeed.FeedItems)
 				return
 			}
 
 			assert.Empty(t, events)
 		})
 	}
+}
+
+func TestCollectRSSTargetIndexerAddsCountsSuccessfulAdds(t *testing.T) {
+	results := []models.CrossSeedRunResult{
+		{IndexerName: "Site B", Success: true},
+		{IndexerName: "Site A", Success: true},
+		{IndexerName: "Site A", Success: true},
+		{IndexerName: "Site B", Success: false},
+	}
+
+	assert.Equal(t, []notifications.LabelCount{
+		{Label: "Site A", Count: 2},
+		{Label: "Site B", Count: 1},
+	}, collectRSSTargetIndexerAdds(results))
 }
 
 func TestCheckWebhook_NoInstancesAvailable(t *testing.T) {
