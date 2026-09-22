@@ -126,6 +126,8 @@
   "trackerBreakdown": {
     "title": "Tracker-Aufschlüsselung",
     "trackersCount": "{{count}} Tracker",
+    "selectionActions": "Tracker-Auswahlaktionen",
+    "clearSelection": "Auswahl aufheben",
     "importTooltip": "Anpassungen importieren",
     "exportTooltip": "Anpassungen exportieren",
     "sort": "Sortierung: {{column}}",

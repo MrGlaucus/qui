@@ -126,6 +126,8 @@
   "trackerBreakdown": {
     "title": "트래커 분석",
     "trackersCount": "트래커 {{count}}개",
+    "selectionActions": "Tracker 선택 작업",
+    "clearSelection": "선택 해제",
     "importTooltip": "사용자 지정 가져오기",
     "exportTooltip": "사용자 지정 내보내기",
     "sort": "정렬: {{column}}",

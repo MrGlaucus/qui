@@ -126,6 +126,8 @@
   "trackerBreakdown": {
     "title": "Répartition par Tracker",
     "trackersCount": "{{count}} trackers",
+    "selectionActions": "Actions sur les trackers sélectionnés",
+    "clearSelection": "Effacer la sélection",
     "importTooltip": "Importer les personnalisations",
     "exportTooltip": "Exporter les personnalisations",
     "sort": "Trier : {{column}}",

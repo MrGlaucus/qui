@@ -2392,6 +2392,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
   // mobile detail drawer, keyed by domain so the numbers stay live while it is open
   const [detailsDomain, setDetailsDomain] = useState<string | null>(null)
   const detailsTracker = sortedTrackerStats.find(tracker => tracker.domain === detailsDomain)
+  const selectedGroup = customizations?.find(group => group.id === selectedGroupId)
 
   // the mobile row always shows uploaded, downloaded and ratio; the sorted metric replaces
   // the trailing count when it is none of those, so the order never rests on a hidden number
@@ -2533,6 +2534,39 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
               </Button>
             </div>
 
+            {(selectedDomains.size > 0 || selectedGroup) && (
+              <div className="flex flex-wrap items-center gap-2 border-b bg-primary/5 px-3 py-2 text-sm" role="group" aria-label={t("trackerBreakdown.selectionActions")}>
+                <span className="mr-auto min-w-0 truncate font-medium">
+                  {selectedGroup ? selectedGroup.displayName : t("trackerBreakdown.trackersCount", { count: selectedDomains.size })}
+                  {selectedGroup && selectedDomains.size > 0 && (
+                    <span className="ml-1 font-normal text-muted-foreground">· {t("trackerBreakdown.trackersCount", { count: selectedDomains.size })}</span>
+                  )}
+                </span>
+                {selectedGroup ? (
+                  selectedDomains.size > 0 ? (
+                    <Button size="sm" onClick={() => handleMergeIntoGroup(selectedGroup.id)}>
+                      <Link2 className="h-4 w-4" />
+                      {t("trackerBreakdown.mergeIntoGroup")}
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => openEditDialog(selectedGroup.id, selectedGroup.displayName, selectedGroup.domains)}>
+                      <Pencil className="h-4 w-4" />
+                      {t("trackerBreakdown.edit")}
+                    </Button>
+                  )
+                ) : (
+                  <Button size="sm" onClick={() => openRenameDialog(selectedDomains.values().next().value!)}>
+                    {selectedDomains.size === 1 ? <Pencil className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+                    {t(selectedDomains.size === 1 ? "trackerBreakdown.rename" : "trackerBreakdown.customizeDialog.mergeAction")}
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={clearSelection}>
+                  <X className="h-4 w-4" />
+                  {t("trackerBreakdown.clearSelection")}
+                </Button>
+              </div>
+            )}
+
 
             {/* Mobile card list */}
             <div className="sm:hidden space-y-2 bg-muted/20 p-2">
@@ -2551,25 +2585,14 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                 return (
                   <div
                     key={displayName}
-                    className={`flex items-stretch overflow-hidden rounded-lg border bg-card shadow-sm ${isSelected || isGroupSelected ? "border-primary/30 bg-primary/5" : ""}`}
+                    className={`relative overflow-hidden rounded-lg border bg-card shadow-sm ${isSelected || isGroupSelected ? "border-primary/30 bg-primary/5" : ""}`}
                   >
-                    {/* reserves the width when the checkbox is hidden, so cards stay aligned */}
-                    <div className="flex w-10 shrink-0 items-center justify-center border-r bg-muted/20">
-                      {showCheckbox && (
-                        <Checkbox
-                          checked={hasCustomization ? isGroupSelected : isSelected}
-                          onCheckedChange={() => hasCustomization ? toggleGroupSelection(customizationId!) : toggleSelection(domain)}
-                          // the box is 16px; the pseudo-element grows the tap target to fill the 44px cell
-                          className="relative before:absolute before:-inset-3.5 before:content-['']"
-                        />
-                      )}
-                    </div>
                     <button
                       type="button"
                       onClick={() => setDetailsDomain(domain)}
-                      className="min-w-0 flex-1 px-3 py-2 text-left"
+                      className="w-full min-w-0 px-3 py-2 text-left"
                     >
-                      <div className="flex min-w-0 items-center gap-2">
+                      <div className={`flex min-w-0 items-center gap-2 ${showCheckbox ? "pr-8" : ""}`}>
                         <TrackerIconImage tracker={iconDomain} trackerIcons={trackerIcons} />
                         <div className="flex min-w-0 flex-1 items-center gap-1">
                           <span className="truncate text-sm font-medium">{displayValue}</span>
@@ -2578,7 +2601,17 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                         <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground tabular-nums">
                           {extraMetric ?? count}
                         </span>
-                        <MoreVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </div>
+
+                      <div className="mt-2 flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-muted px-2.5 py-1 text-sm font-semibold tabular-nums">
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-emerald-700 dark:text-emerald-400">
+                          <ArrowUp className="h-3.5 w-3.5 shrink-0" />
+                          {formatSpeedWithUnit(uploadSpeed, speedUnit)}
+                        </span>
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-blue-700 dark:text-blue-400">
+                          <ArrowDown className="h-3.5 w-3.5 shrink-0" />
+                          {formatSpeedWithUnit(downloadSpeed, speedUnit)}
+                        </span>
                       </div>
 
                       <div className="mt-2 grid grid-cols-3 gap-x-2 text-xs tabular-nums">
@@ -2604,11 +2637,17 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                         </div>
                       </div>
 
-                      <div className="mt-1.5 grid grid-cols-2 gap-2 border-t pt-1.5 text-[11px] text-muted-foreground tabular-nums">
-                        <span className="truncate">↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)}</span>
-                        <span className="truncate text-right">↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}</span>
-                      </div>
                     </button>
+                    {showCheckbox && (
+                      <div className="absolute right-0 top-0 z-10 flex size-11 items-center justify-center">
+                        <Checkbox
+                          checked={hasCustomization ? isGroupSelected : isSelected}
+                          onCheckedChange={() => hasCustomization ? toggleGroupSelection(customizationId!) : toggleSelection(domain)}
+                          aria-label={displayValue}
+                          className="relative before:absolute before:-inset-3.5 before:content-['']"
+                        />
+                      </div>
+                    )}
                   </div>
                 )
               })}

@@ -144,6 +144,8 @@
   "trackerBreakdown": {
     "title": "Tracker Breakdown",
     "trackersCount": "{{count}} trackers",
+    "selectionActions": "Tracker selection actions",
+    "clearSelection": "Clear selection",
     "importTooltip": "Import customizations",
     "exportTooltip": "Export customizations",
     "sort": "Sort: {{column}}",

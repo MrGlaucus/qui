@@ -126,6 +126,8 @@
   "trackerBreakdown": {
     "title": "Rozložení podle jednotlivých trackerů",
     "trackersCount": "{{count}} trackerů",
+    "selectionActions": "Akce pro vybrané trackery",
+    "clearSelection": "Zrušit výběr",
     "importTooltip": "Importovat vlastní nastavení",
     "exportTooltip": "Exportovat vlastní nastavení",
     "sort": "Řazení: {{column}}",

@@ -126,6 +126,8 @@
   "trackerBreakdown": {
     "title": "Розбивка за трекерами",
     "trackersCount": "{{count}} трекерів",
+    "selectionActions": "Дії з вибраними трекерами",
+    "clearSelection": "Скасувати вибір",
     "importTooltip": "Імпортувати налаштування",
     "exportTooltip": "Експортувати налаштування",
     "sort": "Сортування: {{column}}",

@@ -126,6 +126,8 @@
   "trackerBreakdown": {
     "title": "Tracker 明细",
     "trackersCount": "{{count}} 个 Tracker",
+    "selectionActions": "Tracker 选择操作",
+    "clearSelection": "清除选择",
     "importTooltip": "导入自定义配置",
     "exportTooltip": "导出自定义配置",
     "sort": "排序：{{column}}",
