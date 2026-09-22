@@ -4,10 +4,12 @@
 package filesmanager
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -181,10 +183,10 @@ type querier interface {
 
 // UpsertFiles inserts or updates cached file information.
 //
-// CONCURRENCY MODEL: This function uses eventual consistency with last-writer-wins semantics.
+// CONCURRENCY MODEL: This function uses eventual consistency.
 // If two goroutines cache the same torrent concurrently:
-// - Each file row UPSERT is atomic at the SQLite level
-// - The last write wins for each individual file
+// - SQLite serializes the two transactions, so the last write wins for each file
+// - On Postgres, a row read as unchanged is skipped, so another writer's later commit to it stands
 // - Progress/availability values may briefly be inconsistent across files
 // - This is acceptable because:
 //  1. Cache freshness checks (5min TTL for active torrents) limit staleness
@@ -277,7 +279,40 @@ func (r *Repository) UpsertFiles(ctx context.Context, files []CachedFile) error 
 		}
 	}
 
-	// Pre-build the full query for full batches
+	// Postgres row-locks each conflicting row; concurrent callers must lock in one order or they deadlock.
+	slices.SortFunc(allRows, func(a, b fileRow) int {
+		return cmp.Or(cmp.Compare(a.instanceID, b.instanceID), cmp.Compare(a.hashID, b.hashID), cmp.Compare(a.fileIndex, b.fileIndex))
+	})
+
+	// Most torrents are complete and seeding, so most rows arrive unchanged (discussion
+	// #2374). The upsert guard alone would skip them too, but Postgres still locks every
+	// conflicting row, and each lock writes WAL plus a hint-bit full-page image.
+	// The filter keeps the sorted lock order.
+	allRows, err = dropUnchangedRows(ctx, tx, allRows)
+	if err != nil {
+		return fmt.Errorf("failed to read cached files: %w", err)
+	}
+
+	if err := upsertFileRows(ctx, tx, allRows); err != nil {
+		return err
+	}
+
+	// Commit transaction to make all changes atomic
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+// upsertFileRows writes rows to torrent_files_cache in batches.
+func upsertFileRows(ctx context.Context, tx dbinterface.TxQuerier, rows []fileRow) error {
+	// Pre-build the full query for full batches.
+	//
+	// On Postgres the guard on DO UPDATE still skips a row that a concurrent writer
+	// brought to these values after dropUnchangedRows read it. cached_at is outside the
+	// guard and nothing reads it; freshness comes from torrent_files_sync.last_synced_at,
+	// which cacheIsFresh reads.
 	queryTemplate := `
 			INSERT INTO torrent_files_cache
 			(instance_id, torrent_hash_id, file_index, name_id, size, progress, priority,
@@ -293,6 +328,14 @@ func (r *Repository) UpsertFiles(ctx context.Context, files []CachedFile) error 
 				piece_range_end = excluded.piece_range_end,
 				availability = excluded.availability,
 				cached_at = excluded.cached_at
+			WHERE torrent_files_cache.name_id IS DISTINCT FROM excluded.name_id
+				OR torrent_files_cache.size IS DISTINCT FROM excluded.size
+				OR torrent_files_cache.progress IS DISTINCT FROM excluded.progress
+				OR torrent_files_cache.priority IS DISTINCT FROM excluded.priority
+				OR torrent_files_cache.is_seed IS DISTINCT FROM excluded.is_seed
+				OR torrent_files_cache.piece_range_start IS DISTINCT FROM excluded.piece_range_start
+				OR torrent_files_cache.piece_range_end IS DISTINCT FROM excluded.piece_range_end
+				OR torrent_files_cache.availability IS DISTINCT FROM excluded.availability
 		`
 	fullBatchQuery := dbinterface.BuildQueryWithPlaceholders(queryTemplate, 12, fileBatchSize)
 	t := time.Now()
@@ -301,9 +344,9 @@ func (r *Repository) UpsertFiles(ctx context.Context, files []CachedFile) error 
 	args := make([]any, 0, fileBatchSize*12)
 
 	// Batch insert files
-	for i := 0; i < len(allRows); i += fileBatchSize {
-		end := min(i+fileBatchSize, len(allRows))
-		batch := allRows[i:end]
+	for i := 0; i < len(rows); i += fileBatchSize {
+		end := min(i+fileBatchSize, len(rows))
+		batch := rows[i:end]
 
 		// Reset args for this batch
 		args = args[:0]
@@ -332,18 +375,82 @@ func (r *Repository) UpsertFiles(ctx context.Context, files []CachedFile) error 
 			)
 		}
 
-		_, err = tx.ExecContext(ctx, query, args...)
-		if err != nil {
+		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
 			return fmt.Errorf("failed to batch insert files: %w", err)
 		}
 	}
 
-	// Commit transaction to make all changes atomic
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	return nil
+}
+
+// dropUnchangedRows returns the rows that are new or differ from the stored row.
+func dropUnchangedRows(ctx context.Context, tx dbinterface.TxQuerier, rows []fileRow) ([]fileRow, error) {
+	type torrentKey struct {
+		instanceID int
+		hashID     int64
+	}
+	type fileKey struct {
+		torrentKey
+		fileIndex int
 	}
 
-	return nil
+	// A hash cached on several instances has rows for each; read only the synced instance's.
+	hashIDsByInstance := make(map[int][]int64)
+	seen := make(map[torrentKey]struct{})
+	for _, row := range rows {
+		key := torrentKey{row.instanceID, row.hashID}
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
+			hashIDsByInstance[row.instanceID] = append(hashIDsByInstance[row.instanceID], row.hashID)
+		}
+	}
+
+	stored := make(map[fileKey]fileRow, len(rows))
+	for instanceID, hashIDs := range hashIDsByInstance {
+		for batch := range slices.Chunk(hashIDs, maxBatchItems) {
+			args := make([]any, 0, len(batch)+1)
+			args = append(args, instanceID)
+			for _, id := range batch {
+				args = append(args, id)
+			}
+			query := fmt.Sprintf(`
+				SELECT torrent_hash_id, file_index, name_id, size, progress, priority,
+				       is_seed, piece_range_start, piece_range_end, availability
+				FROM torrent_files_cache
+				WHERE instance_id = ? AND torrent_hash_id IN (%s)
+			`, buildPlaceholders(len(batch)))
+
+			dbRows, err := tx.QueryContext(ctx, query, args...)
+			if err != nil {
+				return nil, err
+			}
+			for dbRows.Next() {
+				row := fileRow{instanceID: instanceID}
+				var isSeed sql.NullInt64
+				if err := dbRows.Scan(&row.hashID, &row.fileIndex, &row.nameID, &row.size, &row.progress,
+					&row.priority, &isSeed, &row.pieceRangeStart, &row.pieceRangeEnd, &row.availability); err != nil {
+					dbRows.Close()
+					return nil, err
+				}
+				row.isSeed = encodeNullableBoolAsInt(decodeNullableBoolFromInt(isSeed))
+				stored[fileKey{torrentKey{instanceID, row.hashID}, row.fileIndex}] = row
+			}
+			if err := dbRows.Close(); err != nil {
+				return nil, err
+			}
+			if err := dbRows.Err(); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	changed := rows[:0]
+	for _, row := range rows {
+		if old, ok := stored[fileKey{torrentKey{row.instanceID, row.hashID}, row.fileIndex}]; !ok || old != row {
+			changed = append(changed, row)
+		}
+	}
+	return changed, nil
 }
 
 // DeleteFiles removes all cached files for a torrent.
@@ -557,6 +664,15 @@ func (r *Repository) UpsertSyncInfoBatch(ctx context.Context, infos []SyncInfo) 
 		return fmt.Errorf("UpsertSyncInfoBatch: failed to intern torrent_hashes: %w", err)
 	}
 
+	// Lock rows in one order across concurrent callers, as in UpsertFiles.
+	order := make([]int, len(infos))
+	for i := range order {
+		order[i] = i
+	}
+	slices.SortFunc(order, func(a, b int) int {
+		return cmp.Or(cmp.Compare(infos[a].InstanceID, infos[b].InstanceID), cmp.Compare(hashIDs[a], hashIDs[b]))
+	})
+
 	// Batch size for sync info inserts (5 placeholders per row, keep under SQLite's 999 limit)
 	const syncBatchSize = 150
 
@@ -578,10 +694,7 @@ func (r *Repository) UpsertSyncInfoBatch(ctx context.Context, infos []SyncInfo) 
 	args := make([]any, 0, syncBatchSize*5)
 
 	// Batch insert sync infos
-	for i := 0; i < len(infos); i += syncBatchSize {
-		end := min(i+syncBatchSize, len(infos))
-		batch := infos[i:end]
-
+	for batch := range slices.Chunk(order, syncBatchSize) {
 		// Reset args for this batch
 		args = args[:0]
 		var query string
@@ -592,11 +705,11 @@ func (r *Repository) UpsertSyncInfoBatch(ctx context.Context, infos []SyncInfo) 
 			query = dbinterface.BuildQueryWithPlaceholders(queryTemplate, 5, len(batch))
 		}
 
-		for j, info := range batch {
-			hashID := hashIDs[i+j]
+		for _, idx := range batch {
+			info := infos[idx]
 			args = append(args,
 				info.InstanceID,
-				hashID,
+				hashIDs[idx],
 				info.LastSyncedAt,
 				info.TorrentProgress,
 				info.FileCount,
