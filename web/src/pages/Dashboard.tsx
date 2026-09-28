@@ -1773,8 +1773,8 @@ function TrackerInstanceBadges({ instances }: { instances: TrackerInstanceStats[
       {instances.map(instance => (
         <Badge
           key={instance.id}
-          variant="secondary"
-          className="h-5 max-w-full gap-1 px-1.5 py-0 text-[10px] font-medium shadow-sm"
+          variant="outline"
+          className="h-5 max-w-full gap-1 border-border/80 bg-background px-1.5 py-0 text-[10px] font-medium shadow-sm"
           title={`${instance.name}: ${instance.count}`}
         >
           {flagClass(instance.countryCode) && (
@@ -2881,8 +2881,12 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                                 )}
                               </Tooltip>
                               {isMerged && <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />}
-                              <TrackerInstanceBadges instances={tracker.instances} />
                             </div>
+                            {tracker.instances.length > 0 && (
+                              <div className="mt-1">
+                                <TrackerInstanceBadges instances={tracker.instances} />
+                              </div>
+                            )}
                             <div className="mt-1 text-xs text-muted-foreground tabular-nums">
                               ↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)} · ↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}
                             </div>
