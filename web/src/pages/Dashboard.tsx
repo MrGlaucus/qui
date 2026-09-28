@@ -2862,26 +2862,31 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-start gap-2">
                           <TrackerIconImage tracker={iconDomain} trackerIcons={trackerIcons} />
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="font-medium truncate cursor-default">
-                                {displayValue}
-                              </span>
-                            </TooltipTrigger>
-                            {(isMerged || (hasCustomization && displayName !== domain)) && (
-                              <TooltipContent>
-                                <p className="text-xs">
-                                  {isMerged ? t("trackerBreakdown.mergedFrom", { domains: originalDomains.join(", ") }) : t("trackerBreakdown.original", { domain })}
-                                </p>
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                          {isMerged && <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />}
-                          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                            ↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)} · ↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}
-                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="font-medium truncate cursor-default">
+                                    {displayValue}
+                                  </span>
+                                </TooltipTrigger>
+                                {(isMerged || (hasCustomization && displayName !== domain)) && (
+                                  <TooltipContent>
+                                    <p className="text-xs">
+                                      {isMerged ? t("trackerBreakdown.mergedFrom", { domains: originalDomains.join(", ") }) : t("trackerBreakdown.original", { domain })}
+                                    </p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                              {isMerged && <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />}
+                              <TrackerInstanceBadges instances={tracker.instances} />
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground tabular-nums">
+                              ↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)} · ↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}
+                            </div>
+                          </div>
                           <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 shrink-0">
                             {hasCustomization && customizationId ? (
                             // Show group merge if domains selected and if no other group is selected
@@ -2949,11 +2954,6 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                             )}
                           </div>
                         </div>
-                        {tracker.instances.length > 0 && (
-                          <div className="mt-1">
-                            <TrackerInstanceBadges instances={tracker.instances} />
-                          </div>
-                        )}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {formatBytes(uploaded)} <span className="text-[10px] text-muted-foreground font-normal">({uploadPercent.toFixed(1)}%)</span>
