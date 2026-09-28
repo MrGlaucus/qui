@@ -2881,14 +2881,9 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                                 )}
                               </Tooltip>
                               {isMerged && <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />}
-                            </div>
-                            {tracker.instances.length > 0 && (
-                              <div className="mt-1">
-                                <TrackerInstanceBadges instances={tracker.instances} />
-                              </div>
-                            )}
-                            <div className="mt-1 text-xs text-muted-foreground tabular-nums">
-                              ↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)} · ↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}
+                              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                                ↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)} · ↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}
+                              </span>
                             </div>
                           </div>
                           <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 shrink-0">
@@ -2958,6 +2953,11 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                             )}
                           </div>
                         </div>
+                        {tracker.instances.length > 0 && (
+                          <div className="mt-1">
+                            <TrackerInstanceBadges instances={tracker.instances} />
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {formatBytes(uploaded)} <span className="text-[10px] text-muted-foreground font-normal">({uploadPercent.toFixed(1)}%)</span>
