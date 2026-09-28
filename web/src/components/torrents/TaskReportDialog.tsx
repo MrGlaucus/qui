@@ -22,9 +22,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { TrackerIconImage } from "@/components/ui/tracker-icon"
 import { useIspData } from "@/contexts/IspDataContext"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
+import { useInstances } from "@/hooks/useInstances"
 import { useIsMobile } from "@/hooks/useMediaQuery"
 import { useTrackerIcons } from "@/hooks/useTrackerIcons"
 import { api } from "@/lib/api"
+import { flagClass } from "@/lib/countryFlags"
 import { getCountryName } from "@/lib/countryNames"
 import { formatSpeedWithUnit, useSpeedUnits, type SpeedUnit } from "@/lib/speedUnits"
 import { getStateLabel } from "@/lib/torrent-state-utils"
@@ -87,6 +89,8 @@ const MAX_BAR_PCT = 90
 
 function ReportContent({
   torrent,
+  instanceName,
+  instanceCountryCode,
   properties,
   peers,
   trackerIcons,
@@ -96,6 +100,8 @@ function ReportContent({
   t,
 }: {
   torrent: Torrent
+  instanceName: string | undefined
+  instanceCountryCode: string | undefined
   properties: TorrentProperties | undefined
   peers: SortedPeer[] | undefined
   trackerIcons: Record<string, string> | undefined
@@ -163,7 +169,17 @@ function ReportContent({
             {stateLabel}
           </Badge>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          {instanceName && (
+            <Badge variant="secondary" className="h-5 max-w-full gap-1.5 px-2 py-0 text-[10px] font-medium shadow-sm">
+              {flagClass(instanceCountryCode) && (
+                <span className={`${flagClass(instanceCountryCode)} rounded-sm text-xs shrink-0`} />
+              )}
+              <span className="max-w-[12rem] truncate sm:max-w-[18rem]" title={instanceName}>
+                {instanceName}
+              </span>
+            </Badge>
+          )}
           <span>
             <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
               {torrent.category || t("reportDialog.uncategorized")}
@@ -372,6 +388,11 @@ export const TaskReportDialog = memo(function TaskReportDialog({
   const { t } = useTranslation("torrents")
   const isMobile = useIsMobile()
   const [speedUnit] = useSpeedUnits()
+  const { instances } = useInstances()
+  const reportInstance = useMemo(
+    () => instances?.find(instance => instance.id === instanceId),
+    [instanceId, instances]
+  )
 
   const { ispData } = useIspData()
   const formatters = useDateTimeFormatters()
@@ -506,6 +527,8 @@ export const TaskReportDialog = memo(function TaskReportDialog({
     <div ref={contentRef} className="p-3 sm:p-8">
       <ReportContent
         torrent={reportTorrent}
+        instanceName={reportInstance?.name}
+        instanceCountryCode={reportInstance?.countryCode}
         properties={paused ? frozenProperties.current : properties}
         peers={paused ? frozenPeers.current : peersData?.sorted_peers}
         trackerIcons={trackerIcons}

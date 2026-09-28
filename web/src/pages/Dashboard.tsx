@@ -1754,7 +1754,38 @@ interface ProcessedTrackerStats extends TrackerTransferStats {
   domain: string
   displayName: string
   originalDomains: string[]
+  instances: TrackerInstanceStats[]
   customizationId?: number
+}
+
+interface TrackerInstanceStats {
+  id: number
+  name: string
+  countryCode?: string
+  count: number
+}
+
+function TrackerInstanceBadges({ instances }: { instances: TrackerInstanceStats[] }) {
+  if (instances.length === 0) return null
+
+  return (
+    <div className="flex min-w-0 flex-wrap gap-1">
+      {instances.map(instance => (
+        <Badge
+          key={instance.id}
+          variant="secondary"
+          className="h-5 max-w-full gap-1 px-1.5 py-0 text-[10px] font-medium shadow-sm"
+          title={`${instance.name}: ${instance.count}`}
+        >
+          {flagClass(instance.countryCode) && (
+            <span className={`${flagClass(instance.countryCode)} shrink-0 rounded-sm text-xs`} />
+          )}
+          <span className="max-w-28 truncate sm:max-w-36">{instance.name}</span>
+          <span className="shrink-0 tabular-nums text-muted-foreground">{instance.count}</span>
+        </Badge>
+      ))}
+    </div>
+  )
 }
 
 interface TrackerBreakdownCardProps {
@@ -1805,8 +1836,10 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
     // aggregate tracker transfer stats across all instances
     const aggregated = new Map<string, TrackerTransferStats>()
     const aggregatedGroups = new Map<string, TrackerTransferStats>()
+    const domainInstances = new Map<string, TrackerInstanceStats[]>()
+    const groupInstances = new Map<string, TrackerInstanceStats[]>()
 
-    for (const { torrentCounts } of statsData) {
+    for (const { instance, torrentCounts } of statsData) {
       if (!torrentCounts) continue
       for (const [domain, stats] of Object.entries(torrentCounts.trackerTransfers ?? {})) {
         const existing = aggregated.get(domain)
@@ -1821,6 +1854,11 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
           existing.count += stats.count
         } else {
           aggregated.set(domain, { ...stats, uploadSpeed: stats.uploadSpeed ?? 0, downloadSpeed: stats.downloadSpeed ?? 0 })
+        }
+        if (stats.count > 0) {
+          const instances = domainInstances.get(domain) ?? []
+          instances.push({ id: instance.id, name: instance.name, countryCode: instance.countryCode, count: stats.count })
+          domainInstances.set(domain, instances)
         }
       }
       for (const [groupId, stats] of Object.entries(torrentCounts.trackerGroupTransfers ?? {})) {
@@ -1837,8 +1875,16 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
         } else {
           aggregatedGroups.set(groupId, { ...stats, uploadSpeed: stats.uploadSpeed ?? 0, downloadSpeed: stats.downloadSpeed ?? 0 })
         }
+        if (stats.count > 0) {
+          const instances = groupInstances.get(groupId) ?? []
+          instances.push({ id: instance.id, name: instance.name, countryCode: instance.countryCode, count: stats.count })
+          groupInstances.set(groupId, instances)
+        }
       }
     }
+
+    const sortedInstances = (instances: TrackerInstanceStats[] | undefined) =>
+      [...(instances ?? [])].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
 
     // Build domain -> customization mapping
     const domainToCustomization = new Map<string, TrackerCustomization>()
@@ -1882,6 +1928,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
           domain,
           displayName: domain,
           originalDomains: [domain],
+          instances: sortedInstances(domainInstances.get(domain)),
         })
       }
     }
@@ -1918,6 +1965,9 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
         domain: primaryDomain ?? customization.displayName,
         displayName: customization.displayName,
         originalDomains: customization.domains,
+        instances: sortedInstances(
+          groupInstances.get(String(customization.id)) ?? (primaryDomain ? domainInstances.get(primaryDomain) : undefined)
+        ),
         customizationId: customization.id,
       })
     }
@@ -2603,6 +2653,12 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                         </span>
                       </div>
 
+                      {tracker.instances.length > 0 && (
+                        <div className="mt-1.5">
+                          <TrackerInstanceBadges instances={tracker.instances} />
+                        </div>
+                      )}
+
                       <div className="mt-2 flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-muted px-2.5 py-1 text-sm font-semibold tabular-nums">
                         <span className="inline-flex items-center gap-1 whitespace-nowrap text-emerald-700 dark:text-emerald-400">
                           <ArrowUp className="h-3.5 w-3.5 shrink-0" />
@@ -2893,6 +2949,11 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                             )}
                           </div>
                         </div>
+                        {tracker.instances.length > 0 && (
+                          <div className="mt-1">
+                            <TrackerInstanceBadges instances={tracker.instances} />
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {formatBytes(uploaded)} <span className="text-[10px] text-muted-foreground font-normal">({uploadPercent.toFixed(1)}%)</span>

@@ -97,3 +97,51 @@ func TestInstanceCapabilitiesClientErrorMessagePreservesInFlightProbe(t *testing
 func TestInstanceCapabilitiesClientErrorMessageFallsBack(t *testing.T) {
 	require.Equal(t, "Failed to load instance capabilities", instanceCapabilitiesClientErrorMessage(errors.New("boom")))
 }
+
+func TestPopulateCloneCredentialsUsesPlaintextCredentials(t *testing.T) {
+	db := testdb.NewMigratedSQLite(t, "clone-instance-credentials")
+	store, err := models.NewInstanceStore(db, []byte("01234567890123456789012345678901"))
+	require.NoError(t, err)
+	handler := NewInstancesHandler(store, nil, nil, nil, nil, nil)
+
+	t.Run("username password and basic auth", func(t *testing.T) {
+		basicUsername := "proxy-user"
+		basicPassword := "proxy-secret"
+		source, createErr := store.Create(
+			t.Context(), "source", "http://source.example", "admin", "login-secret",
+			&basicUsername, &basicPassword, false, nil,
+		)
+		require.NoError(t, createErr)
+
+		req := CreateInstanceRequest{
+			CloneInstanceID: source.ID,
+			Name:            "clone",
+			Host:            "http://clone.example",
+			Username:        source.Username,
+		}
+		require.NoError(t, handler.populateCloneCredentials(t.Context(), &req))
+		require.Equal(t, "login-secret", req.Password)
+		require.NotEqual(t, source.PasswordEncrypted, req.Password)
+		require.NotNil(t, req.BasicPassword)
+		require.Equal(t, "proxy-secret", *req.BasicPassword)
+		require.NotEqual(t, *source.BasicPasswordEncrypted, *req.BasicPassword)
+	})
+
+	t.Run("API key", func(t *testing.T) {
+		source, createErr := store.Create(
+			t.Context(), "api-source", "http://api-source.example", "", "",
+			nil, nil, false, nil, "api-secret",
+		)
+		require.NoError(t, createErr)
+
+		req := CreateInstanceRequest{
+			CloneInstanceID: source.ID,
+			Name:            "api-clone",
+			Host:            "http://api-clone.example",
+			APIKey:          "<redacted>",
+		}
+		require.NoError(t, handler.populateCloneCredentials(t.Context(), &req))
+		require.Equal(t, "api-secret", req.APIKey)
+		require.NotEqual(t, source.APIKeyEncrypted, req.APIKey)
+	})
+}

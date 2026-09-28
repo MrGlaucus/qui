@@ -303,6 +303,11 @@ func validateAndNormalizeHost(rawHost string) (string, error) {
 }
 
 func (s *InstanceStore) Create(ctx context.Context, name, rawHost, username, password string, basicUsername, basicPassword *string, tlsSkipVerify bool, hasLocalFilesystemAccess *bool, apiKey ...string) (*Instance, error) {
+	return s.CreateWithCountry(ctx, name, rawHost, username, password, basicUsername, basicPassword, tlsSkipVerify, hasLocalFilesystemAccess, "", apiKey...)
+}
+
+// CreateWithCountry creates an instance and persists its optional country code.
+func (s *InstanceStore) CreateWithCountry(ctx context.Context, name, rawHost, username, password string, basicUsername, basicPassword *string, tlsSkipVerify bool, hasLocalFilesystemAccess *bool, countryCode string, apiKey ...string) (*Instance, error) {
 	if len(apiKey) > 0 {
 		apiKey = apiKey[:1]
 	} else {
@@ -407,9 +412,10 @@ func (s *InstanceStore) Create(ctx context.Context, name, rawHost, username, pas
 			basic_password_encrypted,
 			tls_skip_verify,
 			has_local_filesystem_access,
+			country_code,
 			sort_order
 		)
-		SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, next_order FROM next_sort
+		SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, next_order FROM next_sort
 		RETURNING id, password_encrypted, basic_password_encrypted, tls_skip_verify, sort_order, is_active, has_local_filesystem_access
 		`,
 		nameID,
@@ -421,6 +427,7 @@ func (s *InstanceStore) Create(ctx context.Context, name, rawHost, username, pas
 		encryptedBasicPassword,
 		BoolToSQLite(tlsSkipVerify),
 		BoolToSQLite(localAccess),
+		countryCode,
 	).Scan(
 		&instanceID,
 		&passwordEncrypted,
@@ -443,6 +450,7 @@ func (s *InstanceStore) Create(ctx context.Context, name, rawHost, username, pas
 		APIKeyEncrypted:          encryptedAPIKey,
 		TLSSkipVerify:            SQLiteIntToBool(tlsSkipVerifyResult),
 		HasLocalFilesystemAccess: SQLiteIntToBool(hasLocalFilesystemAccessResult),
+		CountryCode:              countryCode,
 		SortOrder:                sortOrder,
 		IsActive:                 SQLiteIntToBool(isActive),
 	}

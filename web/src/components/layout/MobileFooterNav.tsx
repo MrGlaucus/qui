@@ -274,15 +274,18 @@ export function MobileFooterNav() {
                     {activeInstances.length}
                   </Badge>
                 </div>
-                <span
-                  className="block max-w-[7.5rem] truncate text-center flex items-center justify-center gap-1"
+                <Badge
+                  variant={isOnInstancePage ? "default" : "secondary"}
+                  className="h-5 max-w-[7.5rem] px-2 py-0 text-[10px] leading-none shadow-sm"
                   title={currentInstanceLabel ?? t("mobileNav.clients")}
                 >
                   {flagClass(currentInstance?.countryCode) && (
-                    <span className={`${flagClass(currentInstance?.countryCode)} rounded-sm text-sm shrink-0`} />
+                    <span className={`${flagClass(currentInstance?.countryCode)} rounded-sm text-xs shrink-0`} />
                   )}
-                  {currentInstanceLabel ?? t("mobileNav.clients")}
-                </span>
+                  <span className="min-w-0 truncate">
+                    {currentInstanceLabel ?? t("mobileNav.clients")}
+                  </span>
+                </Badge>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" side="top" className="w-56 mb-2">

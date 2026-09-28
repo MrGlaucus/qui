@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -438,6 +439,7 @@ type CreateInstanceRequest struct {
 	BasicPassword            *string                            `json:"basicPassword,omitempty"`
 	TLSSkipVerify            bool                               `json:"tlsSkipVerify,omitempty"`
 	HasLocalFilesystemAccess *bool                              `json:"hasLocalFilesystemAccess,omitempty"`
+	CountryCode              string                             `json:"countryCode,omitempty"`
 	ReannounceSettings       *InstanceReannounceSettingsPayload `json:"reannounceSettings,omitempty"`
 	CloneInstanceID          int                                `json:"cloneInstanceId,omitempty"`
 }
@@ -663,35 +665,19 @@ func (h *InstancesHandler) CreateInstance(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// When cloning an instance, copy encrypted credentials for any empty fields
-	// so the user does not have to re-enter them.
+	// When cloning an instance, copy credentials for any untouched fields so the
+	// user does not have to re-enter them. Resolve them to plaintext here because
+	// InstanceStore.Create encrypts every credential it receives.
 	if req.CloneInstanceID > 0 {
-		source, err := h.instanceStore.Get(r.Context(), req.CloneInstanceID)
-		if err != nil {
-			log.Error().Err(err).Int("sourceInstanceID", req.CloneInstanceID).Msg("Failed to fetch source instance for clone")
-		} else if source != nil {
-			if req.Password == "" {
-				req.Password = source.PasswordEncrypted
-			}
-			// A redacted placeholder means the clone form left the API key
-			// untouched — copy the source's encrypted key.
-			if req.APIKey == "" || domain.IsRedactedString(req.APIKey) {
-				req.APIKey = source.APIKeyEncrypted
-			}
-			if (req.BasicPassword == nil || *req.BasicPassword == "") && source.BasicPasswordEncrypted != nil {
-				req.BasicPassword = source.BasicPasswordEncrypted
-			}
-			if req.Username == "" {
-				req.Username = source.Username
-			}
-			if (req.BasicUsername == nil || *req.BasicUsername == "") && source.BasicUsername != nil {
-				req.BasicUsername = source.BasicUsername
-			}
+		if err := h.populateCloneCredentials(r.Context(), &req); err != nil {
+			log.Error().Err(err).Int("sourceInstanceID", req.CloneInstanceID).Msg("Failed to copy source instance credentials")
+			RespondError(w, http.StatusInternalServerError, "Failed to copy source instance credentials")
+			return
 		}
 	}
 
 	// Create instance
-	instance, err := h.instanceStore.Create(r.Context(), req.Name, req.Host, req.Username, req.Password, req.BasicUsername, req.BasicPassword, req.TLSSkipVerify, req.HasLocalFilesystemAccess, req.APIKey)
+	instance, err := h.instanceStore.CreateWithCountry(r.Context(), req.Name, req.Host, req.Username, req.Password, req.BasicUsername, req.BasicPassword, req.TLSSkipVerify, req.HasLocalFilesystemAccess, req.CountryCode, req.APIKey)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create instance")
 		RespondError(w, http.StatusInternalServerError, "Failed to create instance")
@@ -712,6 +698,40 @@ func (h *InstancesHandler) CreateInstance(w http.ResponseWriter, r *http.Request
 	go h.testConnectionAsync(instance.ID) //nolint:gosec // G118: connectivity test must outlive the request that triggered it
 
 	RespondJSON(w, http.StatusCreated, response)
+}
+
+func (h *InstancesHandler) populateCloneCredentials(ctx context.Context, req *CreateInstanceRequest) error {
+	source, err := h.instanceStore.Get(ctx, req.CloneInstanceID)
+	if err != nil {
+		return fmt.Errorf("get source instance: %w", err)
+	}
+
+	if req.Password == "" {
+		req.Password, err = h.instanceStore.GetDecryptedPassword(source)
+		if err != nil {
+			return fmt.Errorf("decrypt source password: %w", err)
+		}
+	}
+	if req.APIKey == "" || domain.IsRedactedString(req.APIKey) {
+		req.APIKey, err = h.instanceStore.GetDecryptedAPIKey(source)
+		if err != nil {
+			return fmt.Errorf("decrypt source API key: %w", err)
+		}
+	}
+	if req.BasicPassword == nil || *req.BasicPassword == "" || domain.IsRedactedString(*req.BasicPassword) {
+		req.BasicPassword, err = h.instanceStore.GetDecryptedBasicPassword(source)
+		if err != nil {
+			return fmt.Errorf("decrypt source basic auth password: %w", err)
+		}
+	}
+	if req.Username == "" {
+		req.Username = source.Username
+	}
+	if (req.BasicUsername == nil || *req.BasicUsername == "") && source.BasicUsername != nil {
+		req.BasicUsername = source.BasicUsername
+	}
+
+	return nil
 }
 
 // UpdateInstance updates an existing instance

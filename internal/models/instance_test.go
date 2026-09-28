@@ -912,3 +912,18 @@ func TestInstanceStoreGetDecryptedAPIKeyLegacyEmptyValue(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, apiKey)
 }
+
+func TestInstanceStoreCreateWithCountry(t *testing.T) {
+	store := newInstanceStoreWithAPIKeySchema(t)
+
+	instance, err := store.CreateWithCountry(
+		t.Context(), "Country Instance", "http://localhost:8080", "admin", "password",
+		nil, nil, false, nil, "de",
+	)
+	require.NoError(t, err)
+	require.Equal(t, "de", instance.CountryCode)
+
+	stored, err := store.Get(t.Context(), instance.ID)
+	require.NoError(t, err)
+	require.Equal(t, "de", stored.CountryCode)
+}
