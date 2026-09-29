@@ -275,8 +275,11 @@ export function MobileFooterNav() {
                   </Badge>
                 </div>
                 <Badge
-                  variant={isOnInstancePage ? "default" : "secondary"}
-                  className="h-5 max-w-[7.5rem] px-2 py-0 text-[10px] leading-none shadow-sm"
+                  variant="outline"
+                  className={cn(
+                    "h-5 max-w-[7.5rem] bg-transparent px-2 py-0 text-[10px] leading-none shadow-sm",
+                    isOnInstancePage ? "border-primary text-primary" : "border-muted-foreground/50 text-muted-foreground"
+                  )}
                   title={currentInstanceLabel ?? t("mobileNav.clients")}
                 >
                   {flagClass(currentInstance?.countryCode) && (
