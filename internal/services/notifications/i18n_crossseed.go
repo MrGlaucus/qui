@@ -13,14 +13,15 @@ func init() {
 		"crossseed.rss.added":          {"zh": "RSS 辅种：已添加 %d 个", "en": "RSS cross-seed: %d added"},
 		"crossseed.rss.partial":        {"zh": "RSS 辅种：部分完成", "en": "RSS cross-seed: partially completed"},
 		"crossseed.rss.failed":         {"zh": "RSS 辅种失败", "en": "RSS cross-seed failed"},
-		"crossseed.rss.scan":           {"zh": "扫描 RSS 条目 %d 条，发现可辅种条目 %d 条", "en": "Feed items scanned: %d; matching items: %d"},
-		"crossseed.rss.result":         {"zh": "已添加 %d 个 · 已跳过 %d 条 · 失败 %d 条", "en": "Added: %d · Skipped: %d · Failed: %d"},
+		"crossseed.rss.scan":           {"zh": "扫描结果: RSS %d 条 · 可辅种 %d 条", "en": "Scan: %d RSS items · %d matches"},
+		"crossseed.rss.result":         {"zh": "执行结果: 新增 %d · 跳过 %d · 失败 %d", "en": "Result: %d added · %d skipped · %d failed"},
 		"crossseed.rss.indexers":       {"zh": "辅种目标站点（RSS 索引器）", "en": "Cross-seed target sites (RSS indexers)"},
-		"crossseed.rss.indexerAdds":    {"zh": "%s（新增 %d 个）", "en": "%s (%d added)"},
+		"crossseed.rss.indexerAdds":    {"zh": "- %s · 新增 %d 个", "en": "- %s · %d added"},
 		"crossseed.rss.unknownIndexer": {"zh": "未记录", "en": "Not recorded"},
-		"crossseed.rss.sample":         {"zh": "匹配的本地种子（名称 @ 下载器实例）", "en": "Matched local torrent (name @ client instance)"},
-		"crossseed.rss.error":          {"zh": "错误原因", "en": "Error"},
-		"crossseed.rss.run":            {"zh": "运行记录 #%d", "en": "Run #%d"},
+		"crossseed.rss.samples":        {"zh": "来源种子（名称 @ 来源实例）", "en": "Source torrents (name @ source instance)"},
+		"crossseed.rss.sample":         {"zh": "- %s", "en": "- %s"},
+		"crossseed.rss.error":          {"zh": "失败原因", "en": "Failure"},
+		"crossseed.rss.run":            {"zh": "运行记录: #%d", "en": "Run: #%d"},
 	})
 }
 
@@ -45,16 +46,18 @@ func formatRSSAutomationEvent(event Event, lang string) (string, string) {
 		fmt.Sprintf(T("crossseed.rss.result", lang), data.Added, data.Skipped, data.Failed),
 	}
 	if len(data.TargetIndexerAdds) > 0 {
-		indexers := make([]string, 0, len(data.TargetIndexerAdds))
+		lines = append(lines, T("crossseed.rss.indexers", lang)+":")
 		for _, indexer := range data.TargetIndexerAdds {
-			indexers = append(indexers, fmt.Sprintf(T("crossseed.rss.indexerAdds", lang), indexer.Label, indexer.Count))
+			lines = append(lines, fmt.Sprintf(T("crossseed.rss.indexerAdds", lang), indexer.Label, indexer.Count))
 		}
-		lines = append(lines, formatLine(T("crossseed.rss.indexers", lang), strings.Join(indexers, "; ")))
 	} else if data.Added > 0 {
 		lines = append(lines, formatLine(T("crossseed.rss.indexers", lang), T("crossseed.rss.unknownIndexer", lang)))
 	}
 	if len(data.Samples) > 0 {
-		lines = append(lines, formatLine(T("crossseed.rss.sample", lang), strings.Join(data.Samples[:min(3, len(data.Samples))], "; ")))
+		lines = append(lines, T("crossseed.rss.samples", lang)+":")
+		for _, sample := range data.Samples[:min(3, len(data.Samples))] {
+			lines = append(lines, fmt.Sprintf(T("crossseed.rss.sample", lang), sample))
+		}
 	}
 	if errorMessage := strings.TrimSpace(event.ErrorMessage); errorMessage != "" {
 		lines = append(lines, formatLine(T("crossseed.rss.error", lang), errorMessage))

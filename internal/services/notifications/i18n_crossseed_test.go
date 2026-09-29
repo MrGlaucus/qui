@@ -32,14 +32,14 @@ func TestRSSAutomationNotificationUsesCurrentLanguageAndStructuredSummary(t *tes
 
 	title, message := svc.formatEvent(context.Background(), event, true)
 	require.Equal(t, "RSS 辅种：已添加 1 个", title)
-	require.Equal(t, "扫描 RSS 条目 20 条，发现可辅种条目 1 条\n已添加 1 个 · 已跳过 15 条 · 失败 0 条\n辅种目标站点（RSS 索引器）: Target Site（新增 1 个）\n匹配的本地种子（名称 @ 下载器实例）: Example.Release @ qbit-1\n运行记录 #18846", message)
+	require.Equal(t, "扫描结果: RSS 20 条 · 可辅种 1 条\n执行结果: 新增 1 · 跳过 15 · 失败 0\n辅种目标站点（RSS 索引器）:\n- Target Site · 新增 1 个\n来源种子（名称 @ 来源实例）:\n- Example.Release @ qbit-1\n运行记录: #18846", message)
 	require.NotContains(t, message, "processed=")
 	require.NotContains(t, message, "Mode:")
 
 	lang = "en"
 	title, message = svc.formatEvent(context.Background(), event, true)
 	require.Equal(t, "RSS cross-seed: 1 added", title)
-	require.Equal(t, "Feed items scanned: 20; matching items: 1\nAdded: 1 · Skipped: 15 · Failed: 0\nCross-seed target sites (RSS indexers): Target Site (1 added)\nMatched local torrent (name @ client instance): Example.Release @ qbit-1\nRun #18846", message)
+	require.Equal(t, "Scan: 20 RSS items · 1 matches\nResult: 1 added · 15 skipped · 0 failed\nCross-seed target sites (RSS indexers):\n- Target Site · 1 added\nSource torrents (name @ source instance):\n- Example.Release @ qbit-1\nRun: #18846", message)
 }
 
 func TestRSSAutomationNotificationPartialAndFailed(t *testing.T) {
@@ -63,8 +63,8 @@ func TestRSSAutomationNotificationPartialAndFailed(t *testing.T) {
 			}
 			title, message := svc.formatEvent(context.Background(), event, true)
 			require.Equal(t, tt.wantTitle, title)
-			require.Contains(t, message, "失败 2 条")
-			require.Contains(t, message, "错误原因: tracker unavailable")
+			require.Contains(t, message, "失败 2")
+			require.Contains(t, message, "失败原因: tracker unavailable")
 		})
 	}
 }
