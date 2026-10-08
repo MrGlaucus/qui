@@ -7935,7 +7935,7 @@ components:
           type: string
         phase:
           type: string
-          description: Processing phase (check or apply)
+          description: Processing phase (check, apply, or resume)
         status:
           type: string
           description: Outcome status

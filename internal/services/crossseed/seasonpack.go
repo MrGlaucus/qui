@@ -4,6 +4,7 @@
 package crossseed
 
 import (
+	"cmp"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -363,8 +364,11 @@ func (s *Service) ApplySeasonPackWebhook(ctx context.Context, req *SeasonPackApp
 		return &SeasonPackApplyResponse{Reason: reason, Message: message}, nil
 	}
 
-	// Check if torrent already exists on any eligible instance.
+	// The exists check runs on blocked instances too, so a blocked copy is never
+	// duplicated elsewhere. Runs before tree creation: by addSeasonPack the tree exists.
 	hashes := collectHashes(prep.meta)
+	unblocked := make([]*models.Instance, 0, len(prep.eligible))
+	blockedID := 0
 	for _, inst := range prep.eligible {
 		if _, found, err := s.syncManager.HasTorrentByAnyHash(ctx, inst.ID, hashes); err != nil {
 			message := fmt.Sprintf("failed to check existing torrents on instance %d: %v", inst.ID, err)
@@ -380,7 +384,26 @@ func (s *Service) ApplySeasonPackWebhook(ctx context.Context, req *SeasonPackApp
 				Message: fmt.Sprintf("torrent already exists on instance %d", inst.ID),
 			}, nil
 		}
+		if s.blocklistStore != nil {
+			if _, blocked, err := s.blocklistStore.FindBlocked(ctx, inst.ID, hashes); err != nil {
+				message := fmt.Sprintf("failed to check cross-seed blocklist on instance %d: %v", inst.ID, err)
+				s.recordApplyRun(ctx, req.TorrentName, "blocklist_check_failed", message, inst.ID, 0, prep.totalEpisodes, 0, "")
+				return &SeasonPackApplyResponse{Reason: "blocklist_check_failed", Message: message}, nil
+			} else if blocked {
+				blockedID = cmp.Or(blockedID, inst.ID)
+				continue
+			}
+		}
+		unblocked = append(unblocked, inst)
 	}
+	if len(unblocked) == 0 {
+		s.recordApplyRun(ctx, req.TorrentName, "blocked", "", blockedID, 0, prep.totalEpisodes, 0, "")
+		return &SeasonPackApplyResponse{
+			Reason:  "blocked",
+			Message: fmt.Sprintf("torrent is on the cross-seed blocklist for instance %d", blockedID),
+		}, nil
+	}
+	prep.eligible = unblocked
 
 	matches, err := s.computeCoverage(ctx, prep.eligible, prep.packRelease, prep.packEpisodes, prep.totalEpisodes, prep.settings, prep.aliasTitles)
 	if err != nil {
@@ -454,6 +477,20 @@ func (s *Service) ApplySeasonPackWebhook(ctx context.Context, req *SeasonPackApp
 		// failed, and resuming would download over hardlinked files — those
 		// stay paused.
 		resumeThreshold := float64(planBuild.linkedBytes) / float64(planBuild.totalBytes) * seasonPackResumeSlack
+		var linkedPaths map[string]struct{}
+		var blockedRun *models.SeasonPackRun
+		if linkMode == "hardlink" {
+			linkedPaths = planBuild.materializedPaths
+			blockedRun = &models.SeasonPackRun{
+				TorrentName:     req.TorrentName,
+				Phase:           "resume",
+				InstanceID:      &inst.ID,
+				MatchedEpisodes: len(episodes),
+				TotalEpisodes:   prep.totalEpisodes,
+				Coverage:        float64(len(episodes)) / float64(prep.totalEpisodes),
+				LinkMode:        linkMode,
+			}
+		}
 		recheckHashes := collectHashes(prep.meta)
 		switch {
 		case len(recheckHashes) == 0:
@@ -466,7 +503,7 @@ func (s *Service) ApplySeasonPackWebhook(ctx context.Context, req *SeasonPackApp
 				message = "torrent added paused; automatic resume could not be queued"
 			} else if s.recheckResumeChan == nil {
 				message = "torrent added paused; automatic resume is unavailable"
-			} else if err := s.queueRecheckResumeWithThreshold(inst.ID, activeHash, resumeThreshold); err != nil {
+			} else if err := s.queueRecheckResumeWithThreshold(inst.ID, activeHash, resumeThreshold, linkedPaths, blockedRun); err != nil {
 				message = "torrent added paused; automatic resume queue is full"
 			} else {
 				message = "torrent added paused; recheck queued"
@@ -1769,7 +1806,7 @@ func (s *Service) recordApplyRun(
 	switch reason {
 	case "applied":
 		run.Status = "applied"
-	case "already_exists", "skipped_recheck":
+	case "already_exists", "blocked", "skipped_recheck":
 		run.Status = "skipped"
 	default:
 		run.Status = "failed"

@@ -159,6 +159,7 @@ func newTestDependencies(t *testing.T) *Dependencies {
 		trackerCustomizationStore,
 		nil,
 		nil,
+		nil,
 	)
 
 	return &Dependencies{

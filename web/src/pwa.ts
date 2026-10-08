@@ -10,9 +10,14 @@ let hasRegistered = false
 
 export function setupPWAAutoUpdate(): void {
   if (hasRegistered) return
-  if (!("serviceWorker" in navigator)) return
-
   hasRegistered = true
+
+  // An old page can request chunks removed by a new deployment. Do not reload offline.
+  window.addEventListener("vite:preloadError", () => {
+    if (navigator.onLine) window.location.reload()
+  })
+
+  if (!("serviceWorker" in navigator)) return
 
   const scope = getBaseUrl()
   const swUrl = withBasePath("sw.js")
@@ -111,6 +116,13 @@ export function setupPWAAutoUpdate(): void {
 
       wb.register({ immediate: true }).catch((error) => {
         console.error("Service worker registration failed", error)
+      })
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "visible") return
+        wb.update().catch((error) => {
+          console.error("Service worker update check failed", error)
+        })
       })
     })
     .catch((error) => {
