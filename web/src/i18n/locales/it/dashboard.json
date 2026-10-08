@@ -132,6 +132,8 @@
     "exportTooltip": "Esporta personalizzazioni",
     "sort": "Ordina: {{column}}",
     "sortOptions": {
+      "uploadSpeed": "Velocità di upload",
+      "downloadSpeed": "Velocità di download",
       "tracker": "Tracker",
       "uploaded": "Upload data selezionata",
       "downloaded": "Download data selezionata",

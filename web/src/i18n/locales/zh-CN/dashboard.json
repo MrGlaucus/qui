@@ -132,6 +132,8 @@
     "exportTooltip": "导出自定义配置",
     "sort": "排序：{{column}}",
     "sortOptions": {
+      "uploadSpeed": "上传速度",
+      "downloadSpeed": "下载速度",
       "tracker": "Tracker",
       "uploaded": "所选日期上传",
       "downloaded": "所选日期下载",

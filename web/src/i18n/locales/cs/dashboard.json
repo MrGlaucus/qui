@@ -132,6 +132,8 @@
     "exportTooltip": "Exportovat vlastní nastavení",
     "sort": "Řazení: {{column}}",
     "sortOptions": {
+      "uploadSpeed": "Rychlost odesílání",
+      "downloadSpeed": "Rychlost stahování",
       "tracker": "Název trackeru",
       "uploaded": "Odesláno ve vybraný den",
       "downloaded": "Staženo ve vybraný den",

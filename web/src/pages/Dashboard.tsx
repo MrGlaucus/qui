@@ -1731,7 +1731,7 @@ function GlobalAllTimeStats({ statsData, isCollapsed, onCollapsedChange }: Globa
 }
 
 
-type TrackerSortColumn = "tracker" | "uploaded" | "downloaded" | "uploadedSession" | "downloadedSession" | "ratio" | "buffer" | "count" | "size" | "performance"
+type TrackerSortColumn = "tracker" | "uploaded" | "downloaded" | "uploadedSession" | "downloadedSession" | "uploadSpeed" | "downloadSpeed" | "ratio" | "buffer" | "count" | "size" | "performance"
 type SortDirection = "asc" | "desc"
 
 // Helper to compute ratio display values for tracker stats
@@ -1992,6 +1992,10 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
           return multiplier * (a.uploadedSession - b.uploadedSession)
         case "downloadedSession":
           return multiplier * (a.downloadedSession - b.downloadedSession)
+        case "uploadSpeed":
+          return multiplier * (a.uploadSpeed - b.uploadSpeed)
+        case "downloadSpeed":
+          return multiplier * (a.downloadSpeed - b.downloadSpeed)
         case "ratio": {
           const ratioA = a.downloaded > 0 ? a.uploaded / a.downloaded : (a.uploaded > 0 ? Infinity : 0)
           const ratioB = b.downloaded > 0 ? b.uploaded / b.downloaded : (b.uploaded > 0 ? Infinity : 0)
@@ -2447,6 +2451,8 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
   // the mobile row always shows uploaded, downloaded and ratio; the sorted metric replaces
   // the trailing count when it is none of those, so the order never rests on a hidden number
   const sortedMetric = (tracker: ProcessedTrackerStats): string | null => {
+    if (sortColumn === "uploadSpeed") return `↑ ${formatSpeedWithUnit(tracker.uploadSpeed, speedUnit)}`
+    if (sortColumn === "downloadSpeed") return `↓ ${formatSpeedWithUnit(tracker.downloadSpeed, speedUnit)}`
     switch (sortColumn) {
       case "uploadedSession":
         return formatBytes(tracker.uploadedSession)
@@ -2555,6 +2561,8 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                   <DropdownMenuItem onClick={() => handleSort("downloaded")}>{t("trackerBreakdown.sortOptions.downloaded")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleSort("uploadedSession")}>{t("trackerBreakdown.sortOptions.uploadedSession")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleSort("downloadedSession")}>{t("trackerBreakdown.sortOptions.downloadedSession")}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSort("uploadSpeed")}>{t("trackerBreakdown.sortOptions.uploadSpeed")}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSort("downloadSpeed")}>{t("trackerBreakdown.sortOptions.downloadSpeed")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleSort("ratio")}>{t("trackerBreakdown.sortOptions.ratio")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleSort("count")}>{t("trackerBreakdown.sortOptions.torrents")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleSort("size")}>{t("trackerBreakdown.sortOptions.size")}</DropdownMenuItem>
@@ -2621,7 +2629,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
             {/* Mobile card list */}
             <div className="sm:hidden space-y-2 bg-muted/20 p-2">
               {paginatedTrackerStats.map((tracker) => {
-                const { domain, displayName, originalDomains, uploaded, downloaded, uploadSpeed, downloadSpeed, count, customizationId } = tracker
+                const { domain, displayName, originalDomains, uploaded, downloaded, uploadSpeed, downloadSpeed, totalSize, count, customizationId } = tracker
                 const { isInfinite, ratio, color: ratioColor } = getTrackerRatioDisplay(uploaded, downloaded)
                 const displayValue = incognitoMode ? getLinuxTrackerDomain(displayName) : displayName
                 const iconDomain = incognitoMode ? getLinuxTrackerDomain(domain) : domain
@@ -2648,9 +2656,13 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                           <span className="truncate text-sm font-medium">{displayValue}</span>
                           {isMerged && <Link2 className="h-3 w-3 shrink-0 text-muted-foreground" />}
                         </div>
-                        <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground tabular-nums">
-                          {extraMetric ?? count}
-                        </span>
+                        <div className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
+                          <span className="rounded border border-border/70 bg-background px-1.5 py-0.5">{count}</span>
+                          <span className="rounded border border-border/70 bg-background px-1.5 py-0.5">{formatBytes(totalSize)}</span>
+                          {extraMetric && extraMetric !== String(count) && extraMetric !== formatBytes(totalSize) && (
+                            <span className="rounded border border-primary/40 bg-primary/5 px-1.5 py-0.5 text-primary">{extraMetric}</span>
+                          )}
+                        </div>
                       </div>
 
                       {tracker.instances.length > 0 && (
@@ -2881,9 +2893,26 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                                 )}
                               </Tooltip>
                               {isMerged && <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />}
-                              <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                                ↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)} · ↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}
-                              </span>
+                              <div className="flex shrink-0 items-center gap-0.5 text-xs tabular-nums">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSort("uploadSpeed")}
+                                  className={`inline-flex items-center gap-0.5 rounded px-1 py-0.5 transition-colors hover:bg-muted hover:text-foreground ${sortColumn === "uploadSpeed" ? "text-primary" : "text-muted-foreground"}`}
+                                  aria-label={t("trackerBreakdown.sortOptions.uploadSpeed")}
+                                >
+                                  ↑ {formatSpeedWithUnit(uploadSpeed, speedUnit)}
+                                  <SortIcon column="uploadSpeed" sortColumn={sortColumn} sortDirection={sortDirection} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSort("downloadSpeed")}
+                                  className={`inline-flex items-center gap-0.5 rounded px-1 py-0.5 transition-colors hover:bg-muted hover:text-foreground ${sortColumn === "downloadSpeed" ? "text-primary" : "text-muted-foreground"}`}
+                                  aria-label={t("trackerBreakdown.sortOptions.downloadSpeed")}
+                                >
+                                  ↓ {formatSpeedWithUnit(downloadSpeed, speedUnit)}
+                                  <SortIcon column="downloadSpeed" sortColumn={sortColumn} sortDirection={sortDirection} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-0.5 ml-auto opacity-0 group-hover:opacity-100 shrink-0">

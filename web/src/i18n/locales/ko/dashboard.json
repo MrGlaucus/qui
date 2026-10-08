@@ -132,6 +132,8 @@
     "exportTooltip": "사용자 지정 내보내기",
     "sort": "정렬: {{column}}",
     "sortOptions": {
+      "uploadSpeed": "업로드 속도",
+      "downloadSpeed": "다운로드 속도",
       "tracker": "트래커",
       "uploaded": "선택 날짜 업로드",
       "downloaded": "선택 날짜 다운로드",

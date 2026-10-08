@@ -150,6 +150,8 @@
     "exportTooltip": "Export customizations",
     "sort": "Sort: {{column}}",
     "sortOptions": {
+      "uploadSpeed": "Upload speed",
+      "downloadSpeed": "Download speed",
       "tracker": "Tracker",
       "uploaded": "Selected date upload",
       "downloaded": "Selected date download",
