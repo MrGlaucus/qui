@@ -1769,12 +1769,12 @@ function TrackerInstanceBadges({ instances }: { instances: TrackerInstanceStats[
   if (instances.length === 0) return null
 
   return (
-    <div className="flex min-w-0 flex-wrap gap-1">
+    <div className="flex min-w-0 flex-wrap gap-1.5">
       {instances.map(instance => (
         <Badge
           key={instance.id}
           variant="outline"
-          className="h-5 max-w-full gap-1 border-border/80 bg-background px-1.5 py-0 text-[10px] font-medium shadow-sm"
+          className="h-6 max-w-full gap-1.5 border-solid border-primary bg-transparent px-2 py-0 text-[11px] font-medium text-primary shadow-none"
           title={`${instance.name}: ${instance.count}`}
         >
           {flagClass(instance.countryCode) && (
@@ -2666,7 +2666,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                       </div>
 
                       {tracker.instances.length > 0 && (
-                        <div className="mt-1.5">
+                        <div className="mt-2">
                           <TrackerInstanceBadges instances={tracker.instances} />
                         </div>
                       )}
@@ -2726,7 +2726,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-8 pl-4" />
-                  <TableHead className="w-[35%]">
+                  <TableHead className="w-[35%] min-w-96">
                     <button
                       type="button"
                       onClick={() => handleSort("tracker")}
@@ -2873,11 +2873,11 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                           />
                         )}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-start gap-2">
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-2">
                           <TrackerIconImage tracker={iconDomain} trackerIcons={trackerIcons} />
                           <div className="min-w-0 flex-1">
-                            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                            <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <span className="font-medium truncate cursor-default">
@@ -2983,7 +2983,7 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                           </div>
                         </div>
                         {tracker.instances.length > 0 && (
-                          <div className="mt-1">
+                          <div className="mt-2">
                             <TrackerInstanceBadges instances={tracker.instances} />
                           </div>
                         )}

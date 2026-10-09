@@ -8,7 +8,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog"
 import {
   Dialog,
@@ -171,7 +171,7 @@ function ReportContent({
         </div>
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           {instanceName && (
-            <Badge variant="secondary" className="h-5 max-w-full gap-1.5 px-2 py-0 text-[10px] font-medium shadow-sm">
+            <Badge variant="outline" className="h-6 max-w-full gap-1.5 border-solid border-primary bg-transparent px-2 py-0 text-[11px] font-medium text-primary shadow-none">
               {flagClass(instanceCountryCode) && (
                 <span className={`${flagClass(instanceCountryCode)} rounded-sm text-xs shrink-0`} />
               )}
@@ -573,105 +573,105 @@ export const TaskReportDialog = memo(function TaskReportDialog({
           >
             <header className="shrink-0 relative z-20 flex items-center justify-between gap-2 border-b bg-background px-3 h-12">
               <div className="flex items-center min-w-0 gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8 shrink-0"
-                onClick={() => onOpenChange(false)}
-                aria-label={t("reportDialog.close")}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <DialogTitle className="text-sm font-semibold truncate">{t("reportDialog.title")}</DialogTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 shrink-0"
+                  onClick={() => onOpenChange(false)}
+                  aria-label={t("reportDialog.close")}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <DialogTitle className="text-sm font-semibold truncate">{t("reportDialog.title")}</DialogTitle>
+              </div>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  onClick={handleTogglePause}
+                  aria-label={paused ? t("reportDialog.resume") : t("reportDialog.pause")}
+                >
+                  {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8"
+                  onClick={handleCapture}
+                  disabled={copying}
+                  aria-label={t("reportDialog.copyImage")}
+                >
+                  {copying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                </Button>
+              </div>
+            </header>
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+              {reportContent}
             </div>
-            <div className="flex items-center gap-0.5 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                onClick={handleTogglePause}
-                aria-label={paused ? t("reportDialog.resume") : t("reportDialog.pause")}
-              >
-                {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                onClick={handleCapture}
-                disabled={copying}
-                aria-label={t("reportDialog.copyImage")}
-              >
-                {copying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-              </Button>
-            </div>
-          </header>
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-            {reportContent}
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
       ) : (
         <Dialog open={open} onOpenChange={onOpenChange}>
           <DialogContent showCloseButton={false} className="w-full sm:max-w-lg md:max-w-xl lg:max-w-2xl max-h-[85vh] overflow-y-auto p-3 sm:p-6">
             <DialogHeader className="flex flex-row items-center justify-between gap-2 pr-8">
               <DialogTitle className="text-sm">{t("reportDialog.title")}</DialogTitle>
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={handleTogglePause}
-                  tabIndex={-1}
-                >
-                  {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">{paused ? t("reportDialog.resume") : t("reportDialog.pause")}</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={handleCapture}
-                  disabled={copying}
-                  tabIndex={-1}
-                >
-                  {copying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">{t("reportDialog.copyImage")}</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => onOpenChange(false)}
-                  tabIndex={-1}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">{t("reportDialog.close")}</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </DialogHeader>
+              <div className="flex items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleTogglePause}
+                      tabIndex={-1}
+                    >
+                      {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">{paused ? t("reportDialog.resume") : t("reportDialog.pause")}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleCapture}
+                      disabled={copying}
+                      tabIndex={-1}
+                    >
+                      {copying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">{t("reportDialog.copyImage")}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => onOpenChange(false)}
+                      tabIndex={-1}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">{t("reportDialog.close")}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </DialogHeader>
 
-        {reportContent}
-      </DialogContent>
-    </Dialog>
+            {reportContent}
+          </DialogContent>
+        </Dialog>
       )}
       {captureDialog}
     </>
