@@ -18,6 +18,140 @@ security:
   - SessionAuth: []
 
 paths:
+  /api/instances/{instanceID}/automations/{ruleID}/sync:
+    parameters:
+      - name: instanceID
+        in: path
+        required: true
+        schema: {type: integer}
+      - name: ruleID
+        in: path
+        required: true
+        schema: {type: integer}
+    get:
+      tags: [Automations]
+      summary: List rules sharing this rule's stable sync identity
+      responses:
+        '200':
+          description: Related rules, including manual copies
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/Automation'}
+        '404':
+          description: Rule not found
+    put:
+      tags: [Automations]
+      summary: Copy a rule and configure automatic followers atomically
+      description: >-
+        Match stable identity first, then a unique name. Explicit ruleId associates a renamed
+        independent rule; zero forces creation. Selected targets are overwritten immediately.
+        Automatic followers receive later source saves. Unselected followers are detached.
+        Order stays local. Import and duplicate create independent identities.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AutomationSyncOptions'}
+      responses:
+        '200':
+          description: All targets saved in one transaction
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AutomationCopyResult'}
+        '400':
+          description: Invalid settings or a rule incompatible with a target instance
+        '404':
+          description: Rule not found
+        '409':
+          description: Ambiguous name, conflicting identity, or attempt to configure a follower
+    delete:
+      tags: [Automations]
+      summary: Detach a follower or manual copy, keeping its content
+      responses:
+        '204':
+          description: Rule now has an independent identity
+        '404':
+          description: Rule not found
+        '409':
+          description: A source with followers must configure its targets first
+  /api/instances/{instanceID}/automations/copy-to/{targetId}:
+    parameters:
+      - name: instanceID
+        in: path
+        required: true
+        schema: {type: integer}
+      - name: targetId
+        in: path
+        required: true
+        schema: {type: integer}
+    post:
+      tags: [Automations]
+      summary: Copy all rules to another instance
+      description: Stable identity is matched before a unique name. Ambiguous or conflicting matches fail the entire copy. Automatic followers resolve to their source.
+      responses:
+        '200':
+          description: Copy completed
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AutomationCopyResult'}
+        '400':
+          description: Invalid or incompatible target
+        '404':
+          description: Instance not found
+        '409':
+          description: Conflicting rule identities or ambiguous name
+  /api/instances/{instanceID}/automations/{ruleID}:
+    parameters:
+      - name: instanceID
+        in: path
+        required: true
+        schema: {type: integer}
+      - name: ruleID
+        in: path
+        required: true
+        schema: {type: integer}
+    put:
+      tags: [Automations]
+      summary: Update a rule and its automatic followers in one transaction
+      description: Followers only allow local order changes and enabled-state changes when preservation is configured. Target-specific validation runs before updating a source.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/AutomationInput'}
+      responses:
+        '200':
+          description: Rule and followers updated
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Automation'}
+        '400':
+          description: Invalid rule or incompatible follower
+        '404':
+          description: Rule not found
+        '409':
+          description: Detach the follower before editing its definition
+    delete:
+      tags: [Automations]
+      summary: Delete a rule and choose how to handle its automatic followers
+      parameters:
+        - name: followers
+          in: query
+          description: Required when the source has automatic followers. Keep detaches them; delete removes them. Manual copies are retained.
+          schema:
+            type: string
+            enum: [keep, delete]
+      responses:
+        '204':
+          description: Deletion completed
+        '400':
+          description: Invalid follower deletion mode
+        '404':
+          description: Rule not found
+        '409':
+          description: Explicit follower deletion mode required
   /api/auth/setup:
     post:
       tags:
@@ -6259,6 +6393,70 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
+    AutomationInput:
+      type: object
+      required: [name, conditions]
+      properties:
+        name: {type: string}
+        trackerPattern: {type: string}
+        trackerDomains:
+          type: array
+          items: {type: string}
+        conditions:
+          type: object
+          description: Action conditions with schemaVersion 1
+          additionalProperties: true
+        freeSpaceSource: {type: object}
+        sortingConfig: {type: object}
+        enabled: {type: boolean}
+        dryRun: {type: boolean}
+        notify: {type: boolean}
+        sortOrder: {type: integer}
+        intervalSeconds:
+          type: [integer, 'null']
+          minimum: 60
+    Automation:
+      allOf:
+        - $ref: '#/components/schemas/AutomationInput'
+        - type: object
+          properties:
+            id: {type: integer}
+            instanceId: {type: integer}
+            createdAt: {type: string, format: date-time}
+            updatedAt: {type: string, format: date-time}
+            syncKey:
+              type: string
+              readOnly: true
+              description: Stable opaque identity shared by synchronized copies
+            syncSourceId:
+              type: integer
+              readOnly: true
+              description: Present only on automatic followers
+            syncSourceInstanceId: {type: integer, readOnly: true}
+            syncPreserveEnabled: {type: boolean, readOnly: true}
+            syncFollowerCount: {type: integer, readOnly: true}
+    AutomationSyncOptions:
+      type: object
+      required: [automatic, targets]
+      properties:
+        automatic: {type: boolean}
+        targets:
+          type: array
+          items:
+            type: object
+            required: [instanceId, preserveEnabled]
+            properties:
+              instanceId: {type: integer, minimum: 1}
+              ruleId:
+                type: integer
+                minimum: 0
+                description: Omit to match identity then unique name; zero creates a new rule; positive selects an existing independent rule
+              preserveEnabled: {type: boolean}
+    AutomationCopyResult:
+      type: object
+      properties:
+        created: {type: integer}
+        updated: {type: integer}
     TrackerTrafficRow:
       type: object
       required: [trackerKey, date, uploaded, downloaded]

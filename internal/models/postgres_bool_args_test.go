@@ -491,6 +491,9 @@ func TestAutomationReadsIntegerBooleanColumns(t *testing.T) {
 	db := openSQLiteDB(t)
 	mustExec(t, db, `
 		CREATE TABLE automations (
+            sync_key TEXT NOT NULL DEFAULT '',
+            sync_source_id INTEGER,
+            sync_preserve_enabled INTEGER NOT NULL DEFAULT 1,
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			instance_id INTEGER NOT NULL,
 			name TEXT NOT NULL,

@@ -172,8 +172,25 @@ func (h *AutomationHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	targets, err := h.store.SyncTargets(r.Context(), instanceID, ruleID)
+	if err != nil {
+		h.respondSyncError(w, err)
+		return
+	}
+	for _, target := range targets {
+		if target.SyncSourceID != nil && *target.SyncSourceID == ruleID {
+			if err := h.validateSyncTarget(r.Context(), payload.toModel(instanceID, ruleID), models.AutomationSyncTarget{InstanceID: target.InstanceID, RuleID: &target.ID, PreserveEnabled: target.SyncPreserveEnabled}); err != nil {
+				RespondError(w, http.StatusBadRequest, err.Error())
+				return
+			}
+		}
+	}
 	automation, err := h.store.Update(r.Context(), payload.toModel(instanceID, ruleID))
 	if err != nil {
+		if errors.Is(err, models.ErrAutomationSyncReadOnly) {
+			h.respondSyncError(w, err)
+			return
+		}
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Error().Err(err).Int("instanceID", instanceID).Int("automationID", ruleID).Msg("automation not found for update")
 			RespondError(w, http.StatusNotFound, "Automation not found")
@@ -200,7 +217,21 @@ func (h *AutomationHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.store.Delete(r.Context(), instanceID, ruleID); err != nil {
+	rule, err := h.store.Get(r.Context(), instanceID, ruleID)
+	if err != nil {
+		h.respondSyncError(w, err)
+		return
+	}
+	followers := r.URL.Query().Get("followers")
+	if followers != "" && followers != "keep" && followers != "delete" {
+		RespondError(w, http.StatusBadRequest, "Invalid follower deletion mode")
+		return
+	}
+	if rule.SyncFollowerCount > 0 && followers == "" {
+		RespondError(w, http.StatusConflict, "Choose whether to keep or delete automatic followers")
+		return
+	}
+	if err := h.store.DeleteWithFollowers(r.Context(), instanceID, ruleID, followers == "delete"); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			RespondError(w, http.StatusNotFound, "Automation not found")
 			return
@@ -1174,8 +1205,8 @@ func validateConditionRegex(cond *models.RuleCondition, path string, errs *[]Reg
 }
 
 // CopyToInstance copies all automation rules from the current instance to the
-// target instance, overwriting rules with the same name and creating new ones
-// otherwise. Returns a count of created and updated rules.
+// target instance using stable identity, adopting a unique name match only
+// when no identity match exists. Returns a count of created and updated rules.
 //
 // POST /api/instances/{instanceID}/automations/copy-to/{targetId}
 func (h *AutomationHandler) CopyToInstance(w http.ResponseWriter, r *http.Request) {
@@ -1195,51 +1226,48 @@ func (h *AutomationHandler) CopyToInstance(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	sourceRules, err := h.store.ListByInstance(r.Context(), sourceID)
-	if err != nil {
-		log.Error().Err(err).Int("sourceID", sourceID).Msg("automations: failed to list source rules for copy")
-		RespondError(w, http.StatusInternalServerError, "Failed to load source automations")
+	if _, err := h.instanceStore.Get(r.Context(), sourceID); err != nil {
+		RespondError(w, http.StatusNotFound, "Source instance not found")
 		return
 	}
-
-	targetRules, err := h.store.ListByInstance(r.Context(), targetID)
-	if err != nil {
-		log.Error().Err(err).Int("targetID", targetID).Msg("automations: failed to list target rules for copy")
-		RespondError(w, http.StatusInternalServerError, "Failed to load target automations")
+	if _, err := h.instanceStore.Get(r.Context(), targetID); err != nil {
+		RespondError(w, http.StatusNotFound, "Target instance not found")
 		return
 	}
-
-	nameToTargetID := make(map[string]int, len(targetRules))
-	for _, tr := range targetRules {
-		nameToTargetID[tr.Name] = tr.ID
+	rules, err := h.store.ListByInstance(r.Context(), sourceID)
+	if err != nil {
+		h.respondSyncError(w, err)
+		return
 	}
-
-	var created, updated int
-	for _, src := range sourceRules {
-		if targetRuleID, exists := nameToTargetID[src.Name]; exists {
-			// Overwrite: clone source fields onto the target rule ID.
-			clone := *src
-			clone.ID = targetRuleID
-			clone.InstanceID = targetID
-			clone.SortOrder = 0 // auto-assigned by store
-			if _, err := h.store.Update(r.Context(), &clone); err != nil {
-				log.Error().Err(err).Str("name", src.Name).Int("targetID", targetID).Msg("automations: failed to overwrite rule during copy")
-				continue
+	for _, rule := range rules {
+		if rule.SyncSourceID != nil {
+			rule, err = h.store.Get(r.Context(), *rule.SyncSourceInstanceID, *rule.SyncSourceID)
+			if err != nil {
+				h.respondSyncError(w, err)
+				return
 			}
-			updated++
-		} else {
-			// Create new rule on the target instance.
-			clone := *src
-			clone.ID = 0
-			clone.InstanceID = targetID
-			clone.SortOrder = 0
-			if _, err := h.store.Create(r.Context(), &clone); err != nil {
-				log.Error().Err(err).Str("name", src.Name).Int("targetID", targetID).Msg("automations: failed to create rule during copy")
-				continue
-			}
-			created++
+		}
+		if rule.InstanceID == targetID {
+			continue
+		}
+		target := models.AutomationSyncTarget{InstanceID: targetID}
+		existing, err := h.store.ResolveSyncTarget(r.Context(), rule, target)
+		if err != nil {
+			h.respondSyncError(w, err)
+			return
+		}
+		if existing != nil && existing.SyncSourceID != nil {
+			target.PreserveEnabled = existing.SyncPreserveEnabled
+		}
+		if err := h.validateSyncTarget(r.Context(), rule, target); err != nil {
+			RespondError(w, http.StatusBadRequest, err.Error())
+			return
 		}
 	}
-
-	RespondJSON(w, http.StatusOK, map[string]int{"created": created, "updated": updated})
+	result, err := h.store.CopyToInstance(r.Context(), sourceID, targetID)
+	if err != nil {
+		h.respondSyncError(w, err)
+		return
+	}
+	RespondJSON(w, http.StatusOK, result)
 }

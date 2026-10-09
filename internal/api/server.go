@@ -691,6 +691,9 @@ func (s *Server) Handler() (*chi.Mux, error) {
 						r.Post("/copy-to/{targetId}", automationsHandler.CopyToInstance)
 
 						r.Route("/{ruleID}", func(r chi.Router) {
+							r.Get("/sync", automationsHandler.GetSync)
+							r.Put("/sync", automationsHandler.ConfigureSync)
+							r.Delete("/sync", automationsHandler.DetachSync)
 							r.Put("/", automationsHandler.Update)
 							r.Delete("/", automationsHandler.Delete)
 						})

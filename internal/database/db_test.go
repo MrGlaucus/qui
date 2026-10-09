@@ -285,6 +285,9 @@ var expectedSchema = map[string][]columnSpec{
 		{Name: "created_at", Type: "DATETIME"},
 		{Name: "updated_at", Type: "DATETIME"},
 		{Name: "sorting_config", Type: "TEXT"},
+		{Name: "sync_key", Type: "TEXT"},
+		{Name: "sync_source_id", Type: "INTEGER"},
+		{Name: "sync_preserve_enabled", Type: "INTEGER"},
 		{Name: "notify", Type: "INTEGER"},
 	},
 	"automation_activity": {
@@ -310,7 +313,7 @@ var expectedIndexes = map[string][]string{
 	"instance_errors":     {"idx_instance_errors_lookup"},
 	"sessions":            {"sessions_expiry_idx"},
 	"torrent_files_cache": {"idx_torrent_files_cache_lookup"},
-	"automations":         {"idx_automations_instance"},
+	"automations":         {"idx_automations_instance", "idx_automations_instance_sync_key", "idx_automations_sync_source"},
 	"automation_activity": {"idx_automation_activity_instance_created"},
 }
 

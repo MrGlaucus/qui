@@ -9,10 +9,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/autobrr/qui/internal/dbinterface"
 )
@@ -165,21 +168,26 @@ func (c *SortingConfig) Validate() error {
 }
 
 type Automation struct {
-	ID              int               `json:"id"`
-	InstanceID      int               `json:"instanceId"`
-	Name            string            `json:"name"`
-	TrackerPattern  string            `json:"trackerPattern"`
-	TrackerDomains  []string          `json:"trackerDomains,omitempty"`
-	Conditions      *ActionConditions `json:"conditions"`
-	FreeSpaceSource *FreeSpaceSource  `json:"freeSpaceSource,omitempty"` // nil = default qBittorrent free space
-	SortingConfig   *SortingConfig    `json:"sortingConfig,omitempty"`   // nil = default sorting (oldest first)
-	Enabled         bool              `json:"enabled"`
-	DryRun          bool              `json:"dryRun"`
-	Notify          bool              `json:"notify"`
-	SortOrder       int               `json:"sortOrder"`
-	IntervalSeconds *int              `json:"intervalSeconds,omitempty"` // nil = use DefaultRuleInterval (15m)
-	CreatedAt       time.Time         `json:"createdAt"`
-	UpdatedAt       time.Time         `json:"updatedAt"`
+	SyncKey              string            `json:"syncKey"`
+	SyncSourceID         *int              `json:"syncSourceId,omitempty"`
+	SyncSourceInstanceID *int              `json:"syncSourceInstanceId,omitempty"`
+	SyncPreserveEnabled  bool              `json:"syncPreserveEnabled"`
+	SyncFollowerCount    int               `json:"syncFollowerCount"`
+	ID                   int               `json:"id"`
+	InstanceID           int               `json:"instanceId"`
+	Name                 string            `json:"name"`
+	TrackerPattern       string            `json:"trackerPattern"`
+	TrackerDomains       []string          `json:"trackerDomains,omitempty"`
+	Conditions           *ActionConditions `json:"conditions"`
+	FreeSpaceSource      *FreeSpaceSource  `json:"freeSpaceSource,omitempty"` // nil = default qBittorrent free space
+	SortingConfig        *SortingConfig    `json:"sortingConfig,omitempty"`   // nil = default sorting (oldest first)
+	Enabled              bool              `json:"enabled"`
+	DryRun               bool              `json:"dryRun"`
+	Notify               bool              `json:"notify"`
+	SortOrder            int               `json:"sortOrder"`
+	IntervalSeconds      *int              `json:"intervalSeconds,omitempty"` // nil = use DefaultRuleInterval (15m)
+	CreatedAt            time.Time         `json:"createdAt"`
+	UpdatedAt            time.Time         `json:"updatedAt"`
 }
 
 type AutomationStore struct {
@@ -231,9 +239,15 @@ func normalizeTrackerPattern(pattern string, domains []string) string {
 }
 
 func (s *AutomationStore) ListByInstance(ctx context.Context, instanceID int) ([]*Automation, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, instance_id, name, tracker_pattern, conditions, enabled, dry_run, notify, sort_order, interval_seconds, free_space_source, sorting_config, created_at, updated_at
-		FROM automations
+	return listAutomations(ctx, s.db, instanceID)
+}
+
+func listAutomations(ctx context.Context, q automationQuerier, instanceID int) ([]*Automation, error) {
+	rows, err := q.QueryContext(ctx, `
+		SELECT id, instance_id, name, tracker_pattern, conditions, enabled, dry_run, notify, sort_order, interval_seconds, free_space_source, sorting_config, created_at, updated_at, sync_key, sync_source_id, sync_preserve_enabled,
+        (SELECT instance_id FROM automations source WHERE source.id = a.sync_source_id),
+        (SELECT COUNT(*) FROM automations follower WHERE follower.sync_source_id = a.id)
+		FROM automations a
 		WHERE instance_id = ?
 		ORDER BY sort_order ASC, id ASC
 	`, instanceID)
@@ -266,6 +280,11 @@ func (s *AutomationStore) ListByInstance(ctx context.Context, instanceID int) ([
 			&sortingConfigJSON,
 			&automation.CreatedAt,
 			&automation.UpdatedAt,
+			&automation.SyncKey,
+			&automation.SyncSourceID,
+			&automation.SyncPreserveEnabled,
+			&automation.SyncSourceInstanceID,
+			&automation.SyncFollowerCount,
 		); err != nil {
 			return nil, err
 		}
@@ -314,9 +333,15 @@ func (s *AutomationStore) ListByInstance(ctx context.Context, instanceID int) ([
 }
 
 func (s *AutomationStore) Get(ctx context.Context, instanceID, id int) (*Automation, error) {
-	row := s.db.QueryRowContext(ctx, `
-		SELECT id, instance_id, name, tracker_pattern, conditions, enabled, dry_run, notify, sort_order, interval_seconds, free_space_source, sorting_config, created_at, updated_at
-		FROM automations
+	return getAutomation(ctx, s.db, instanceID, id)
+}
+
+func getAutomation(ctx context.Context, q automationQuerier, instanceID, id int) (*Automation, error) {
+	row := q.QueryRowContext(ctx, `
+		SELECT id, instance_id, name, tracker_pattern, conditions, enabled, dry_run, notify, sort_order, interval_seconds, free_space_source, sorting_config, created_at, updated_at, sync_key, sync_source_id, sync_preserve_enabled,
+        (SELECT instance_id FROM automations source WHERE source.id = a.sync_source_id),
+        (SELECT COUNT(*) FROM automations follower WHERE follower.sync_source_id = a.id)
+		FROM automations a
 		WHERE id = ? AND instance_id = ?
 	`, id, instanceID)
 
@@ -342,6 +367,11 @@ func (s *AutomationStore) Get(ctx context.Context, instanceID, id int) (*Automat
 		&sortingConfigJSON,
 		&automation.CreatedAt,
 		&automation.UpdatedAt,
+		&automation.SyncKey,
+		&automation.SyncSourceID,
+		&automation.SyncPreserveEnabled,
+		&automation.SyncSourceInstanceID,
+		&automation.SyncFollowerCount,
 	); err != nil {
 		return nil, err
 	}
@@ -453,11 +483,11 @@ func (s *AutomationStore) Create(ctx context.Context, automation *Automation) (*
 	var id int
 	err = s.db.QueryRowContext(ctx, `
 		INSERT INTO automations
-			(instance_id, name, tracker_pattern, conditions, enabled, dry_run, notify, sort_order, interval_seconds, free_space_source, sorting_config)
+			(instance_id, name, tracker_pattern, conditions, enabled, dry_run, notify, sort_order, interval_seconds, free_space_source, sorting_config, sync_key)
 		VALUES
-			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id
-	`, automation.InstanceID, automation.Name, automation.TrackerPattern, string(conditionsJSON), boolToInt(automation.Enabled), boolToInt(automation.DryRun), boolToInt(automation.Notify), sortOrder, intervalSeconds, freeSpaceSourceJSON, sortingConfigJSON).Scan(&id)
+	`, automation.InstanceID, automation.Name, automation.TrackerPattern, string(conditionsJSON), boolToInt(automation.Enabled), boolToInt(automation.DryRun), boolToInt(automation.Notify), sortOrder, intervalSeconds, freeSpaceSourceJSON, sortingConfigJSON, uuid.NewString()).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
@@ -516,9 +546,32 @@ func (s *AutomationStore) Update(ctx context.Context, automation *Automation) (*
 		sortingConfigJSON = sql.NullString{String: string(data), Valid: true}
 	}
 
-	res, err := s.db.ExecContext(ctx, `
-		UPDATE automations
-		SET name = ?, tracker_pattern = ?, conditions = ?, enabled = ?, dry_run = ?, notify = ?, sort_order = ?, interval_seconds = ?, free_space_source = ?, sorting_config = ?
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err := lockAutomation(ctx, tx, automation.InstanceID, automation.ID); err != nil {
+		return nil, err
+	}
+	previous, err := getAutomation(ctx, tx, automation.InstanceID, automation.ID)
+	if err != nil {
+		return nil, err
+	}
+	if previous.SyncSourceID != nil {
+		if previous.Name != automation.Name || previous.TrackerPattern != automation.TrackerPattern ||
+			previous.DryRun != automation.DryRun || previous.Notify != automation.Notify ||
+			!reflect.DeepEqual(previous.Conditions, automation.Conditions) ||
+			!reflect.DeepEqual(previous.IntervalSeconds, automation.IntervalSeconds) ||
+			!reflect.DeepEqual(previous.FreeSpaceSource, automation.FreeSpaceSource) ||
+			!reflect.DeepEqual(previous.SortingConfig, automation.SortingConfig) ||
+			(!previous.SyncPreserveEnabled && previous.Enabled != automation.Enabled) {
+			return nil, ErrAutomationSyncReadOnly
+		}
+	}
+	res, err := tx.ExecContext(ctx, `
+  UPDATE automations
+  SET name = ?, tracker_pattern = ?, conditions = ?, enabled = ?, dry_run = ?, notify = ?, sort_order = ?, interval_seconds = ?, free_space_source = ?, sorting_config = ?
 		WHERE id = ? AND instance_id = ?
 	`, automation.Name, automation.TrackerPattern, string(conditionsJSON), boolToInt(automation.Enabled), boolToInt(automation.DryRun), boolToInt(automation.Notify), automation.SortOrder, intervalSeconds, freeSpaceSourceJSON, sortingConfigJSON, automation.ID, automation.InstanceID)
 	if err != nil {
@@ -532,18 +585,21 @@ func (s *AutomationStore) Update(ctx context.Context, automation *Automation) (*
 		return nil, sql.ErrNoRows
 	}
 
-	return s.Get(ctx, automation.InstanceID, automation.ID)
+	if _, err := tx.ExecContext(ctx, automationCopyUpdate+" WHERE src.id = ? AND dst.sync_source_id = ?", automation.ID, automation.ID); err != nil {
+		return nil, err
+	}
+	result, err := getAutomation(ctx, tx, automation.InstanceID, automation.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *AutomationStore) Delete(ctx context.Context, instanceID int, id int) error {
-	res, err := s.db.ExecContext(ctx, `DELETE FROM automations WHERE id = ? AND instance_id = ?`, id, instanceID)
-	if err != nil {
-		return err
-	}
-	if rows, err := res.RowsAffected(); err == nil && rows == 0 {
-		return sql.ErrNoRows
-	}
-	return nil
+	return s.DeleteWithFollowers(ctx, instanceID, id, false)
 }
 
 func (s *AutomationStore) Reorder(ctx context.Context, instanceID int, orderedIDs []int) error {
