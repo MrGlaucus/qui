@@ -171,7 +171,7 @@ function ReportContent({
         </div>
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           {instanceName && (
-            <Badge variant="outline" className="h-6 max-w-full gap-1.5 border-solid border-primary bg-transparent px-2 py-0 text-[11px] font-medium text-primary shadow-none">
+            <Badge variant="outline" className="h-6 max-w-full gap-1.5 border-solid border-primary/35 bg-transparent px-2 py-0 text-[11px] font-medium text-primary shadow-none">
               {flagClass(instanceCountryCode) && (
                 <span className={`${flagClass(instanceCountryCode)} rounded-sm text-xs shrink-0`} />
               )}

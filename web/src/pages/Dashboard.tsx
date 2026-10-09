@@ -1774,7 +1774,7 @@ function TrackerInstanceBadges({ instances }: { instances: TrackerInstanceStats[
         <Badge
           key={instance.id}
           variant="outline"
-          className="h-6 max-w-full gap-1.5 border-solid border-primary bg-transparent px-2 py-0 text-[11px] font-medium text-primary shadow-none"
+          className="h-6 max-w-full gap-1.5 border-solid border-primary/35 bg-transparent px-2 py-0 text-[11px] font-medium text-primary shadow-none"
           title={`${instance.name}: ${instance.count}`}
         >
           {flagClass(instance.countryCode) && (
