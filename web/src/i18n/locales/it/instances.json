@@ -163,6 +163,27 @@
     "description": "Alcune istanze non riescono a decifrare le password salvate, probabilmente a causa di una modifica della configurazione. Controlla le istanze interessate qui sotto per risolvere il problema."
   },
   "preferences": {
+    "workflowSync": {
+      "title": "Impostazioni sincronizzazione",
+      "automatic": "Sincronizza automaticamente al salvataggio",
+      "automaticHelp": "Nome, condizioni e azioni vengono applicati alle istanze selezionate a ogni salvataggio della sorgente. Disattiva per una copia singola.",
+      "warning": "Il salvataggio sovrascrive subito le regole di destinazione selezionate. Le regole collegate deselezionate mantengono il contenuto e diventano indipendenti. L’ordine resta locale.",
+      "following": "Segue {{instance}}",
+      "followers_other": "Sincronizzazione automatica verso {{count}} istanze",
+      "detach": "Scollega e modifica indipendentemente",
+      "detachHelp": "Questa regola segue la sorgente. Scollegandola, il contenuto attuale viene conservato e gli aggiornamenti si interrompono.",
+      "targetRule": "Regola di destinazione",
+      "match": "Associa per identificatore, poi per nome univoco",
+      "create": "Crea una nuova regola",
+      "preserveEnabled": "Mantieni lo stato di attivazione della destinazione",
+      "saved": "Sincronizzazione salvata",
+      "failed": "Sincronizzazione non riuscita. Controlla le regole di destinazione e riprova.",
+      "deleteKeep": "Le regole collegate vengono conservate come indipendenti per impostazione predefinita.",
+      "deleteFollowers": "Elimina anche tutte le regole collegate automaticamente (irreversibile)",
+      "save": "Salva e sincronizza",
+      "retry": "Riprova",
+      "followers_one": "Sincronizzazione automatica verso {{count}} istanza"
+    },
     "dialog": {
       "title": "Impostazioni istanza",
       "configureDescription": "Configura tutte le impostazioni e le preferenze per",
@@ -682,6 +703,7 @@
       }
     },
     "workflowsOverview": {
+      "copyOverwriteDialogDescription": "Seleziona le destinazioni. Le copie vengono associate per identificatore di sincronizzazione, poi per nome univoco. Le regole corrispondenti vengono sovrascritte, le altre create. Copia singola.",
       "title": "Workflow",
       "tooltip": "Regole di automazione basate su condizioni. Azioni: limiti di velocità, limiti di condivisione, pausa, ripresa, eliminazione, tag e modifiche di categoria.\nAbbina i torrent per tracker, categoria, tag, rapporto, tempo di seed, dimensione e altro.\nConsapevole di cross-seed e hardlink: elimina o sposta in sicurezza senza perdere i file condivisi.",
       "description": "Automatizza la gestione dei torrent con regole condizionali.",

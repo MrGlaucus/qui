@@ -18,6 +18,18 @@ qui evaluates automations in **sort order**. For exclusive actions such as delet
 - **Manual dry-run**: Run "Dry-run now" from the workflow dialog or "Run dry-run now" from the workflow menu.
 - **Debouncing**: qui does not process the same torrent again within 2 minutes.
 
+## Synchronizing rules between instances
+
+Open a rule's menu and choose **Sync settings**. Select the target instances and enable **Sync automatically after saving**. Saving copies the rule immediately; later saves to the source update its followers automatically, including name, conditions, actions, interval, notifications, and dry-run mode. Updates are stored together in one transaction. They take effect on the next automation evaluation; saving does not force an immediate run.
+
+Rules share a stable sync identity, so renaming the source does not create another copy. For old rules that have never been linked, qui first looks for a unique matching name. If an old copy was already renamed, select that rule explicitly. Ambiguous names require an explicit selection. You can also choose **Create a new rule**. Imported rules and duplicates start with independent identities.
+
+Each target keeps its own execution order. **Keep target enabled state** also preserves whether an existing target rule is enabled; a newly created rule initially uses the source's state. Otherwise, the enabled state follows the source too. Paths, categories, tags, and action target IDs are copied as written, so check that they make sense on each target instance. Instance-specific validation can reject incompatible rules.
+
+Followers show their source instance and cannot edit the shared definition. Choose **Detach and edit independently** to keep the current content and stop receiving updates. Removing a target from automatic sync also detaches it. Turning off automatic sync copies the rule once and retains the shared identity for future manual copies.
+
+Deleting a source keeps its followers as independent rules by default. The deletion dialog also offers to delete its automatic followers. Manual copies are retained. The instance-level bulk copy remains a manual operation and matches stable identities before unique names.
+
 ## Query builder
 
 The query builder supports complex nested conditions with AND/OR groups. Drag conditions to reorder them.

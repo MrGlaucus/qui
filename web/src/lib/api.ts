@@ -16,6 +16,7 @@ import type {
   AutomationActivityRun,
   AutomationDryRunResult,
   AutomationInput,
+  AutomationSyncOptions,
   AutomationPreviewInput,
   AutomationPreviewResult,
   BackupManifest,
@@ -2008,10 +2009,25 @@ class ApiClient {
     })
   }
 
-  async deleteAutomation(instanceId: number, ruleId: number): Promise<void> {
-    return this.request(`/instances/${instanceId}/automations/${ruleId}`, {
+  async deleteAutomation(instanceId: number, ruleId: number, followers: "keep" | "delete" = "keep"): Promise<void> {
+    return this.request(`/instances/${instanceId}/automations/${ruleId}?followers=${followers}`, {
       method: "DELETE",
     })
+  }
+
+  async getAutomationSync(instanceId: number, ruleId: number): Promise<Automation[]> {
+    return this.request(`/instances/${instanceId}/automations/${ruleId}/sync`)
+  }
+
+  async configureAutomationSync(instanceId: number, ruleId: number, options: AutomationSyncOptions): Promise<{ created: number; updated: number }> {
+    return this.request(`/instances/${instanceId}/automations/${ruleId}/sync`, {
+      method: "PUT",
+      body: JSON.stringify(options),
+    })
+  }
+
+  async detachAutomationSync(instanceId: number, ruleId: number): Promise<void> {
+    return this.request(`/instances/${instanceId}/automations/${ruleId}/sync`, { method: "DELETE" })
   }
 
   async reorderAutomations(instanceId: number, orderedIds: number[]): Promise<void> {

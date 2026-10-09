@@ -163,6 +163,27 @@
     "description": "Algumas instâncias não conseguem descriptografar as senhas salvas, provavelmente devido a uma mudança de configuração. Verifique as instâncias afetadas abaixo para resolver isso."
   },
   "preferences": {
+    "workflowSync": {
+      "title": "Configurações de sincronização",
+      "automatic": "Sincronizar automaticamente ao salvar",
+      "automaticHelp": "Nome, condições e ações são aplicados às instâncias selecionadas sempre que a origem é salva. Desative para copiar apenas uma vez.",
+      "warning": "Salvar sobrescreve imediatamente as regras de destino selecionadas. Regras vinculadas desmarcadas mantêm o conteúdo e ficam independentes. A ordem permanece local.",
+      "following": "Seguindo {{instance}}",
+      "followers_other": "Sincronização automática com {{count}} instâncias",
+      "detach": "Desvincular e editar separadamente",
+      "detachHelp": "Esta regra segue a origem. Desvincular mantém o conteúdo atual e interrompe novas atualizações da origem.",
+      "targetRule": "Regra de destino",
+      "match": "Associar identificador, depois nome único",
+      "create": "Criar uma regra",
+      "preserveEnabled": "Manter o estado de ativação do destino",
+      "saved": "Configurações de sincronização salvas",
+      "failed": "Falha na sincronização. Verifique as regras de destino e tente novamente.",
+      "deleteKeep": "Por padrão, as regras vinculadas serão mantidas como independentes.",
+      "deleteFollowers": "Excluir também todas as regras vinculadas automaticamente (irreversível)",
+      "save": "Salvar e sincronizar",
+      "retry": "Tentar novamente",
+      "followers_one": "Sincronização automática com {{count}} instância"
+    },
     "dialog": {
       "title": "Configurações da Instância",
       "configureDescription": "Configurar preferências de",
@@ -682,6 +703,7 @@
       }
     },
     "workflowsOverview": {
+      "copyOverwriteDialogDescription": "Selecione os destinos. As cópias são associadas por identificador de sincronização, depois por nome único. Regras correspondentes são sobrescritas; as demais são criadas. Cópia única.",
       "title": "Workflows",
       "tooltip": "Regras de automação baseadas em condições.\nExecute limites de velocidade, pausas, deleções, mudança de categorias e tags.",
       "description": "Automatize o gerenciamento de torrents com regras condicionais.",

@@ -163,6 +163,27 @@
     "description": "Certaines instances ne peuvent pas déchiffrer leurs mots de passe, probablement à cause d'un changement de configuration. Vérifiez-les ci-dessous."
   },
   "preferences": {
+    "workflowSync": {
+      "title": "Synchronisation",
+      "automatic": "Synchroniser automatiquement après enregistrement",
+      "automaticHelp": "Le nom, les conditions et les actions sont transmis aux instances sélectionnées à chaque enregistrement de la source. Désactivez pour une copie unique.",
+      "warning": "Enregistrer remplace immédiatement les règles cibles sélectionnées. Les règles suivies décochées conservent leur contenu et deviennent indépendantes. L’ordre reste local.",
+      "following": "Suit {{instance}}",
+      "followers_other": "Synchronisation automatique vers {{count}} instances",
+      "detach": "Détacher et modifier indépendamment",
+      "detachHelp": "Cette règle suit sa source. Le détachement conserve son contenu actuel et arrête les mises à jour de la source.",
+      "targetRule": "Règle cible",
+      "match": "Associer par identifiant, puis par nom unique",
+      "create": "Créer une règle",
+      "preserveEnabled": "Conserver l’état d’activation de la cible",
+      "saved": "Synchronisation enregistrée",
+      "failed": "Échec de synchronisation. Vérifiez les règles cibles et réessayez.",
+      "deleteKeep": "Par défaut, les règles suivies sont conservées comme règles indépendantes.",
+      "deleteFollowers": "Supprimer aussi toutes les règles suivies automatiquement (irréversible)",
+      "save": "Enregistrer et synchroniser",
+      "retry": "Réessayer",
+      "followers_one": "Synchronisation automatique vers {{count}} instance"
+    },
     "dialog": {
       "title": "Paramètres de l'instance",
       "configureDescription": "Configurer tous les paramètres et préférences pour",
@@ -676,6 +697,7 @@
       }
     },
     "workflowsOverview": {
+      "copyOverwriteDialogDescription": "Sélectionnez les cibles. Les copies sont associées par identifiant de synchronisation, puis par nom unique. Les règles associées sont remplacées, les autres créées. Copie unique.",
       "title": "Workflows",
       "tooltip": "Règles d'automatisation basées sur des conditions. Actions : limites de vitesse, de partage, pause, reprise, suppression, tag et catégorie.\nCorrespond aux torrents par tracker, catégorie, tag, ratio, temps de seed, taille, etc.\nGère les cross-seeds et liens symboliques de manière sécurisée.",
       "description": "Automatisez la gestion des torrents avec des règles conditionnelles.",

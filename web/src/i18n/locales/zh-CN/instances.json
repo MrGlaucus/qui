@@ -165,6 +165,26 @@
     "description": "部分实例无法解密其保存的密码，可能是由于配置变更所致。请检查下方受影响的实例以解决此问题。"
   },
   "preferences": {
+    "workflowSync": {
+      "title": "同步设置",
+      "automatic": "保存后自动同步",
+      "automaticHelp": "每次保存主规则，名称、条件和动作都会同步到选中的实例。关闭后仅执行一次复制。",
+      "warning": "保存时会立即覆盖选中的目标规则。取消勾选的自动跟随规则将保留内容并独立运行。规则执行顺序保留各实例的设置。",
+      "following": "跟随 {{instance}}",
+      "followers_other": "自动同步到 {{count}} 个实例",
+      "detach": "解除跟随，独立编辑",
+      "detachHelp": "此规则正在跟随主规则。解除后保留当前内容，今后不再接收主规则的更新。",
+      "targetRule": "目标规则",
+      "match": "优先匹配同步标识，其次匹配唯一同名规则",
+      "create": "新建一条规则",
+      "preserveEnabled": "保留目标规则的启用状态",
+      "saved": "同步设置已保存",
+      "failed": "同步失败，请检查目标规则后重试。",
+      "deleteKeep": "默认保留所有跟随规则，并解除它们的同步关系。",
+      "deleteFollowers": "同时删除所有自动跟随规则（无法撤销）",
+      "save": "保存并同步",
+      "retry": "重试"
+    },
     "dialog": {
       "title": "实例设置",
       "configureDescription": "配置所有设置和偏好设置，适用于",
@@ -755,7 +775,7 @@
       "copyTo": "复制到...",
       "copyOverwriteTo": "覆盖到其它实例",
       "copyOverwriteDialogTitle": "覆盖到其它实例",
-      "copyOverwriteDialogDescription": "选择目标实例。同名规则将被覆盖，新规则将被创建。",
+      "copyOverwriteDialogDescription": "选择目标实例。优先按同步标识匹配已有副本，其次匹配唯一同名规则。匹配到的规则会被覆盖，未匹配的规则会新建。本操作仅复制一次。",
       "copyOverwriteCancel": "取消",
       "copyOverwriteConfirm": "确认覆盖（{{count}} 个实例）",
       "copyOverwriting": "覆盖中…",

@@ -163,6 +163,27 @@
     "description": "Einige Instanzen können ihre gespeicherten Passwörter nicht entschlüsseln, vermutlich aufgrund einer Konfigurationsänderung. Prüfe die betroffenen Instanzen unten, um dieses Problem zu beheben."
   },
   "preferences": {
+    "workflowSync": {
+      "title": "Synchronisierung",
+      "automatic": "Nach dem Speichern automatisch synchronisieren",
+      "automaticHelp": "Name, Bedingungen und Aktionen werden beim Speichern der Quellregel auf die gewählten Instanzen übertragen. Deaktivieren für eine einmalige Kopie.",
+      "warning": "Speichern überschreibt die gewählten Zielregeln sofort. Abgewählte Folgeregeln behalten ihren Inhalt und werden unabhängig. Die Reihenfolge bleibt lokal.",
+      "following": "Folgt {{instance}}",
+      "followers_other": "Automatische Synchronisierung mit {{count}} Instanzen",
+      "detach": "Verknüpfung lösen und unabhängig bearbeiten",
+      "detachHelp": "Diese Regel folgt ihrer Quelle. Beim Lösen bleibt der Inhalt erhalten; weitere Aktualisierungen werden nicht übernommen.",
+      "targetRule": "Zielregel",
+      "match": "Kennung abgleichen, danach eindeutigen Namen",
+      "create": "Neue Regel erstellen",
+      "preserveEnabled": "Aktivierungszustand des Ziels beibehalten",
+      "saved": "Synchronisierung gespeichert",
+      "failed": "Synchronisierung fehlgeschlagen. Zielregeln prüfen und erneut versuchen.",
+      "deleteKeep": "Folgeregeln bleiben standardmäßig als unabhängige Regeln erhalten.",
+      "deleteFollowers": "Alle automatischen Folgeregeln ebenfalls löschen (nicht rückgängig zu machen)",
+      "save": "Speichern und synchronisieren",
+      "retry": "Erneut versuchen",
+      "followers_one": "Automatische Synchronisierung mit {{count}} Instanz"
+    },
     "dialog": {
       "title": "Instanz-Einstellungen",
       "configureDescription": "Konfiguriere alle Einstellungen und Optionen für",
@@ -682,6 +703,7 @@
       }
     },
     "workflowsOverview": {
+      "copyOverwriteDialogDescription": "Ziele wählen. Kopien werden nach Synchronisierungskennung, dann nach eindeutigem Namen zugeordnet. Treffer werden überschrieben, fehlende Regeln erstellt. Einmalige Kopie.",
       "title": "Workflows",
       "tooltip": "Bedingungsbasierte Automatisierungsregeln. Aktionen: Geschwindigkeitsbegrenzungen, Share-Limits, Pausieren, Fortsetzen, Löschen, Tag- und Kategorieänderungen.\nFinde Torrents nach Tracker, Kategorie, Tag, Ratio, Seedingzeit, Größe und mehr.\nCross-Seed- und hardlink-bewusst – lösche oder verschiebe sicher, ohne geteilte Dateien zu verlieren.",
       "description": "Automatisiere die Torrent-Verwaltung mit bedingten Regeln.",

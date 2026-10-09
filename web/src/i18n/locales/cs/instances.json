@@ -163,6 +163,29 @@
     "description": "Některé instance nemohou dešifrovat svá uložená hesla, pravděpodobně kvůli změně konfigurace. Zkontrolujte postižené instance níže a vyřešte tento problém."
   },
   "preferences": {
+    "workflowSync": {
+      "title": "Nastavení synchronizace",
+      "automatic": "Automaticky synchronizovat po uložení",
+      "automaticHelp": "Při uložení zdroje se název, podmínky a akce přenesou do vybraných instancí. Vypnutím provedete jednorázovou kopii.",
+      "warning": "Uložení ihned přepíše vybraná cílová pravidla. Nevybraná navázaná pravidla si ponechají obsah a budou nezávislá. Pořadí zůstává místní.",
+      "following": "Sleduje {{instance}}",
+      "followers_other": "Automatická synchronizace do {{count}} instancí",
+      "detach": "Odpojit a upravovat nezávisle",
+      "detachHelp": "Toto pravidlo sleduje zdroj. Odpojením se zachová obsah a zastaví další aktualizace ze zdroje.",
+      "targetRule": "Cílové pravidlo",
+      "match": "Párovat identifikátor, poté jedinečný název",
+      "create": "Vytvořit nové pravidlo",
+      "preserveEnabled": "Zachovat stav zapnutí cíle",
+      "saved": "Synchronizace uložena",
+      "failed": "Synchronizace selhala. Zkontrolujte cílová pravidla a zkuste to znovu.",
+      "deleteKeep": "Navázaná pravidla budou ve výchozím stavu zachována jako nezávislá.",
+      "deleteFollowers": "Smazat i všechna automaticky navázaná pravidla (nelze vrátit)",
+      "save": "Uložit a synchronizovat",
+      "retry": "Zkusit znovu",
+      "followers_one": "Automatická synchronizace do {{count}} instance",
+      "followers_few": "Automatická synchronizace do {{count}} instancí",
+      "followers_many": "Automatická synchronizace do {{count}} instancí"
+    },
     "dialog": {
       "title": "Nastavení instance",
       "configureDescription": "Nastavte všechna nastavení a předvolby pro",
@@ -682,6 +705,7 @@
       }
     },
     "workflowsOverview": {
+      "copyOverwriteDialogDescription": "Vyberte cíle. Kopie se párují podle identifikátoru synchronizace, poté podle jedinečného názvu. Odpovídající pravidla se přepíší, ostatní vytvoří. Jednorázová kopie.",
       "title": "Postupy automatizace",
       "tooltip": "Pravidla automatizace na základě podmínek. Akce: omezení rychlosti, omezení sdílení, pozastavení, obnovení, smazání, tag, a změna kategorie.\nShoda torrentů podle trackeru, kategorie, tagu, poměru, času seedování, velikosti a dalších.\nKřížové sdílení a zachování hardlinků - bezpečné smazání nebo přesunutí bez ztráty sdílených souborů.",
       "description": "Automatizace správy torrentů s pravidly na základě podmínek.",

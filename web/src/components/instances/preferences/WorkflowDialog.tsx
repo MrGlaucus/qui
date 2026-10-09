@@ -2027,7 +2027,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
       setPreviewResult(null)
       setPreviewInput(null)
       onOpenChange(false)
-      void queryClient.invalidateQueries({ queryKey: ["automations", instanceId] })
+      void queryClient.invalidateQueries({ queryKey: ["automations"] })
       onSuccess?.()
     },
     onError: (error) => {

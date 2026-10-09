@@ -165,6 +165,27 @@
     "description": "Some instances cannot decrypt their saved passwords, likely due to a configuration change. Check the affected instances below to resolve this issue."
   },
   "preferences": {
+    "workflowSync": {
+      "title": "Sync settings",
+      "automatic": "Sync automatically after saving",
+      "automaticHelp": "Changes to the source name, conditions and actions are applied to selected instances whenever the source is saved. Turn off for a one-time copy.",
+      "warning": "Saving overwrites selected target rules now. Unchecked automatic followers keep their content and become independent. Execution order stays local.",
+      "following": "Following {{instance}}",
+      "followers_other": "Automatically syncing to {{count}} instances",
+      "detach": "Detach and edit independently",
+      "detachHelp": "This rule follows its source. Detaching keeps its current content and stops future updates from the source.",
+      "targetRule": "Target rule",
+      "match": "Match identity, then unique name",
+      "create": "Create a new rule",
+      "preserveEnabled": "Keep target enabled state",
+      "saved": "Sync settings saved",
+      "failed": "Sync failed. Check target rules and try again.",
+      "deleteKeep": "Followers will be kept as independent rules by default.",
+      "deleteFollowers": "Also delete all automatic followers (cannot be undone)",
+      "save": "Save and sync",
+      "retry": "Retry",
+      "followers_one": "Automatically syncing to {{count}} instance"
+    },
     "dialog": {
       "title": "Instance Settings",
       "configureDescription": "Configure all settings and preferences for",
@@ -756,7 +777,7 @@
       "copyTo": "Copy to...",
       "copyOverwriteTo": "Copy overwrite to...",
       "copyOverwriteDialogTitle": "Copy overwrite to another instance",
-      "copyOverwriteDialogDescription": "Select target instances. Rules with the same name will be overwritten, new rules will be created.",
+      "copyOverwriteDialogDescription": "Select targets. Existing copies are matched by sync identity, then by a unique name. Matched rules are overwritten; unmatched rules are created. This is a one-time copy.",
       "copyOverwriteCancel": "Cancel",
       "copyOverwriteConfirm": "Confirm overwrite ({{count}} instances)",
       "copyOverwriting": "Copying…",

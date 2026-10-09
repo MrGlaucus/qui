@@ -311,7 +311,17 @@ export type SortingConfig =
     scoreRules: ScoreRule[]
   }
 
+export interface AutomationSyncOptions {
+  automatic: boolean
+  targets: { instanceId: number; ruleId?: number; preserveEnabled: boolean }[]
+}
+
 export interface Automation {
+  syncKey?: string
+  syncSourceId?: number
+  syncSourceInstanceId?: number
+  syncPreserveEnabled?: boolean
+  syncFollowerCount?: number
   id: number
   instanceId: number
   name: string

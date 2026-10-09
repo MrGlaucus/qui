@@ -32,9 +32,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -86,6 +83,7 @@ import { useTranslation } from "react-i18next"
 import i18n from "../../../i18n"
 import { toast } from "sonner"
 import { AutomationActivityRunDialog } from "./AutomationActivityRunDialog"
+import { WorkflowSyncDialog } from "./WorkflowSyncDialog"
 import { WorkflowDialog } from "./WorkflowDialog"
 import { WorkflowPreviewDialog } from "./WorkflowPreviewDialog"
 
@@ -350,6 +348,8 @@ export function WorkflowsOverview({
   const expandedInstances = controlledExpanded ?? internalExpanded
   const setExpandedInstances = onExpandedInstancesChange ?? setInternalExpanded
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [syncRule, setSyncRule] = useState<Automation | null>(null)
+  const [deleteFollowers, setDeleteFollowers] = useState(false)
   const [editingRule, setEditingRule] = useState<Automation | null>(null)
   const [editingInstanceId, setEditingInstanceId] = useState<number | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ instanceId: number; rule: Automation } | null>(null)
@@ -373,7 +373,7 @@ export function WorkflowsOverview({
   >({
     mutationFn: ({ instanceId, orderedIds }) => api.reorderAutomations(instanceId, orderedIds),
     onMutate: async ({ instanceId, orderedIds }) => {
-      await queryClient.cancelQueries({ queryKey: ["automations", instanceId] })
+      await queryClient.cancelQueries({ queryKey: ["automations"] })
 
       const previousRules = queryClient.getQueryData<Automation[]>(["automations", instanceId])
       if (!previousRules) {
@@ -455,11 +455,11 @@ export function WorkflowsOverview({
   }, [domainToCustomization, trackerIcons])
 
   const deleteRule = useMutation({
-    mutationFn: ({ instanceId, ruleId }: { instanceId: number; ruleId: number }) =>
-      api.deleteAutomation(instanceId, ruleId),
-    onSuccess: (_, { instanceId }) => {
+    mutationFn: ({ instanceId, ruleId, followers }: { instanceId: number; ruleId: number; followers: "keep" | "delete" }) =>
+      api.deleteAutomation(instanceId, ruleId, followers),
+    onSuccess: () => {
       toast.success(t("preferences.workflowsOverview.toast.workflowDeleted"))
-      void queryClient.invalidateQueries({ queryKey: ["automations", instanceId] })
+      void queryClient.invalidateQueries({ queryKey: ["automations"] })
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : t("preferences.workflowsOverview.toast.deleteAutomationFailed"))
@@ -469,8 +469,8 @@ export function WorkflowsOverview({
   const toggleEnabled = useMutation({
     mutationFn: ({ instanceId, rule }: { instanceId: number; rule: Automation }) =>
       api.updateAutomation(instanceId, rule.id, { ...rule, enabled: !rule.enabled }),
-    onSuccess: (_, { instanceId }) => {
-      void queryClient.invalidateQueries({ queryKey: ["automations", instanceId] })
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["automations"] })
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : t("preferences.workflowsOverview.toast.toggleRuleFailed"))
@@ -554,8 +554,8 @@ export function WorkflowsOverview({
   const createWorkflow = useMutation({
     mutationFn: ({ instanceId, payload }: { instanceId: number; payload: Parameters<typeof api.createAutomation>[1] }) =>
       api.createAutomation(instanceId, payload),
-    onSuccess: (_, { instanceId }) => {
-      void queryClient.invalidateQueries({ queryKey: ["automations", instanceId] })
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["automations"] })
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : t("preferences.workflowsOverview.toast.createFailed"))
@@ -594,25 +594,7 @@ export function WorkflowsOverview({
     )
   }, [getExistingNames, createWorkflow, t])
 
-  // Copy workflow to another instance
-  const handleCopyToInstance = useCallback((sourceRule: Automation, targetInstanceId: number) => {
-    const existingNames = getExistingNames(targetInstanceId)
-    const input = toDuplicateInput(sourceRule, existingNames)
-    createWorkflow.mutate(
-      { instanceId: targetInstanceId, payload: input },
-      {
-        onSuccess: () => {
-          const targetInstance = instances?.find(i => i.id === targetInstanceId)
-          toast.success(t("preferences.workflowsOverview.toast.copiedWorkflow", {
-            name: input.name,
-            instance: targetInstance?.name ?? "instance",
-          }))
-        },
-      }
-    )
-  }, [getExistingNames, createWorkflow, instances, t])
-
-  // Copy all rules from source instance to selected targets, overwriting by name.
+  // Copy all rules from source instance to selected targets, matching identity before unique names.
   const handleCopyOverwriteToSelected = async () => {
     if (copyOverwriteDialog === null || copyOverwriteTargets.length === 0) return
     const sourceId = copyOverwriteDialog
@@ -1056,7 +1038,7 @@ export function WorkflowsOverview({
                           <SortableContext items={sortedRules.map(r => r.id)} strategy={verticalListSortingStrategy}>
                             <div className="space-y-2">
                               {sortedRules.map((rule) => {
-                                const otherInstances = activeInstances.filter(i => i.id !== instance.id)
+                                const otherInstances = (instances ?? []).filter(i => i.id !== instance.id)
                                 return (
                                   <SortableRulePreview
                                     key={rule.id}
@@ -1065,10 +1047,10 @@ export function WorkflowsOverview({
                                     onToggle={() => handleToggle(instance.id, rule)}
                                     isToggling={toggleEnabled.isPending || previewRule.isPending}
                                     onEdit={() => openEditDialog(instance.id, rule)}
-                                    onDelete={() => setDeleteConfirm({ instanceId: instance.id, rule })}
+                                    onDelete={() => { setDeleteFollowers(false); setDeleteConfirm({ instanceId: instance.id, rule }) }}
                                     onRunDryRun={() => dryRunRule.mutate({ instanceId: instance.id, rule })}
                                     onDuplicate={() => handleDuplicate(instance.id, rule)}
-                                    onCopyToInstance={(targetId) => handleCopyToInstance(rule, targetId)}
+                                    onSync={() => setSyncRule(rule)}
                                     onExport={() => handleExport(rule)}
                                     disableDrag={sortedRules.length < 2 || reorderRules.isPending}
                                   />
@@ -1606,6 +1588,10 @@ export function WorkflowsOverview({
         />
       )}
 
+      {syncRule && (
+        <WorkflowSyncDialog rule={syncRule} instances={instances ?? []} onClose={() => setSyncRule(null)} />
+      )}
+
       <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1614,12 +1600,21 @@ export function WorkflowsOverview({
               {t("preferences.workflowsOverview.deleteDialog.description", { name: deleteConfirm?.rule.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {(deleteConfirm?.rule.syncFollowerCount ?? 0) > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">{t("preferences.workflowSync.deleteKeep")}</p>
+              <label className="flex items-start gap-2 text-sm">
+                <Checkbox checked={deleteFollowers} onCheckedChange={checked => setDeleteFollowers(checked === true)} />
+                {t("preferences.workflowSync.deleteFollowers")}
+              </label>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>{t("preferences.workflowsOverview.deleteDialog.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteConfirm) {
-                  deleteRule.mutate({ instanceId: deleteConfirm.instanceId, ruleId: deleteConfirm.rule.id })
+                  deleteRule.mutate({ instanceId: deleteConfirm.instanceId, ruleId: deleteConfirm.rule.id, followers: deleteFollowers ? "delete" : "keep" })
                   setDeleteConfirm(null)
                 }
               }}
@@ -1812,7 +1807,7 @@ interface RulePreviewProps {
   onDelete: () => void
   onRunDryRun: () => void
   onDuplicate: () => void
-  onCopyToInstance: (targetInstanceId: number) => void
+  onSync: () => void
   onExport: () => void
 }
 
@@ -1829,7 +1824,7 @@ function SortableRulePreview({
   onDelete,
   onRunDryRun,
   onDuplicate,
-  onCopyToInstance,
+  onSync,
   onExport,
   disableDrag,
 }: SortableRulePreviewProps) {
@@ -1863,7 +1858,7 @@ function SortableRulePreview({
         onDelete={onDelete}
         onRunDryRun={onRunDryRun}
         onDuplicate={onDuplicate}
-        onCopyToInstance={onCopyToInstance}
+        onSync={onSync}
         onExport={onExport}
         dragHandle={(
           <Button
@@ -1898,7 +1893,7 @@ function RulePreview({
   onDelete,
   onRunDryRun,
   onDuplicate,
-  onCopyToInstance,
+  onSync,
   onExport,
 }: RulePreviewProps) {
   const { t } = useTranslation("instances")
@@ -1928,7 +1923,7 @@ function RulePreview({
       <Switch
         checked={rule.enabled}
         onCheckedChange={onToggle}
-        disabled={isToggling}
+        disabled={isToggling || (!!rule.syncSourceId && !rule.syncPreserveEnabled)}
         className="shrink-0"
       />
       <div className="min-w-0">
@@ -1938,6 +1933,15 @@ function RulePreview({
         )}>
           {rule.name}
         </TruncatedText>
+        {(rule.syncSourceId || (rule.syncFollowerCount ?? 0) > 0) && (
+          <button type="button" onClick={onSync} className="mt-1 block max-w-full text-left">
+            <Badge variant="outline" className="max-w-full text-xs">
+              <span className="truncate">{rule.syncSourceId
+                ? t("preferences.workflowSync.following", { instance: otherInstances.find(i => i.id === rule.syncSourceInstanceId)?.name ?? rule.syncSourceInstanceId })
+                : t("preferences.workflowSync.followers", { count: rule.syncFollowerCount })}</span>
+            </Badge>
+          </button>
+        )}
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
         {isAllTrackers ? (
@@ -2042,10 +2046,10 @@ function RulePreview({
         <Button
           variant="ghost"
           size="icon"
-          onClick={onEdit}
+          onClick={rule.syncSourceId ? onSync : onEdit}
           className="h-7 w-7 ml-1"
         >
-          <Pencil className="h-3.5 w-3.5" />
+          {rule.syncSourceId ? <RefreshCcw className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -2063,21 +2067,10 @@ function RulePreview({
               <CopyPlus className="h-4 w-4 mr-2" />
               {t("preferences.workflowsOverview.duplicate")}
             </DropdownMenuItem>
-            {otherInstances.length > 0 && (
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <Send className="h-4 w-4 mr-2" />
-                  {t("preferences.workflowsOverview.copyTo")}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {otherInstances.map(inst => (
-                    <DropdownMenuItem key={inst.id} onClick={() => onCopyToInstance(inst.id)}>
-                      {inst.name}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )}
+            <DropdownMenuItem onClick={onSync}>
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              {t("preferences.workflowSync.title")}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={onExport}>
               <Download className="h-4 w-4 mr-2" />
               {t("preferences.workflowsOverview.exportJSON")}
