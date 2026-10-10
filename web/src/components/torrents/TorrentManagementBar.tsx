@@ -769,6 +769,8 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
       </div>
 
       <DeleteTorrentDialog
+        torrents={selectedTorrents}
+        instanceId={instanceId}
         open={showDeleteDialog}
         onOpenChange={(open) => {
           if (!open) {

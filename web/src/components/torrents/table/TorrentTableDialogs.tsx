@@ -267,6 +267,8 @@ export function TorrentTableDialogs({
   return (
     <>
       <DeleteTorrentDialog
+        torrents={contextTorrents}
+        instanceId={instanceId}
         open={showDeleteDialog}
         onOpenChange={(open) => {
           if (!open) {

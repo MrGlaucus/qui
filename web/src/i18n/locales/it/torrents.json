@@ -99,6 +99,9 @@
     }
   },
   "deleteDialog": {
+    "selectedTorrents": "Torrent selezionati",
+    "instanceFallback": "Istanza {{id}}",
+    "partialPreview": "Visualizzati {{shown}} torrent caricati su {{total}} selezionati. Verranno eliminati tutti i {{total}} torrent selezionati.",
     "title": "Eliminare {{count}} torrent?",
     "description": "Questa azione non può essere annullata. I torrent verranno rimossi da qBittorrent.",
     "totalSize": "Dimensione totale: {{size}}",

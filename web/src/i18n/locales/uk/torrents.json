@@ -99,6 +99,9 @@
     }
   },
   "deleteDialog": {
+    "selectedTorrents": "Вибрані торенти",
+    "instanceFallback": "Екземпляр {{id}}",
+    "partialPreview": "Показано {{shown}} завантажених торентів із {{total}} вибраних. Буде видалено всі {{total}} вибраних торентів.",
     "title": "Видалити {{count}} торент(ів)?",
     "description": "Цю дію не можна скасувати. Торенти буде видалено з qBittorrent.",
     "totalSize": "Загальний розмір: {{size}}",

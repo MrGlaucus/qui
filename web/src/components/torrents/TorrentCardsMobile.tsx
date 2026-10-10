@@ -2688,6 +2688,8 @@ export function TorrentCardsMobile({
 
       {/* Delete confirmation dialog */}
       <DeleteTorrentDialog
+        torrents={torrentToDelete ? [torrentToDelete] : getSelectedTorrents}
+        instanceId={instanceId}
         open={showDeleteDialog}
         onOpenChange={(open) => {
           if (!open) {

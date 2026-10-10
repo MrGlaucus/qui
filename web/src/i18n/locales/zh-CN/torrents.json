@@ -100,6 +100,9 @@
     }
   },
   "deleteDialog": {
+    "selectedTorrents": "选中的种子",
+    "instanceFallback": "实例 {{id}}",
+    "partialPreview": "当前仅展示已加载的 {{shown}} 个种子，共选中 {{total}} 个。确认后将删除全部 {{total}} 个选中的种子。",
     "title": "删除 {{count}} 个种子？",
     "description": "此操作无法撤销。种子将从 qBittorrent 中移除。",
     "totalSize": "总大小：{{size}}",

@@ -97,6 +97,9 @@
     }
   },
   "deleteDialog": {
+    "selectedTorrents": "選取的種子",
+    "instanceFallback": "實例 {{id}}",
+    "partialPreview": "目前僅顯示已載入的 {{shown}} 個種子，共選取 {{total}} 個。確認後將刪除全部 {{total}} 個選取的種子。",
     "title": "刪除 {{count}} 個種子？",
     "description": "此操作無法復原。種子將從 qBittorrent 中移除。",
     "totalSize": "總大小：{{size}}",

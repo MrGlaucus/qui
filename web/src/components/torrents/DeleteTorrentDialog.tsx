@@ -18,11 +18,18 @@ import { DeleteFilesPreference } from "./DeleteFilesPreference"
 import type { CrossSeedWarningResult } from "@/hooks/useCrossSeedWarning"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useTranslation } from "react-i18next"
+import { Folder, Tags } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { useInstances } from "@/hooks/useInstances"
+import { flagClass } from "@/lib/countryFlags"
+import type { CrossInstanceTorrent, Torrent } from "@/types"
 
 interface DeleteTorrentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   count: number
+  torrents: Torrent[]
+  instanceId?: number
   totalSize: number
   formattedSize: string
   deleteFiles: boolean
@@ -42,6 +49,8 @@ export function DeleteTorrentDialog({
   open,
   onOpenChange,
   count,
+  torrents,
+  instanceId,
   totalSize,
   formattedSize,
   deleteFiles,
@@ -57,14 +66,15 @@ export function DeleteTorrentDialog({
   onConfirm,
 }: DeleteTorrentDialogProps) {
   const { t } = useTranslation("torrents")
+  const { instances } = useInstances()
   // Include cross-seeds in the displayed count when selected
   const crossSeedCount = deleteCrossSeeds ? (crossSeedWarning?.affectedTorrents.length ?? 0) : 0
   const displayCount = count + crossSeedCount
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="!max-w-2xl">
-        <AlertDialogHeader>
+      <AlertDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:!max-w-2xl">
+        <AlertDialogHeader className="text-left">
           <AlertDialogTitle>{t("deleteDialog.title", { count: displayCount })}</AlertDialogTitle>
           <AlertDialogDescription>
             {t("deleteDialog.description")}
@@ -75,6 +85,47 @@ export function DeleteTorrentDialog({
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <section className="min-w-0 overflow-hidden rounded-lg border" aria-label={t("deleteDialog.selectedTorrents")}>
+          <div className="flex items-center justify-between gap-3 border-b bg-muted/40 px-3 py-2 text-xs">
+            <span className="font-medium">{t("deleteDialog.selectedTorrents")}</span>
+            <span className="tabular-nums text-muted-foreground">{torrents.length} / {count}</span>
+          </div>
+          <ul className="max-h-[min(18rem,40dvh)] overflow-y-auto overscroll-contain divide-y" tabIndex={0} aria-label={t("deleteDialog.selectedTorrents")}>
+            {torrents.map(torrent => {
+              const ownerId = (torrent as Partial<CrossInstanceTorrent>).instanceId ?? instanceId
+              const owner = instances?.find(instance => instance.id === ownerId)
+              const ownerName = owner?.name || (torrent as Partial<CrossInstanceTorrent>).instanceName || t("deleteDialog.instanceFallback", { id: ownerId ?? "—" })
+              const flag = flagClass(owner?.countryCode)
+              const tags = torrent.tags.split(",").map(tag => tag.trim()).filter(Boolean)
+              return (
+                <li key={`${ownerId}:${torrent.hash}`} className="space-y-2 px-3 py-3 text-left">
+                  <p className="text-sm font-medium leading-snug [overflow-wrap:anywhere]">{torrent.name}</p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="outline" className="min-h-5 max-w-full gap-1 border-solid border-primary/35 bg-transparent px-1.5 py-0.5 text-[11px] font-medium text-primary shadow-none">
+                      {flag && <span className={`${flag} shrink-0 rounded-sm text-[11px]`} />}
+                      <span className="whitespace-normal [overflow-wrap:anywhere]">{ownerName}</span>
+                    </Badge>
+                    <Badge variant="outline" className="min-h-5 max-w-full gap-1 px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
+                      <Folder className="size-3 shrink-0" aria-label={t("reportDialog.category")} />
+                      <span className="whitespace-normal [overflow-wrap:anywhere]">{torrent.category || t("reportDialog.uncategorized")}</span>
+                    </Badge>
+                    {(tags.length ? tags : [t("reportDialog.noTags")]).map(tag => (
+                      <Badge key={tag} variant="outline" className="min-h-5 max-w-full gap-1 px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
+                        <Tags className="size-3 shrink-0" aria-label={t("reportDialog.tags")} />
+                        <span className="whitespace-normal [overflow-wrap:anywhere]">{tag}</span>
+                      </Badge>
+                    ))}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+          {torrents.length < count && (
+            <p className="border-t bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              {t("deleteDialog.partialPreview", { shown: torrents.length, total: count })}
+            </p>
+          )}
+        </section>
         <DeleteFilesPreference
           id="deleteFiles"
           checked={deleteFiles}

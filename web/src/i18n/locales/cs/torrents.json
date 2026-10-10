@@ -99,6 +99,9 @@
     }
   },
   "deleteDialog": {
+    "selectedTorrents": "Vybrané torrenty",
+    "instanceFallback": "Instance {{id}}",
+    "partialPreview": "Zobrazeno {{shown}} načtených torrentů z {{total}} vybraných. Odstraněno bude všech {{total}} vybraných torrentů.",
     "title": "Smazat {{count}} torrent(y)?",
     "description": "Tato akce nemůže být vrácena zpět. Torrenty budou odstraněny z qBittorrentu.",
     "totalSize": "Celková velikost: {{size}}",
