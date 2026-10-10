@@ -171,29 +171,25 @@ function ReportContent({
         </div>
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           {instanceName && (
-            <Badge variant="outline" className="h-6 max-w-full gap-1.5 border-solid border-primary/35 bg-transparent px-2 py-0 text-[11px] font-medium text-primary shadow-none">
+            <Badge variant="outline" className="h-5 max-w-full gap-1 border-solid border-primary/35 bg-transparent px-1.5 py-0 text-[11px] font-medium text-primary shadow-none">
               {flagClass(instanceCountryCode) && (
-                <span className={`${flagClass(instanceCountryCode)} rounded-sm text-xs shrink-0`} />
+                <span className={`${flagClass(instanceCountryCode)} rounded-sm text-[11px] shrink-0`} />
               )}
               <span className="max-w-[12rem] truncate sm:max-w-[18rem]" title={instanceName}>
                 {instanceName}
               </span>
             </Badge>
           )}
-          <span>
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
-              {torrent.category || t("reportDialog.uncategorized")}
+          <Badge variant="outline" className="h-5 px-1.5 py-0 text-[11px] font-medium">
+            {torrent.category || t("reportDialog.uncategorized")}
+          </Badge>
+          {tags.length > 0 ? tags.map((tag: string) => (
+            <Badge key={tag} variant="outline" className="h-5 px-1.5 py-0 text-[11px] font-medium">{tag}</Badge>
+          )) : (
+            <Badge variant="outline" className="h-5 px-1.5 py-0 text-[11px] font-medium text-muted-foreground">
+              {t("reportDialog.noTags")}
             </Badge>
-          </span>
-          <span className="flex flex-wrap gap-1 items-center">
-            {tags.length > 0 ? tags.map((tag: string) => (
-              <Badge key={tag} variant="outline" className="text-[10px] px-1.5 py-0">{tag}</Badge>
-            )) : (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
-                {t("reportDialog.noTags")}
-              </Badge>
-            )}
-          </span>
+          )}
         </div>
         {!isCompleted && (
           <div className="flex items-center gap-2">

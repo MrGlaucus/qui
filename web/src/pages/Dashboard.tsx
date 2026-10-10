@@ -2478,72 +2478,60 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
     <>
       <Accordion type="single" collapsible className="rounded-lg border bg-card" value={accordionValue} onValueChange={setAccordionValue}>
         <AccordionItem value="tracker-breakdown" className="border-0">
-          <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/50 transition-colors [&>svg]:hidden group">
-            {/* Mobile layout */}
-            <div className="sm:hidden w-full">
-              <div className="flex items-center justify-between">
+          <div className="flex items-center [&>h3]:min-w-0 [&>h3]:flex-1">
+            <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-muted/50 transition-colors [&>svg]:hidden group">
+              <div className="flex w-full items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Plus className="h-3.5 w-3.5 text-muted-foreground group-data-[state=open]:hidden" />
-                  <Minus className="h-3.5 w-3.5 text-muted-foreground group-data-[state=closed]:hidden" />
-                  <h3 className="text-sm font-medium text-muted-foreground">{t("trackerBreakdown.title")}</h3>
+                  <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-data-[state=open]:hidden sm:h-4 sm:w-4" />
+                  <Minus className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-data-[state=closed]:hidden sm:h-4 sm:w-4" />
+                  <span className="text-sm font-medium text-muted-foreground sm:text-base sm:text-foreground">{t("trackerBreakdown.title")}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">{t("trackerBreakdown.trackersCount", { count: sortedTrackerStats.length })}</span>
+                <span className="text-xs text-muted-foreground sm:hidden">{t("trackerBreakdown.trackersCount", { count: sortedTrackerStats.length })}</span>
               </div>
-            </div>
-
-            {/* Desktop layout */}
-            <div className="hidden sm:flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
-              <div className="flex items-center gap-2">
-                <Plus className="h-4 w-4 text-muted-foreground group-data-[state=open]:hidden" />
-                <Minus className="h-4 w-4 text-muted-foreground group-data-[state=closed]:hidden" />
-                <h3 className="text-base font-medium">{t("trackerBreakdown.title")}</h3>
-              </div>
+            </AccordionTrigger>
+            <div className="hidden shrink-0 items-center gap-3 pr-3 sm:flex">
+              {!isCollapsed && (
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="tracker-traffic-date" className="text-xs text-muted-foreground">{t("trackerBreakdown.trafficDate")}</Label>
+                  <Input
+                    id="tracker-traffic-date"
+                    type="date"
+                    value={selectedDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(event) => setSelectedDate(event.target.value)}
+                    className="h-8 w-auto"
+                  />
+                </div>
+              )}
               <div className="flex items-center gap-1">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); openImportDialog() }}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); openImportDialog() } }}
-                      className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent hover:text-accent-foreground cursor-pointer"
-                    >
+                    <Button variant="ghost" size="icon" className="size-7" onClick={openImportDialog} aria-label={t("trackerBreakdown.importTooltip")}>
                       <Download className="h-3.5 w-3.5" />
-                    </span>
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>{t("trackerBreakdown.importTooltip")}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); handleExport() }}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); handleExport() } }}
-                      className={`inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent hover:text-accent-foreground cursor-pointer ${!customizations || customizations.length === 0 ? "opacity-50 pointer-events-none" : ""}`}
-                      aria-disabled={!customizations || customizations.length === 0}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      onClick={handleExport}
+                      disabled={!customizations || customizations.length === 0}
+                      aria-label={t("trackerBreakdown.exportTooltip")}
                     >
                       <Upload className="h-3.5 w-3.5" />
-                    </span>
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>{t("trackerBreakdown.exportTooltip")}</TooltipContent>
                 </Tooltip>
-                <span className="text-muted-foreground ml-1">{t("trackerBreakdown.trackersCount", { count: sortedTrackerStats.length })}</span>
+                <span className="ml-1 text-sm text-muted-foreground">{t("trackerBreakdown.trackersCount", { count: sortedTrackerStats.length })}</span>
               </div>
             </div>
-          </AccordionTrigger>
+          </div>
           <AccordionContent className="px-0 pb-0">
-            <div className="hidden sm:flex items-center justify-end gap-2 border-b px-4 py-2">
-              <Label htmlFor="tracker-traffic-date" className="text-xs text-muted-foreground">{t("trackerBreakdown.trafficDate")}</Label>
-              <Input
-                id="tracker-traffic-date"
-                type="date"
-                value={selectedDate}
-                max={new Date().toISOString().slice(0, 10)}
-                onChange={(event) => setSelectedDate(event.target.value)}
-                className="h-8 w-auto"
-              />
-            </div>
             {/* Mobile controls share one compact row. */}
             <div className="sm:hidden flex items-center gap-1.5 border-b p-2">
               <DropdownMenu>
@@ -2749,21 +2737,21 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                   <TableHead className="text-right">
                     <button
                       type="button"
-                      onClick={() => handleSort("uploadedSession")}
-                      className="flex items-center gap-1.5 ml-auto hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
-                    >
-                      {t("trackerBreakdown.tableHeaders.uploadedSession")}
-                      <SortIcon column="uploadedSession" sortColumn={sortColumn} sortDirection={sortDirection} />
-                    </button>
-                  </TableHead>
-                  <TableHead className="text-right">
-                    <button
-                      type="button"
                       onClick={() => handleSort("downloaded")}
                       className="flex items-center gap-1.5 ml-auto hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
                     >
                       {t("trackerBreakdown.tableHeaders.downloaded")}
                       <SortIcon column="downloaded" sortColumn={sortColumn} sortDirection={sortDirection} />
+                    </button>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("uploadedSession")}
+                      className="flex items-center gap-1.5 ml-auto hover:text-foreground transition-colors rounded px-1 py-0.5 -mx-1 -my-0.5"
+                    >
+                      {t("trackerBreakdown.tableHeaders.uploadedSession")}
+                      <SortIcon column="uploadedSession" sortColumn={sortColumn} sortDirection={sortDirection} />
                     </button>
                   </TableHead>
                   <TableHead className="text-right">
@@ -2992,10 +2980,10 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                         {formatBytes(uploaded)} <span className="text-[10px] text-muted-foreground font-normal">({uploadPercent.toFixed(1)}%)</span>
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        {formatBytes(uploadedSession)} <span className="text-[10px] text-muted-foreground font-normal">({uploadSessionPercent.toFixed(1)}%)</span>
+                        {formatBytes(downloaded)}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
-                        {formatBytes(downloaded)}
+                        {formatBytes(uploadedSession)} <span className="text-[10px] text-muted-foreground font-normal">({uploadSessionPercent.toFixed(1)}%)</span>
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {formatBytes(downloadedSession)}
