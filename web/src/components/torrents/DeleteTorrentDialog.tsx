@@ -21,7 +21,10 @@ import { useTranslation } from "react-i18next"
 import { Folder, Tags } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useInstances } from "@/hooks/useInstances"
+import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
 import { flagClass } from "@/lib/countryFlags"
+import { getStateLabel } from "@/lib/torrent-state-utils"
+import { formatBytes } from "@/lib/utils"
 import type { CrossInstanceTorrent, Torrent } from "@/types"
 
 interface DeleteTorrentDialogProps {
@@ -67,6 +70,7 @@ export function DeleteTorrentDialog({
 }: DeleteTorrentDialogProps) {
   const { t } = useTranslation("torrents")
   const { instances } = useInstances()
+  const { formatAddedOn } = useDateTimeFormatters()
   // Include cross-seeds in the displayed count when selected
   const crossSeedCount = deleteCrossSeeds ? (crossSeedWarning?.affectedTorrents.length ?? 0) : 0
   const displayCount = count + crossSeedCount
@@ -116,6 +120,30 @@ export function DeleteTorrentDialog({
                       </Badge>
                     ))}
                   </div>
+                  <dl className="grid grid-cols-3 gap-x-3 gap-y-2 text-xs sm:grid-cols-[1fr_1fr_1fr_2fr_1fr]">
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground">{t("tableColumns.size")}</dt>
+                      <dd className="mt-0.5 tabular-nums">{formatBytes(torrent.size)}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground">{t("tableColumns.state")}</dt>
+                      <dd className="mt-0.5 [overflow-wrap:anywhere]">{getStateLabel(torrent.state, t)}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground">{t("tableColumns.progress")}</dt>
+                      <dd className="mt-0.5 tabular-nums">{torrent.progress >= 0.99 && torrent.progress < 1
+                        ? (Math.floor(torrent.progress * 1000) / 10).toFixed(1)
+                        : Math.round(torrent.progress * 100)}%</dd>
+                    </div>
+                    <div className="col-span-2 min-w-0 sm:col-span-1">
+                      <dt className="text-muted-foreground">{t("tableColumns.addedOn")}</dt>
+                      <dd className="mt-0.5 tabular-nums">{formatAddedOn(torrent.added_on)}</dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground">{t("tableColumns.ratio")}</dt>
+                      <dd className="mt-0.5 tabular-nums">{torrent.ratio === -1 ? "∞" : torrent.ratio.toFixed(2)}</dd>
+                    </div>
+                  </dl>
                 </li>
               )
             })}

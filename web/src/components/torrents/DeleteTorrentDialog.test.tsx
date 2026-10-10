@@ -16,6 +16,9 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/hooks/useInstances", () => ({
   useInstances: () => ({ instances: [{ id: 1, name: "Seed A", countryCode: "de" }, { id: 2, name: "Seed B", countryCode: "ca" }] }),
 }))
+vi.mock("@/hooks/useDateTimeFormatters", () => ({
+  useDateTimeFormatters: () => ({ formatAddedOn: (timestamp: number) => `formatted-date:${timestamp}` }),
+}))
 
 afterEach(cleanup)
 
@@ -31,7 +34,10 @@ function mount(torrents: Torrent[], overrides: Partial<ComponentProps<typeof Del
   /></TooltipProvider>)
 }
 
-const torrent = { hash: "same-hash", name: "Synthetic.Example.2026.1080p", category: "Movies", tags: "Archive,  Ready " } as Torrent
+const torrent = {
+  hash: "same-hash", name: "Synthetic.Example.2026.1080p", category: "Movies", tags: "Archive,  Ready ",
+  size: 2 * 1024 ** 3, state: "downloading", progress: 0.456, added_on: 1700000000, ratio: 1.234,
+} as Torrent
 
 describe("DeleteTorrentDialog selection preview", () => {
   it("shows category, trimmed tags and the owning instance for single-instance selection", () => {
@@ -54,6 +60,21 @@ describe("DeleteTorrentDialog selection preview", () => {
     expect(row.getByText("reportDialog.uncategorized")).not.toBeNull()
     expect(row.getByText("reportDialog.noTags")).not.toBeNull()
     expect(rows[1].querySelector(".fi-ca")).not.toBeNull()
+  })
+
+  it("shows each torrent's size, localized state, progress, formatted added time and ratio", () => {
+    const view = mount([torrent])
+    const row = within(view.getByRole("listitem"))
+    for (const text of ["2 GiB", "stateLabels.downloading {\"defaultValue\":\"Downloading\"}", "46%", "formatted-date:1700000000", "1.23"]) {
+      expect(row.getByText(text)).not.toBeNull()
+    }
+  })
+
+  it("does not round unfinished torrents to 100% and preserves the infinite ratio sentinel", () => {
+    const view = mount([{ ...torrent, progress: 0.9999, ratio: -1 }])
+    const row = within(view.getByRole("listitem"))
+    expect(row.getByText("99.9%")).not.toBeNull()
+    expect(row.getByText("∞")).not.toBeNull()
   })
 
   it("warns about unloaded selected torrents without changing the delete action", () => {
