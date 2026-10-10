@@ -2633,15 +2633,17 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                     key={displayName}
                     className={`relative overflow-hidden rounded-lg border bg-card shadow-sm ${isSelected || isGroupSelected ? "border-primary/30 bg-primary/5" : ""}`}
                   >
-                    <button
-                      type="button"
-                      onClick={() => setDetailsDomain(domain)}
-                      className="w-full min-w-0 px-3 py-2 text-left"
-                    >
+                    <div className="min-w-0 px-3 py-2 text-left">
                       <div className={`flex min-w-0 items-center gap-2 ${showCheckbox ? "pr-8" : ""}`}>
                         <TrackerIconImage tracker={iconDomain} trackerIcons={trackerIcons} />
                         <div className="flex min-w-0 flex-1 items-center gap-1">
-                          <span className="truncate text-sm font-medium">{displayValue}</span>
+                          <Link
+                            to="/instances"
+                            search={{ trackers: originalDomains }}
+                            className="truncate text-sm font-medium hover:text-primary hover:underline underline-offset-4 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            {displayValue}
+                          </Link>
                           {isMerged && <Link2 className="h-3 w-3 shrink-0 text-muted-foreground" />}
                         </div>
                         <div className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
@@ -2653,47 +2655,53 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                         </div>
                       </div>
 
-                      {tracker.instances.length > 0 && (
-                        <div className="mt-2">
-                          <TrackerInstanceBadges instances={tracker.instances} />
+                      <button
+                        type="button"
+                        onClick={() => setDetailsDomain(domain)}
+                        className="block w-full min-w-0 text-left"
+                      >
+                        {tracker.instances.length > 0 && (
+                          <div className="mt-2">
+                            <TrackerInstanceBadges instances={tracker.instances} />
+                          </div>
+                        )}
+
+                        <div className="mt-2 flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-muted px-2.5 py-1 text-sm font-semibold tabular-nums">
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap text-emerald-700 dark:text-emerald-400">
+                            <ArrowUp className="h-3.5 w-3.5 shrink-0" />
+                            {formatSpeedWithUnit(uploadSpeed, speedUnit)}
+                          </span>
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap text-blue-700 dark:text-blue-400">
+                            <ArrowDown className="h-3.5 w-3.5 shrink-0" />
+                            {formatSpeedWithUnit(downloadSpeed, speedUnit)}
+                          </span>
                         </div>
-                      )}
 
-                      <div className="mt-2 flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-0.5 rounded-md bg-muted px-2.5 py-1 text-sm font-semibold tabular-nums">
-                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-emerald-700 dark:text-emerald-400">
-                          <ArrowUp className="h-3.5 w-3.5 shrink-0" />
-                          {formatSpeedWithUnit(uploadSpeed, speedUnit)}
-                        </span>
-                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-blue-700 dark:text-blue-400">
-                          <ArrowDown className="h-3.5 w-3.5 shrink-0" />
-                          {formatSpeedWithUnit(downloadSpeed, speedUnit)}
-                        </span>
-                      </div>
-
-                      <div className="mt-2 grid grid-cols-3 gap-x-2 text-xs tabular-nums">
-                        <div className="min-w-0">
-                          <div className="text-[10px] leading-3 text-muted-foreground">{t("trackerBreakdown.tableHeaders.uploaded")}</div>
-                          <div className="mt-0.5 flex items-center gap-0.5 truncate font-medium">
-                            <ChevronUp className="h-3 w-3 shrink-0 text-emerald-500" />
-                            {formatBytes(uploaded)}
+                        <div className="mt-2 grid grid-cols-3 gap-x-2 text-xs tabular-nums">
+                          <div className="min-w-0">
+                            <div className="text-[10px] leading-3 text-muted-foreground">{t("trackerBreakdown.tableHeaders.uploaded")}</div>
+                            <div className="mt-0.5 flex items-center gap-0.5 truncate font-medium">
+                              <ChevronUp className="h-3 w-3 shrink-0 text-emerald-500" />
+                              {formatBytes(uploaded)}
+                            </div>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[10px] leading-3 text-muted-foreground">{t("trackerBreakdown.tableHeaders.downloaded")}</div>
+                            <div className="mt-0.5 flex items-center gap-0.5 truncate font-medium">
+                              <ChevronDown className="h-3 w-3 shrink-0 text-blue-500" />
+                              {formatBytes(downloaded)}
+                            </div>
+                          </div>
+                          <div className="min-w-0 text-right">
+                            <div className="text-[10px] leading-3 text-muted-foreground">{t("trackerBreakdown.tableHeaders.ratio")}</div>
+                            <div className="mt-0.5 truncate font-medium" style={{ color: ratioColor }}>
+                              {isInfinite ? "∞" : ratio.toFixed(2)}
+                            </div>
                           </div>
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-[10px] leading-3 text-muted-foreground">{t("trackerBreakdown.tableHeaders.downloaded")}</div>
-                          <div className="mt-0.5 flex items-center gap-0.5 truncate font-medium">
-                            <ChevronDown className="h-3 w-3 shrink-0 text-blue-500" />
-                            {formatBytes(downloaded)}
-                          </div>
-                        </div>
-                        <div className="min-w-0 text-right">
-                          <div className="text-[10px] leading-3 text-muted-foreground">{t("trackerBreakdown.tableHeaders.ratio")}</div>
-                          <div className="mt-0.5 truncate font-medium" style={{ color: ratioColor }}>
-                            {isInfinite ? "∞" : ratio.toFixed(2)}
-                          </div>
-                        </div>
-                      </div>
 
-                    </button>
+                      </button>
+                    </div>
                     {showCheckbox && (
                       <div className="absolute right-0 top-0 z-10 flex size-11 items-center justify-center">
                         <Checkbox
@@ -2868,9 +2876,13 @@ function TrackerBreakdownCard({ statsData, settings, onSettingsChange, isCollaps
                             <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className="font-medium truncate cursor-default">
+                                  <Link
+                                    to="/instances"
+                                    search={{ trackers: originalDomains }}
+                                    className="font-medium truncate hover:text-primary hover:underline underline-offset-4 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                  >
                                     {displayValue}
-                                  </span>
+                                  </Link>
                                 </TooltipTrigger>
                                 {(isMerged || (hasCustomization && displayName !== domain)) && (
                                   <TooltipContent>

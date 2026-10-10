@@ -42,6 +42,8 @@ One row per tracker, aggregated across all instances:
 
 Each row also shows its current aggregate upload and download speeds. Traffic history starts with the first sample after upgrading; qui does not assign a torrent's older counters to that day. Removing a torrent through qui records one final fresh counter sample before deletion, so its collected traffic remains in the daily and historical totals.
 
+Click a tracker name to open the unified torrent view filtered to that tracker. For a merged entry, torrents matching any of its domains are included. This navigation clears previous filters and instance selections. On mobile, tap the name to view torrents or the statistics below it to open the detail sheet.
+
 Click a column header to sort. The row actions rename trackers or merge several announce domains into one entry. See [Tracker Customizations](./tracker-customizations.md).
 
 For a merged tracker entry, qui combines the domains by torrent hash before calculating live totals. Persistent traffic remains associated with each announce domain and is summed with the current grouping, so renaming or regrouping domains keeps their history.
