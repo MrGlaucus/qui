@@ -44,6 +44,10 @@ Notes:
 | `automations_actions_applied` | Automation rules apply actions (summary counts and samples, only if actions occur). |
 | `automations_run_failed` | Automation rules fail to run for an instance (system error). |
 
+Automation action notifications include each sampled torrent’s added time when a full torrent snapshot is available. Dates use the timezone selected in **Settings**, with a UTC offset. An unavailable added time is shown as `—`.
+
+Torrent details show two ratios: qBittorrent’s uploaded/downloaded ratio and uploaded bytes divided by the full torrent size (`total_size`), matching the automation rule fields. The second ratio is shown as `—` when the full size is unavailable.
+
 ## Notifiarr API
 
 If you want output similar to Discord embeds, use the native Notifiarr API scheme:

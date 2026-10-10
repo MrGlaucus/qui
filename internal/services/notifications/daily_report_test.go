@@ -121,16 +121,28 @@ func TestBuildBaselineReport(t *testing.T) {
 		return map[int]string{1: "OVH-KS1B-DE-1", 2: "HostDZire-US"}[instanceID]
 	}
 
-	title, message := buildBaselineReport("2026-08-11", rows, resolve, time.Local)
+	for _, tt := range []struct {
+		timezone string
+		wantTime string
+	}{
+		{timezone: "UTC", wantTime: "2026-08-10 16:00:00"},
+		{timezone: "Asia/Shanghai", wantTime: "2026-08-11 00:00:00"},
+	} {
+		t.Run(tt.timezone, func(t *testing.T) {
+			loc, err := time.LoadLocation(tt.timezone)
+			require.NoError(t, err)
+			title, message := buildBaselineReport("2026-08-11", rows, resolve, loc)
 
-	require.Equal(t, "🌙 基准采集结果 2026-08-11", title)
-	require.Contains(t, message, "🏷️ OVH-KS1B-DE-1")
-	require.Contains(t, message, "🎯 基准: ↑ 68.94 TB / ↓ 29.50 TB")
-	require.Contains(t, message, "🧭 来源: session")
-	require.Contains(t, message, "⏱️ 时间: 2026-08-11 00:00:00")
-	require.Contains(t, message, "🏷️ HostDZire-US")
-	require.Contains(t, message, "🎯 基准: ↑ 14.86 TB / ↓ 4.12 TB")
-	require.Contains(t, message, "🧭 来源: alltime")
+			require.Equal(t, "🌙 基准采集结果 2026-08-11", title)
+			require.Contains(t, message, "🏷️ OVH-KS1B-DE-1")
+			require.Contains(t, message, "🎯 基准: ↑ 68.94 TB / ↓ 29.50 TB")
+			require.Contains(t, message, "🧭 来源: session")
+			require.Contains(t, message, "⏱️ 时间: "+tt.wantTime)
+			require.Contains(t, message, "🏷️ HostDZire-US")
+			require.Contains(t, message, "🎯 基准: ↑ 14.86 TB / ↓ 4.12 TB")
+			require.Contains(t, message, "🧭 来源: alltime")
+		})
+	}
 }
 
 func TestBaselineBytesSelectsCountersBySource(t *testing.T) {

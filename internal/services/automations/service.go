@@ -29,6 +29,7 @@ import (
 	"github.com/autobrr/qui/internal/services/externalprograms"
 	"github.com/autobrr/qui/internal/services/notifications"
 	"github.com/autobrr/qui/pkg/releases"
+	"github.com/autobrr/qui/pkg/timeutil"
 )
 
 // Config controls how often rules are re-applied and how long to debounce repeats.
@@ -90,7 +91,9 @@ type automationSampleTorrent struct {
 	action        string
 	name          string
 	hash          string
+	addedOn       int64
 	sizeBytes     int64
+	totalSize     int64
 	ratio         float64
 	category      string
 	tags          string
@@ -152,7 +155,7 @@ func (s *automationSummary) hasActivity() bool {
 	return s.applied > 0 || s.failed > 0
 }
 
-func (s *automationSummary) message(lang string) string {
+func (s *automationSummary) message(lang string, loc *time.Location) string {
 	if s == nil {
 		return ""
 	}
@@ -175,7 +178,7 @@ func (s *automationSummary) message(lang string) string {
 			if i > 0 {
 				lines = append(lines, "")
 			}
-			lines = append(lines, sample.render(lang))
+			lines = append(lines, sample.render(lang, loc))
 		}
 	}
 	if len(s.sampleErrors) > 0 {
@@ -197,7 +200,7 @@ func (s *automationSummary) sampleTorrentNames() []string {
 	return names
 }
 
-func (s *automationSampleTorrent) render(lang string) string {
+func (s *automationSampleTorrent) render(lang string, loc *time.Location) string {
 	action := automationActionLabel(s.action, lang)
 	if action == "" {
 		action = notifications.T("automations.sample.action", lang)
@@ -218,6 +221,20 @@ func (s *automationSampleTorrent) render(lang string) string {
 		return b.String()
 	}
 
+	addedOn := "—"
+	if s.addedOn > 0 {
+		addedOn = time.Unix(s.addedOn, 0).In(loc).Format("2006-01-02 15:04:05 -07:00")
+	}
+
+	ratio := fmt.Sprintf("%.2f", s.ratio)
+	if s.ratio == -1 {
+		ratio = "∞"
+	}
+	uploadedOverSize := "—"
+	if s.totalSize > 0 {
+		uploadedOverSize = fmt.Sprintf("%.2f", float64(s.uploaded)/float64(s.totalSize))
+	}
+
 	sizeLabel := notifications.T("automations.sample.size", lang)
 	ratioLabel := notifications.T("automations.sample.ratio", lang)
 	trafficLabel := notifications.T("automations.sample.traffic", lang)
@@ -228,8 +245,10 @@ func (s *automationSampleTorrent) render(lang string) string {
 	trackerLabel := notifications.T("automations.sample.tracker", lang)
 
 	fields := []string{
+		"- " + notifications.T("automations.sample.addedOn", lang) + ": " + addedOn,
 		"- " + sizeLabel + ": " + formatAutomationBytes(s.sizeBytes),
-		fmt.Sprintf("- %s: %.2f", ratioLabel, s.ratio),
+		"- " + ratioLabel + ": " + ratio,
+		"- " + notifications.T("automations.sample.uploadedOverSize", lang) + ": " + uploadedOverSize,
 		fmt.Sprintf("- %s: ↑ %s / ↓ %s", trafficLabel, formatAutomationBytes(s.uploaded), formatAutomationBytes(s.downloaded)),
 		fmt.Sprintf("- %s: ↑ %s / ↓ %s", speedLabel, formatAutomationSpeed(s.upSpeedBps), formatAutomationSpeed(s.downSpeedBps)),
 		"- " + categoryLabel + ": " + dashIfEmpty(s.category),
@@ -724,6 +743,7 @@ type Service struct {
 	// language returns the user's notification language code (e.g. "zh-CN" or
 	// "en"); defaults to Chinese when unset. Used to render notification text.
 	language func() string
+	timezone *timeutil.Provider
 
 	// keep lightweight memory of recent deletions to avoid acting on torrents
 	// that havent disappeared from sync data yet
@@ -783,6 +803,11 @@ func (s *Service) SetLanguage(fn func() string) {
 		return
 	}
 	s.language = fn
+}
+
+// SetTimezone uses the current system timezone when formatting notification dates.
+func (s *Service) SetTimezone(provider *timeutil.Provider) {
+	s.timezone = provider
 }
 
 // lang returns the normalized notification language ("zh" or "en").
@@ -4258,7 +4283,7 @@ func (s *Service) notifyAutomationSummary(ctx context.Context, instanceID int, s
 	s.notifier.Notify(ctx, notifications.Event{
 		Type:       notifications.EventAutomationsActionsApplied,
 		InstanceID: instanceID,
-		Message:    notifiedSummary.message(s.lang()),
+		Message:    notifiedSummary.message(s.lang(), s.timezone.Location()),
 		Automations: &notifications.AutomationsEventData{
 			Applied: notifiedSummary.applied,
 			Failed:  notifiedSummary.failed,
@@ -4646,7 +4671,9 @@ func sampleFromTorrent(action string, t qbt.Torrent) automationSampleTorrent {
 		action:        action,
 		name:          t.Name,
 		hash:          t.Hash,
+		addedOn:       t.AddedOn,
 		sizeBytes:     t.Size,
+		totalSize:     t.TotalSize,
 		ratio:         t.Ratio,
 		category:      t.Category,
 		tags:          t.Tags,

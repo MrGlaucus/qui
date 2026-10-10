@@ -34,15 +34,17 @@ func init() {
 		"automations.summary.errors":    {"zh": "错误", "en": "Errors"},
 
 		// per-torrent render field labels
-		"automations.sample.action":   {"zh": "操作", "en": "Action"},
-		"automations.sample.torrent":  {"zh": "种子", "en": "Torrent"},
-		"automations.sample.size":     {"zh": "大小", "en": "Size"},
-		"automations.sample.ratio":    {"zh": "分享率", "en": "Ratio"},
-		"automations.sample.traffic":  {"zh": "流量", "en": "Traffic"},
-		"automations.sample.speed":    {"zh": "速度", "en": "Speed"},
-		"automations.sample.category": {"zh": "分类", "en": "Category"},
-		"automations.sample.tags":     {"zh": "标签", "en": "Tags"},
-		"automations.sample.state":    {"zh": "状态", "en": "State"},
-		"automations.sample.tracker":  {"zh": "站点", "en": "Tracker"},
+		"automations.sample.action":           {"zh": "操作", "en": "Action"},
+		"automations.sample.torrent":          {"zh": "种子", "en": "Torrent"},
+		"automations.sample.addedOn":          {"zh": "添加时间", "en": "Added at"},
+		"automations.sample.size":             {"zh": "大小", "en": "Size"},
+		"automations.sample.ratio":            {"zh": "分享率（上传量/下载量）", "en": "Ratio (uploaded/downloaded)"},
+		"automations.sample.uploadedOverSize": {"zh": "分享率（上传量/种子大小）", "en": "Ratio (uploaded/torrent size)"},
+		"automations.sample.traffic":          {"zh": "流量", "en": "Traffic"},
+		"automations.sample.speed":            {"zh": "速度", "en": "Speed"},
+		"automations.sample.category":         {"zh": "分类", "en": "Category"},
+		"automations.sample.tags":             {"zh": "标签", "en": "Tags"},
+		"automations.sample.state":            {"zh": "状态", "en": "State"},
+		"automations.sample.tracker":          {"zh": "站点", "en": "Tracker"},
 	})
 }
