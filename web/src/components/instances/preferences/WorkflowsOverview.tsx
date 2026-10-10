@@ -873,8 +873,8 @@ export function WorkflowsOverview({
   }
 
   return (
-    <Card>
-      <CardHeader className="space-y-2">
+    <Card className="gap-0 py-0 sm:gap-6 sm:py-6">
+      <CardHeader className="space-y-2 px-3 py-4 sm:px-6 sm:py-0">
         <div className="flex items-center gap-2">
           <CardTitle className="text-lg font-semibold">{t("preferences.workflowsOverview.title")}</CardTitle>
           <Tooltip>
@@ -929,10 +929,10 @@ export function WorkflowsOverview({
 
             return (
               <AccordionItem key={instance.id} value={String(instance.id)}>
-                <AccordionTrigger className="px-6 py-4 hover:no-underline group">
-                  <div className="flex items-center justify-between w-full pr-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="font-medium truncate">{instance.name}</span>
+                <AccordionTrigger className="px-3 py-3 sm:px-6 sm:py-4 hover:no-underline group">
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:pr-4">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                      <span className="min-w-0 max-w-full font-medium [overflow-wrap:anywhere]">{instance.name}</span>
                       {rules.length > 0 && (
                         <Badge variant="outline" className={cn(
                           "text-xs",
@@ -953,7 +953,7 @@ export function WorkflowsOverview({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex shrink-0 items-center gap-4">
                       {activityStats.lastActivity && (
                         <span className="text-xs text-muted-foreground hidden sm:block">
                           {formatRelativeTime(activityStats.lastActivity)}
@@ -963,7 +963,7 @@ export function WorkflowsOverview({
                         <Button
                           variant="ghost"
                           size="xs"
-                          className="h-6 text-muted-foreground hover:text-foreground"
+                          className="h-8 px-0 text-muted-foreground hover:text-foreground sm:h-6 sm:px-2"
                           onClick={(e) => {
                             e.stopPropagation()
                             e.preventDefault()
@@ -979,7 +979,7 @@ export function WorkflowsOverview({
                   </div>
                 </AccordionTrigger>
 
-                <AccordionContent className="px-6 pb-4">
+                <AccordionContent className="px-3 pb-4 sm:px-6">
                   <div className="space-y-4">
                     {/* Rules list */}
                     {rulesQuery?.isError ? (
@@ -1868,7 +1868,7 @@ function SortableRulePreview({
             ref={setActivatorNodeRef}
             disabled={disableDrag}
             className={cn(
-              "h-7 w-7 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground",
+              "size-9 touch-none cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground sm:size-7",
               disableDrag && "cursor-default"
             )}
             aria-label={t("preferences.workflowsOverview.dragToReorder")}
@@ -1916,34 +1916,27 @@ function RulePreview({
 
   return (
     <div className={cn(
-      "rounded-lg border bg-muted/40 p-3 grid grid-cols-[auto_auto_1fr_auto] items-center gap-3",
-      !rule.enabled && "opacity-60"
+      "flex min-w-0 flex-col gap-2.5 rounded-lg border bg-muted/40 p-3 sm:grid sm:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-3",
+      !rule.enabled && "bg-muted/20"
     )}>
-      {dragHandle ?? <div className="h-7 w-7" />}
-      <Switch
-        checked={rule.enabled}
-        onCheckedChange={onToggle}
-        disabled={isToggling || (!!rule.syncSourceId && !rule.syncPreserveEnabled)}
-        className="shrink-0"
-      />
-      <div className="min-w-0">
+      <div className="min-w-0 sm:order-3">
         <TruncatedText className={cn(
-          "text-sm font-medium block cursor-default",
+          "block whitespace-normal text-sm font-medium leading-5 [overflow-wrap:anywhere] cursor-default sm:truncate sm:[overflow-wrap:normal]",
           !rule.enabled && "text-muted-foreground"
         )}>
           {rule.name}
         </TruncatedText>
         {(rule.syncSourceId || (rule.syncFollowerCount ?? 0) > 0) && (
           <button type="button" onClick={onSync} className="mt-1 block max-w-full text-left">
-            <Badge variant="outline" className="max-w-full text-xs">
-              <span className="truncate">{rule.syncSourceId
+            <Badge variant="outline" className="max-w-full whitespace-normal text-xs sm:whitespace-nowrap">
+              <span className="[overflow-wrap:anywhere] sm:truncate">{rule.syncSourceId
                 ? t("preferences.workflowSync.following", { instance: otherInstances.find(i => i.id === rule.syncSourceInstanceId)?.name ?? rule.syncSourceInstanceId })
                 : t("preferences.workflowSync.followers", { count: rule.syncFollowerCount })}</span>
             </Badge>
           </button>
         )}
       </div>
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5 sm:order-4 sm:max-w-[45vw] [&_[data-slot=badge]]:max-w-full [&_[data-slot=badge]]:h-auto [&_[data-slot=badge]]:min-h-5 [&_[data-slot=badge]]:whitespace-normal [&_[data-slot=badge]]:[overflow-wrap:anywhere]">
         {isAllTrackers ? (
           <Badge variant="outline" className="text-[10px] px-1.5 h-5 cursor-default">
             {t("preferences.workflows.allTrackers")}
@@ -2043,45 +2036,63 @@ function RulePreview({
             {t("preferences.workflowsOverview.program")}
           </Badge>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={rule.syncSourceId ? onSync : onEdit}
-          className="h-7 w-7 ml-1"
-        >
-          {rule.syncSourceId ? <RefreshCcw className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <MoreVertical className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onRunDryRun}>
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              {t("preferences.workflowsOverview.runDryRunNow")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onDuplicate}>
-              <CopyPlus className="h-4 w-4 mr-2" />
-              {t("preferences.workflowsOverview.duplicate")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onSync}>
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              {t("preferences.workflowSync.title")}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onExport}>
-              <Download className="h-4 w-4 mr-2" />
-              {t("preferences.workflowsOverview.exportJSON")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
-              <Trash2 className="h-4 w-4 mr-2" />
-              {t("preferences.workflowsOverview.deleteDialog.delete")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      </div>
+      <div className="flex items-center justify-between gap-2 border-t pt-2 sm:contents">
+        <div className="flex items-center gap-2 sm:contents">
+          <div className="shrink-0 sm:order-1">{dragHandle ?? <div className="size-9 sm:size-7" />}</div>
+          <label className="flex min-h-9 items-center gap-2 text-xs text-muted-foreground sm:order-2 sm:min-h-0">
+            <Switch
+              checked={rule.enabled}
+              onCheckedChange={onToggle}
+              disabled={isToggling || (!!rule.syncSourceId && !rule.syncPreserveEnabled)}
+              aria-label={rule.name}
+              className="shrink-0"
+            />
+            <span className="sm:hidden">{t(rule.enabled ? "card.status.enabled" : "card.status.disabled")}</span>
+          </label>
+        </div>
+        <div className="flex shrink-0 items-center gap-1 sm:order-5">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={rule.syncSourceId ? onSync : onEdit}
+            aria-label={t(rule.syncSourceId ? "preferences.workflowSync.title" : "preferences.workflows.edit")}
+            className="size-9 sm:size-7"
+          >
+            {rule.syncSourceId ? <RefreshCcw className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-9 sm:size-7" aria-label={t("preferences.workflowsOverview.ruleLabel", { name: rule.name })}>
+                <MoreVertical className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onRunDryRun}>
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                {t("preferences.workflowsOverview.runDryRunNow")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onDuplicate}>
+                <CopyPlus className="h-4 w-4 mr-2" />
+                {t("preferences.workflowsOverview.duplicate")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onSync}>
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                {t("preferences.workflowSync.title")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onExport}>
+                <Download className="h-4 w-4 mr-2" />
+                {t("preferences.workflowsOverview.exportJSON")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t("preferences.workflowsOverview.deleteDialog.delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   )
