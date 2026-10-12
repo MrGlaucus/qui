@@ -14,7 +14,8 @@ class FakeContext:
         self.state = {}
         self.actions = []
         self.current = None
-        self.params = {"tracker_domains": ["tracker.example.test"]}
+        self.params = {}
+        self.tracker_domains = ["tracker.example.test"]
 
     def log(self, message):
         self.logs.append(message)
@@ -68,12 +69,19 @@ class HDSKYTests(unittest.TestCase):
         self.run_torrent(self.torrent(3000))
         self.assertEqual(self.limits(), [450 * 1024**2])
 
-    def test_historical_torrents_are_completely_untouched(self):
-        for age in [3601, 3602, 72 * 3600, 90 * 3600]:
-            with self.subTest(age=age):
-                self.run_torrent(self.torrent(age))
-                self.assertEqual(self.ctx.actions, [])
-                self.assertFalse(any(key.startswith("torrent:") for key in self.ctx.state))
+    def test_historical_threshold_and_release(self):
+        for age, uploaded, expected in [(3720, 3999, 450 * 1024**2),
+                                         (4000, 4000, 200 * 1024),
+                                         (4000, 4001, 200 * 1024),
+                                         (72 * 3600, 5000, 450 * 1024**2),
+                                         (90 * 3600, 5000, 450 * 1024**2)]:
+            with self.subTest(age=age, uploaded=uploaded):
+                self.ctx.state.clear()
+                self.ctx.actions.clear()
+                self.run_torrent(self.torrent(age, uploaded=uploaded))
+                self.assertEqual(self.limits(), [expected])
+                self.assertFalse(any(a[0] == "reannounce" for a in self.ctx.actions))
+                self.assertNotIn("baseline", next(iter(self.ctx.state.values())))
 
     def test_baseline_once_and_strict_ratio_then_release(self):
         torrent = self.torrent(3600)
@@ -103,11 +111,52 @@ class HDSKYTests(unittest.TestCase):
 
     def test_preserves_other_tags_and_avoids_redundant_writes(self):
         torrent = self.torrent(100, up_limit=2 * 1024**2,
-                               tags="unrelated,50分钟内下载中限速,50分钟内下载完成限速")
+                               tags="unrelated," + self.script.TAGS["downloading"] + ",50分钟内下载完成限速")
         self.run_torrent(torrent)
         self.assertEqual(self.limits(), [])
         self.assertIn(("remove_tags", 1, torrent["hash"], ["50分钟内下载完成限速"]), self.ctx.actions)
         self.assertFalse(any(a[0] == "add_tags" for a in self.ctx.actions))
+
+    def test_all_stages_replace_legacy_and_stale_labels(self):
+        cases = [
+            (100, 0.5, 100, {}, "downloading"),
+            (100, 1, 100, {}, "complete"),
+            (3000, 1, 100, {}, "waiting"),
+            (3601, 1, 100, {}, "delta"),
+            (4000, 1, 3201, {"baseline": 100}, "delta_limited"),
+            (4000, 1, 3999, {}, "total"),
+            (4000, 1, 4000, {}, "total_limited"),
+            (72 * 3600, 1, 5000, {}, "released"),
+        ]
+        for age, progress, uploaded, state, stage in cases:
+            with self.subTest(stage=stage):
+                self.ctx.state.clear()
+                self.ctx.actions.clear()
+                old_tags = self.script.LEGACY_TAGS + list(self.script.TAGS.values())
+                torrent = self.torrent(age, progress=progress, uploaded=uploaded,
+                                       tags=",".join(["unrelated"] + old_tags))
+                self.ctx.state[f"torrent:1:{torrent['hash']}:{torrent['added_on']}"] = state
+                self.run_torrent(torrent)
+                removed = next(a[-1] for a in self.ctx.actions if a[0] == "remove_tags")
+                remaining = set(["unrelated"] + old_tags) - set(removed)
+                self.assertEqual(remaining, {"unrelated", self.script.TAGS[stage]})
+
+    def test_stage_changes_even_when_limit_is_unchanged(self):
+        torrent = self.torrent(3600, up_limit=450 * 1024**2,
+                               tags="unrelated," + self.script.TAGS["waiting"])
+        self.run_torrent(torrent)
+        self.ctx.time += 1
+        for age, previous, expected in [
+            (3601, "waiting", "delta"),
+            (72 * 3600, "delta", "released"),
+        ]:
+            self.ctx.time = torrent["added_on"] + age
+            torrent["tags"] = "unrelated," + self.script.TAGS[previous]
+            self.ctx.actions.clear()
+            self.run_torrent(torrent)
+            self.assertEqual(self.limits(), [])
+            self.assertIn(("remove_tags", 1, torrent["hash"], [self.script.TAGS[previous]]), self.ctx.actions)
+            self.assertIn(("add_tags", 1, torrent["hash"], [self.script.TAGS[expected]]), self.ctx.actions)
 
     def test_counter_reset_invalidates_baseline(self):
         torrent = self.torrent(3600)
@@ -130,10 +179,49 @@ class HDSKYTests(unittest.TestCase):
     def test_resume_managed_torrent_after_downtime_records_actual_time(self):
         torrent = self.torrent(3500)
         self.run_torrent(torrent)
-        self.ctx.time += 1000
+        self.ctx.time += 150
         self.run_torrent(torrent)
         state = next(iter(self.ctx.state.values()))
         self.assertEqual(state["baseline_at"], self.ctx.time)
+
+    def test_baseline_window_boundaries(self):
+        for age in [3601, 3719, 3720, 3721]:
+            with self.subTest(age=age):
+                self.ctx.state.clear()
+                self.ctx.actions.clear()
+                torrent = self.torrent(age, uploaded=4000)
+                self.run_torrent(torrent)
+                state = next(iter(self.ctx.state.values()))
+                self.assertEqual("baseline" in state, age < 3720)
+                self.assertEqual(any(a[0] == "reannounce" for a in self.ctx.actions), age < 3720)
+                self.assertEqual(self.limits(), [450 * 1024**2 if age < 3720 else 200 * 1024])
+
+    def test_managed_missing_baseline_expires_after_downtime(self):
+        torrent = self.torrent(3500, uploaded=4000)
+        self.run_torrent(torrent)
+        self.ctx.time += 220
+        self.ctx.actions.clear()
+        self.run_torrent(torrent)
+        state = next(iter(self.ctx.state.values()))
+        self.assertNotIn("baseline", state)
+        self.assertTrue(state["historical"])
+        self.assertFalse(any(a[0] == "reannounce" for a in self.ctx.actions))
+        self.assertEqual(self.limits(), [200 * 1024])
+
+    def test_slow_baseline_read_cannot_capture_after_deadline(self):
+        torrent = self.torrent(3719, uploaded=4000)
+        def slow_read(*args):
+            self.ctx.time += 2
+            return copy.deepcopy(torrent)
+        self.ctx.torrent = slow_read
+        self.run_torrent(torrent)
+        state = next(iter(self.ctx.state.values()))
+        self.assertNotIn("baseline", state)
+        self.assertTrue(state["historical"])
+        self.assertEqual(self.limits(), [200 * 1024])
+        self.ctx.actions.clear()
+        self.run_torrent(torrent)
+        self.assertFalse(any(a[0] == "reannounce" for a in self.ctx.actions))
 
     def test_failed_reannounce_does_not_create_baseline(self):
         torrent = self.torrent(3600)
@@ -149,7 +237,7 @@ class HDSKYTests(unittest.TestCase):
 
     def test_unchanged_stage_is_quiet_and_names_are_present(self):
         torrent = self.torrent(100, up_limit=2 * 1024**2,
-                               tags="unrelated,50分钟内下载中限速")
+                               tags="unrelated," + self.script.TAGS["downloading"])
         self.script.process(1, torrent, "Example client")
         self.assertTrue(any("Example client" in line and "Synthetic torrent" in line for line in self.ctx.logs))
         self.ctx.logs.clear()
@@ -157,18 +245,48 @@ class HDSKYTests(unittest.TestCase):
         self.assertEqual(self.ctx.logs, [])
         torrent["progress"] = 1
         self.script.process(1, torrent, "Example client")
-        self.assertTrue(any("50分钟内下载中限速 → 50分钟内下载完成限速" in line for line in self.ctx.logs))
+        self.assertTrue(any(self.script.TAGS["downloading"] + " → " + self.script.TAGS["complete"] in line for line in self.ctx.logs))
 
-    def test_historical_skip_logged_once_without_becoming_managed(self):
-        torrent = self.torrent(4000)
+    def test_historical_mode_persists_without_fabricating_baseline(self):
+        torrent = self.torrent(4000, uploaded=4000, up_limit=200 * 1024,
+                               tags="unrelated," + self.script.TAGS["total_limited"])
+        # Old skip diagnostics must not prevent management under the new rule.
+        self.ctx.state[f"hdsky-log:1:{torrent['hash']}:{torrent['added_on']}"] = "old skip"
         self.assertEqual(self.script.process(1, torrent), "historical")
-        self.assertIn("缺少上传基准", self.ctx.logs[-1])
+        self.assertTrue(any("4.000000 >= 4" in line for line in self.ctx.logs))
         self.ctx.logs.clear()
         self.ctx.time += 10
         self.assertEqual(self.script.process(1, torrent), "historical")
         self.assertEqual(self.ctx.logs, [])
         self.assertFalse(any(a[0] == "reannounce" for a in self.ctx.actions))
-        self.assertFalse(any(key.startswith("torrent:") for key in self.ctx.state))
+        state = self.ctx.state[f"torrent:1:{torrent['hash']}:{torrent['added_on']}"]
+        self.assertNotIn("baseline", state)
+        torrent["uploaded"] = 3000
+        self.run_torrent(torrent)
+        self.assertTrue(state["ratio_limited"])
+        self.ctx.time = torrent["added_on"] + 72 * 3600
+        self.ctx.actions.clear()
+        self.run_torrent(torrent)
+        self.assertEqual(self.limits(), [450 * 1024**2])
+        self.assertIn(("remove_tags", 1, torrent["hash"], [self.script.TAGS["total_limited"]]), self.ctx.actions)
+
+    def test_historical_reaches_four_later_and_baseline_mode_stays_separate(self):
+        torrent = self.torrent(4000, uploaded=3999)
+        self.run_torrent(torrent)
+        self.ctx.actions.clear()
+        torrent["uploaded"] = 4000
+        self.run_torrent(torrent)
+        self.assertEqual(self.limits(), [200 * 1024])
+        self.ctx.state.clear()
+        self.ctx.actions.clear()
+        torrent = self.torrent(3600, uploaded=1000)
+        self.run_torrent(torrent)
+        self.ctx.time += 1
+        self.run_torrent(torrent)
+        torrent["uploaded"] = 4000  # Total ratio 4, but baseline delta ratio only 3.
+        self.ctx.actions.clear()
+        self.run_torrent(torrent)
+        self.assertEqual(self.limits(), [450 * 1024**2])
 
     def test_ratio_log_contains_evidence_and_only_triggers_once(self):
         torrent = self.torrent(3600)

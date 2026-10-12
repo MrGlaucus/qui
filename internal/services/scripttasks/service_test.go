@@ -251,3 +251,52 @@ func TestSDKEmptyTagsAndInvalidNames(t *testing.T) {
 		}
 	}
 }
+
+func TestTrackerSelectionMigrationAndValidation(t *testing.T) {
+	s := testService(t)
+	ctx := context.Background()
+	if err := s.Store.SaveScript(ctx, models.ScriptDefinition{ID: BuiltinID, Parameters: json.RawMessage(`{}`)}); err != nil {
+		t.Fatal(err)
+	}
+	legacy := models.ScriptTask{ID: "legacy", ScriptID: BuiltinID, Name: "Legacy", Parameters: json.RawMessage(`{"tracker_domains":["tracker.example.test"],"other":42}`), NextRun: 123}
+	if err := s.Store.SaveTask(ctx, legacy); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Store.SetState(ctx, legacy.ID, "baseline", json.RawMessage(`12345`)); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := s.Store.Task(ctx, legacy.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(migrated.TrackerDomains) != 1 || migrated.TrackerDomains[0] != "tracker.example.test" || string(migrated.Parameters) != `{"other":42}` || migrated.NextRun != 123 {
+		t.Fatalf("migration: %+v", migrated)
+	}
+	state, err := s.Store.State(ctx, legacy.ID, "baseline")
+	if err != nil || string(state) != "12345" {
+		t.Fatalf("state lost: %s %v", state, err)
+	}
+	instance, err := s.instances.Create(ctx, "Example", "http://localhost:8080", "", "", nil, nil, false, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := models.ScriptTask{Name: "New", ScriptID: BuiltinID, InstanceIDs: []int{instance.ID}, Parameters: json.RawMessage(`{}`), TimeoutSeconds: 60, Permissions: []string{"limits", "tags", "reannounce"}}
+	if _, err := s.SaveTask(ctx, task); err == nil {
+		t.Fatal("empty HDSKY selection accepted")
+	}
+	task.TrackerDomains = []string{"TRACKER.example.test.", "tracker.example.test"}
+	saved, err := s.SaveTask(ctx, task)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(saved.TrackerDomains) != 1 || saved.TrackerDomains[0] != "tracker.example.test" {
+		t.Fatalf("not normalized: %+v", saved)
+	}
+	task.TrackerDomains = []string{"https://tracker.example.test/announce?secret"}
+	if _, err := s.SaveTask(ctx, task); err == nil {
+		t.Fatal("URL accepted")
+	}
+}

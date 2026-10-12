@@ -6546,6 +6546,10 @@ components:
         enabled: {type: boolean, default: false}
         instance_ids: {type: array, items: {type: integer}}
         all_instances: {type: boolean, default: false}
+        tracker_domains:
+          type: array
+          items: {type: string}
+          description: Tracker hostnames selected for the script, available as ctx.tracker_domains.
         parameters: {type: object, additionalProperties: true}
         interval_seconds: {type: integer, minimum: 0, maximum: 86400, description: Zero means manual unless run_at is set}
         timeout_seconds: {type: integer, minimum: 1, maximum: 3600}

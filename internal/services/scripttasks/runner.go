@@ -188,10 +188,11 @@ func (s *Service) execute(ctx context.Context, task models.ScriptTask, script mo
 	}()
 	writer := json.NewEncoder(stdin)
 	init := struct {
-		Parameters json.RawMessage `json:"parameters"`
-		Dry        bool            `json:"dry_run"`
-		TaskID     string          `json:"task_id"`
-	}{task.Parameters, dry, task.ID}
+		Parameters     json.RawMessage `json:"parameters"`
+		Dry            bool            `json:"dry_run"`
+		TaskID         string          `json:"task_id"`
+		TrackerDomains []string        `json:"tracker_domains"`
+	}{task.Parameters, dry, task.ID, task.TrackerDomains}
 	if err = writer.Encode(init); err != nil {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()

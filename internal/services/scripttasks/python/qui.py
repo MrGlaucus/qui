@@ -13,6 +13,7 @@ class Context:
         self.params = config["parameters"]
         self.dry_run = config["dry_run"]
         self.task_id = config["task_id"]
+        self.tracker_domains = config["tracker_domains"] or []
 
     def _call(self, method, **args):
         _wire.write(json.dumps({"method": method, **args}) + "\n")

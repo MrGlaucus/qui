@@ -25,6 +25,7 @@ type ScriptTask struct {
 	Enabled         bool            `json:"enabled"`
 	InstanceIDs     []int           `json:"instance_ids"`
 	AllInstances    bool            `json:"all_instances"`
+	TrackerDomains  []string        `json:"tracker_domains"`
 	Parameters      json.RawMessage `json:"parameters"`
 	IntervalSeconds int             `json:"interval_seconds"`
 	TimeoutSeconds  int             `json:"timeout_seconds"`

@@ -1,9 +1,21 @@
-"""HDSKY 刷流规则。通过 QUI 编辑任务的 tracker_domains 参数选择站点。"""
+"""HDSKY 刷流规则。通过 QUI 任务的作用 Tracker 选择站点。"""
 from qui import ctx
 
-TAGS = ["50分钟内下载中限速", "50分钟内下载完成限速", "50分钟后解除限速",
-        "72小时内3倍分享率限速", "72小时后解除限速"]
+LEGACY_TAGS = ["50分钟内下载中限速", "50分钟内下载完成限速", "50分钟后解除限速",
+        "72小时内3倍分享率限速", "72小时后解除限速", "72小时内历史种子4倍分享率限速"]
+TAGS = {
+    "downloading": "HDSKY·50分钟内下载中·2MiB/s",
+    "complete": "HDSKY·50分钟内已完成·200KiB/s",
+    "waiting": "HDSKY·等待汇报基准·450MiB/s",
+    "delta": "HDSKY·基准后增量刷流·450MiB/s",
+    "delta_limited": "HDSKY·增量超3.1倍限速·200KiB/s",
+    "total": "HDSKY·无基准总量刷流·450MiB/s",
+    "total_limited": "HDSKY·总量达4倍限速·200KiB/s",
+    "released": "HDSKY·已满72小时·450MiB/s",
+}
+RULE_TAGS = set(LEGACY_TAGS) | set(TAGS.values())
 BASELINE_AGE = 3601
+BASELINE_DEADLINE = 62 * 60
 RELEASE_AGE = 72 * 3600
 
 
@@ -22,8 +34,7 @@ def size(value):
 
 
 def skip(instance_id, torrent, label, reason):
-    # Log metadata is deliberately separate from managed state: observing an
-    # old torrent must never make it eligible for baseline capture next run.
+    # Skip diagnostics are separate from the torrent management state.
     key = f"hdsky-log:{instance_id}:{torrent['hash']}:{torrent['added_on']}"
     if ctx.state_get(key) != reason:
         ctx.state_set(key, reason)
@@ -35,6 +46,14 @@ def operation(label, description, function, *args):
         function(*args)
     except Exception as error:
         raise RuntimeError(f"{description}失败：{label}；{error}；此前成功的操作不会回滚") from error
+
+
+def use_total_ratio(state, key, label):
+    if not state.get("historical"):
+        state["historical"] = True
+        ctx.state_set(key, state)
+        log(f"转入历史总量模式：{label}；已满 62 分钟仍无基准，"
+            "使用当前上传量 / 种子总体积 >= 4；不补录基准、不再补汇报")
 
 
 def process(instance_id, torrent, instance_name=""):
@@ -49,17 +68,15 @@ def process(instance_id, torrent, instance_name=""):
     state = ctx.state_get(key)
     age = now - added
     if state is None:
-        if age >= BASELINE_AGE:
-            # Do not invent a baseline for historical torrents, even after 72h.
-            skip(instance_id, torrent, label, "首次发现时已达到 60 分 1 秒，缺少上传基准，按历史种子跳过")
-            return "historical"
         state = {"managed_since": now}
         ctx.state_set(key, state)
         log(f"首次接管：{label}；添加后 {int(age)} 秒，进度 {torrent['progress']:.1%}，体积 {size(torrent['total_size'])}")
     if state.get("invalid"):
         skip(instance_id, torrent, label, "上传计数曾重置，原基准失效")
         return "invalid"
-    if age >= BASELINE_AGE and "baseline" not in state:
+    if age >= BASELINE_DEADLINE and "baseline" not in state:
+        use_total_ratio(state, key, label)
+    if age >= BASELINE_AGE and "baseline" not in state and not state.get("historical"):
         # Capture fresh counters immediately after qBittorrent accepts reannounce.
         # Persist each step so a later limit/tag error does not repeat the request.
         if "announced_at" not in state:
@@ -67,16 +84,22 @@ def process(instance_id, torrent, instance_name=""):
             state["announced_at"] = ctx.now()
             ctx.state_set(key, state)
             log(f"重新汇报请求{'将提交' if ctx.dry_run else '已提交'}：{label}；添加后 {int(age)} 秒；不代表站点已入账")
-        torrent = ctx.torrent(instance_id, torrent_hash)
-        if torrent["added_on"] != added:
-            skip(instance_id, {**torrent, "added_on": added}, label, "汇报后添加时间变化，种子可能已删除并重新添加")
-            return "invalid"
-        state["baseline"] = torrent["uploaded"]
-        state["baseline_at"] = ctx.now()
-        ctx.state_set(key, state)
-        log(f"基准{'模拟记录' if ctx.dry_run else '已记录'}：{label}；上传 {size(state['baseline'])}；"
-            f"记录时间 Unix {int(state['baseline_at'])}；"
-            f"距 60 分 1 秒延迟 {max(0, int(state['baseline_at'] - added - BASELINE_AGE))} 秒")
+        if ctx.now() - added < BASELINE_DEADLINE:
+            torrent = ctx.torrent(instance_id, torrent_hash)
+            if torrent["added_on"] != added:
+                skip(instance_id, {**torrent, "added_on": added}, label, "汇报后添加时间变化，种子可能已删除并重新添加")
+                return "invalid"
+        observed_at = ctx.now()
+        age = observed_at - added
+        if age >= BASELINE_DEADLINE:
+            use_total_ratio(state, key, label)
+        else:
+            state["baseline"] = torrent["uploaded"]
+            state["baseline_at"] = observed_at
+            ctx.state_set(key, state)
+            log(f"基准{'模拟记录' if ctx.dry_run else '已记录'}：{label}；上传 {size(state['baseline'])}；"
+                f"记录时间 Unix {int(state['baseline_at'])}；"
+                f"距 60 分 1 秒延迟 {max(0, int(state['baseline_at'] - added - BASELINE_AGE))} 秒")
     if "baseline" in state and torrent["uploaded"] < state["baseline"]:
         state["invalid"] = True
         ctx.state_set(key, state)
@@ -84,10 +107,10 @@ def process(instance_id, torrent, instance_name=""):
         skip(instance_id, torrent, label, "上传计数曾重置，原基准失效")
         return "invalid"
     if age >= RELEASE_AGE:
-        limit, tag = 450 * 1024**2, TAGS[4]
+        limit, tag = 450 * 1024**2, TAGS["released"]
     elif age < 50 * 60:
         complete = torrent["progress"] >= 1
-        limit, tag = (200 * 1024, TAGS[1]) if complete else (2 * 1024**2, TAGS[0])
+        limit, tag = (200 * 1024, TAGS["complete"]) if complete else (2 * 1024**2, TAGS["downloading"])
         ctx.wake_at(added + 50 * 60)
     else:
         if "baseline" in state and (torrent["uploaded"] - state["baseline"]) / torrent["total_size"] > 3.1:
@@ -99,7 +122,19 @@ def process(instance_id, torrent, instance_name=""):
                     f"基准 {size(state['baseline'])}；增量 {size(delta)}；"
                     f"种子体积 {size(torrent['total_size'])}；"
                     f"增量分享率 {delta / torrent['total_size']:.6f} > 3.1；保持限速直到 72 小时")
-        limit, tag = (200 * 1024, TAGS[3]) if state.get("ratio_limited") else (450 * 1024**2, TAGS[2])
+        if state.get("historical") and not state.get("ratio_limited") and torrent["uploaded"] / torrent["total_size"] >= 4:
+            state["ratio_limited"] = True
+            ctx.state_set(key, state)
+            log(f"首次触发历史总量分享率限速：{label}；当前上传 {size(torrent['uploaded'])}；"
+                f"种子体积 {size(torrent['total_size'])}；"
+                f"总量分享率 {torrent['uploaded'] / torrent['total_size']:.6f} >= 4；保持限速直到 72 小时")
+        if state.get("ratio_limited"):
+            limit = 200 * 1024
+            tag = TAGS["total_limited"] if state.get("historical") else TAGS["delta_limited"]
+        else:
+            limit = 450 * 1024**2
+            stage = "total" if state.get("historical") else "delta" if "baseline" in state else "waiting"
+            tag = TAGS[stage]
         ctx.wake_at(added + RELEASE_AGE)
     if age < BASELINE_AGE:
         ctx.wake_at(added + BASELINE_AGE)
@@ -107,7 +142,7 @@ def process(instance_id, torrent, instance_name=""):
     if changed:
         operation(label, "设置上传限速", ctx.upload_limit, instance_id, torrent_hash, limit)
     tags = [t.strip() for t in torrent["tags"].split(",") if t.strip()]
-    obsolete = [t for t in tags if t in TAGS and t != tag]
+    obsolete = [t for t in tags if t in RULE_TAGS and t != tag]
     if obsolete:
         operation(label, "移除旧规则标签", ctx.remove_tags, instance_id, torrent_hash, obsolete)
     if tag not in tags:
@@ -123,11 +158,11 @@ def process(instance_id, torrent, instance_name=""):
         # Only mark the transition logged after all client operations succeed.
         state["logged_stage"] = tag
         ctx.state_set(key, state)
-    return "managed"
+    return "historical" if state.get("historical") else "managed"
 
 
 def main():
-    domains = {host.strip().lower().rstrip(".") for host in ctx.params["tracker_domains"]}
+    domains = {host.strip().lower().rstrip(".") for host in ctx.tracker_domains}
     errors = 0
     counts = {"managed": 0, "historical": 0, "invalid": 0}
     scanned = matched = 0
@@ -151,8 +186,8 @@ def main():
             except Exception as error:
                 errors += 1
                 log(f"处理失败：{identity(instance['id'], torrent, instance['name'])}；{error}")
-    log(f"本轮完成：扫描 {scanned}，站点匹配 {matched}，接管 {counts['managed']}，"
-        f"跳过历史种子 {counts['historical']}，跳过无效状态 {counts['invalid']}，"
+    log(f"本轮完成：扫描 {scanned}，站点匹配 {matched}，接管 {counts['managed'] + counts['historical']}，"
+        f"其中历史总量模式 {counts['historical']}，跳过无效状态 {counts['invalid']}，"
         f"失败 {errors}；耗时 {ctx.now() - started:.2f} 秒")
     if errors:
         raise RuntimeError(f"{errors} 项处理失败，请检查上方日志")

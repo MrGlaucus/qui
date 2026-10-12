@@ -56,8 +56,37 @@ func (s *Service) Start() error {
 	if err := s.Store.RecoverRuns(s.ctx, time.Now().Unix()); err != nil {
 		return err
 	}
-	if err := s.Store.SaveScript(s.ctx, models.ScriptDefinition{ID: BuiltinID, Name: "HDSKY刷流规则", Description: "HDSKY staged upload limits and persistent upload baseline", Builtin: true, Code: hdsky, Parameters: json.RawMessage(`{"tracker_domains":[]}`)}); err != nil {
+	if err := s.Store.SaveScript(s.ctx, models.ScriptDefinition{ID: BuiltinID, Name: "HDSKY刷流规则", Description: "HDSKY staged upload limits and persistent upload baseline", Builtin: true, Code: hdsky, Parameters: json.RawMessage(`{}`)}); err != nil {
 		return err
+	}
+	tasks, err := s.Store.Tasks(s.ctx)
+	if err != nil {
+		return err
+	}
+	for _, task := range tasks {
+		if task.TrackerDomains != nil {
+			continue
+		}
+		task.TrackerDomains = []string{}
+		if task.ScriptID == BuiltinID {
+			var params map[string]json.RawMessage
+			if err := json.Unmarshal(task.Parameters, &params); err != nil {
+				return err
+			}
+			if raw, ok := params["tracker_domains"]; ok {
+				if err := json.Unmarshal(raw, &task.TrackerDomains); err != nil {
+					return err
+				}
+				delete(params, "tracker_domains")
+				task.Parameters, err = json.Marshal(params)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		if err := s.Store.SaveTask(s.ctx, task); err != nil {
+			return err
+		}
 	}
 	s.wg.Go(func() {
 		ticker := time.NewTicker(time.Second)
@@ -167,17 +196,23 @@ func (s *Service) SaveTask(ctx context.Context, item models.ScriptTask) (models.
 			return item, fmt.Errorf("unknown permission: %s", p)
 		}
 	}
+	if item.TrackerDomains == nil {
+		item.TrackerDomains = []string{}
+	}
+	domains := []string{}
+	for _, domain := range item.TrackerDomains {
+		domain = strings.ToLower(strings.TrimSuffix(strings.TrimSpace(domain), "."))
+		if domain == "" || strings.ContainsAny(domain, "/:?@ ,\n\r\t") {
+			return item, errors.New("use bare tracker hostnames without URLs or passkeys")
+		}
+		if !slices.Contains(domains, domain) {
+			domains = append(domains, domain)
+		}
+	}
+	item.TrackerDomains = domains
 	if item.ScriptID == BuiltinID {
-		var params struct {
-			Domains []string `json:"tracker_domains"`
-		}
-		if json.Unmarshal(item.Parameters, &params) != nil || len(params.Domains) == 0 {
-			return item, errors.New("HDSKY requires tracker_domains")
-		}
-		for _, domain := range params.Domains {
-			if strings.TrimSpace(domain) == "" || strings.ContainsAny(domain, "/:?@ ") {
-				return item, errors.New("use bare tracker hostnames without URLs or passkeys")
-			}
+		if len(item.TrackerDomains) == 0 {
+			return item, errors.New("HDSKY requires selected trackers")
 		}
 		if item.AllInstances || len(item.InstanceIDs) == 0 {
 			return item, errors.New("HDSKY requires explicitly selected instances")
