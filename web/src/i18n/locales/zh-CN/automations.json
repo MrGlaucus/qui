@@ -298,5 +298,222 @@
       "trackerHealth": "需要 qBittorrent 5.1+",
       "localFilesystemAccess": "需要本地文件系统访问权限"
     }
+  },
+  "scripts": {
+    "title": "脚本任务",
+    "newScript": "新建脚本",
+    "description": "使用 Python 和 QUI SDK 编写脚本，独立于实例工作流运行。",
+    "trustedWarning": "仅运行可信代码。脚本拥有 QUI 的系统权限；SDK 权限和试运行不会隔离任意 Python 代码。",
+    "pythonMissing": "未找到 Python。请安装 Python 3 并配置 scriptPythonPath，然后重启 QUI。",
+    "builtin": "内置",
+    "newTask": "创建任务",
+    "viewCode": "查看代码",
+    "edit": "编辑",
+    "copy": "复制",
+    "delete": "删除",
+    "tasks": "任务列表",
+    "empty": "从脚本创建任务即可开始使用。",
+    "enabled": "启用",
+    "disabled": "禁用",
+    "allInstances": "所有活跃实例",
+    "nextRun": "下次运行：{{time}}",
+    "dryRun": "试运行",
+    "run": "立即运行",
+    "history": "运行记录",
+    "scriptEditor": "Python 脚本",
+    "sdkHint": "SDK：from qui import ctx。接口与示例请参阅脚本任务文档。",
+    "name": "名称",
+    "scriptDescription": "描述",
+    "code": "Python 代码",
+    "parameters": "参数（JSON 对象）",
+    "save": "保存",
+    "taskEditor": "脚本任务设置",
+    "taskHint": "间隔设为 0 且不指定时间时，仅手动执行。新任务默认禁用。",
+    "instances": "实例范围",
+    "interval": "运行间隔（秒；0 为手动）",
+    "timeout": "超时（秒）",
+    "runAt": "单次执行时间（可选）",
+    "hdskyHint": "选择 HDSKY 实例，将 tracker_domains 设置为完整 Tracker 域名数组。缺少基准的历史种子会跳过；需在种子满 60 分钟 1 秒前启用任务。避免其他规则同时修改限速。",
+    "permissions": "SDK 操作权限",
+    "historyHint": "展示最近 100 次运行，保留 30 天。时间使用浏览器所在时区。",
+    "cancelRun": "停止当前运行",
+    "noLog": "暂无日志。",
+    "deleteWarning": "删除任务会清除其状态和运行记录，无法恢复。被任务使用的脚本不能删除。",
+    "failed": "操作失败",
+    "permission": {
+      "limits": "上传／下载限速",
+      "tags": "标签",
+      "reannounce": "强制汇报",
+      "pause_resume": "暂停／恢复",
+      "delete": "删除种子／文件",
+      "notify": "发送通知",
+      "categories": "分类管理",
+      "recheck": "重新校验"
+    },
+    "status": {
+      "running": "运行中",
+      "success": "成功",
+      "failed": "失败",
+      "canceled": "已取消",
+      "timeout": "超时"
+    },
+    "reference": {
+      "title": "Python API 参考",
+      "intro": "from qui import ctx。instance_id 为整数实例 ID，torrent_hash 为种子哈希字符串。所有操作仅限任务所选启用实例；查询默认允许，写操作须授予对应权限。返回 None 的操作只表示调用完成，后续状态请重新查询。",
+      "search": "搜索接口或说明",
+      "context": "上下文与执行约定",
+      "contextBody": "ctx.params：任务 JSON 参数；ctx.task_id：任务 ID；ctx.dry_run：是否试运行。SDK 错误抛出 RuntimeError。试运行不修改客户端、不发送通知，但读取仍是真实数据，后续读取不会反映模拟写入。Python 自行执行的文件/网络操作不受试运行保护。时间均为 Unix 秒，字节采用 B，2 MiB/s = 2×1024×1024 B/s。每次调用只操作一个种子，批量操作请循环。",
+      "fields": "返回字段说明",
+      "fieldsBody": "instance / instances：id（整数）、name（名称）、country_code（国家代码）、is_active（是否启用）、has_local_filesystem_access（本地文件访问能力）、daily_traffic_enabled（每日流量统计开关）。不暴露账号、密码或客户端连接地址。\n\ntorrent / torrents：hash、name、category、tags（逗号分隔字符串）、state（qBittorrent 状态字符串）、save_path、content_path；added_on、completion_on、last_activity（Unix 秒）；size（选中文件大小）、total_size（整个种子大小）、amount_left（剩余字节）、uploaded、downloaded（字节）；upspeed、dlspeed、up_limit、dl_limit（B/s）；progress（0–1）、ratio（客户端上传量/下载量）、seeding_time（做种秒数）、time_active（活动秒数）、num_seeds、num_leechs（已连接的做种/下载端数量）；tracker_hosts（域名列表）、trackers_complete（是否包含完整 Tracker 列表）。不完整时调用 trackers()。-1 等特殊值保留客户端未知/不限速语义。\n\ntransfer：connection_status（连接状态）、dht_nodes、dl_info_data / up_info_data（下载/上传字节计数）、dl_info_speed / up_info_speed（速度）、dl_rate_limit / up_rate_limit（全局限速），速度及限速单位 B/s。\n\nproperties：addition_date、completion_date、creation_date、last_seen（Unix 秒）；total_size、total_uploaded、total_downloaded、total_uploaded_session、total_downloaded_session、total_wasted、piece_size（字节）；up_speed、dl_speed、up_speed_avg、dl_speed_avg、up_limit、dl_limit（B/s）；share_ratio（上传/下载分享率）、seeding_time、time_elapsed、eta、reannounce（秒）；pieces_have、pieces_num（分片数）、nb_connections、nb_connections_limit（连接数/上限）、peers、peers_total、seeds、seeds_total；name、hash、infohash_v1、infohash_v2、save_path、download_path、comment、created_by、is_private。部分字段取决于客户端版本。\n\nfiles：index（文件索引）、name（种子内相对路径）、size（字节）、progress（0–1）、priority（优先级）、availability（可用性）、piece_range（分片范围）、is_seed（可选）。categories：{分类名: {name, savePath}}。旧客户端可能返回 None，遍历时用 or [] / or {} 处理。",
+      "example": "示例：遍历实例、限速、标签与上传增量计算",
+      "exampleHint": "本例需要 limits、tags 权限；先试运行。捕获异常后继续执行会让任务最终显示成功，如需标记失败请在结尾抛出异常。",
+      "entries": [
+        {
+          "signature": "instances()",
+          "result": "list[dict]",
+          "description": "列出任务范围内所有启用实例；任务勾选“全部实例”后可遍历全部启用客户端。"
+        },
+        {
+          "signature": "instance(instance_id)",
+          "result": "dict",
+          "description": "获取指定实例信息，信息在本次任务开始时获取；不要求客户端在线。"
+        },
+        {
+          "signature": "transfer(instance_id)",
+          "result": "dict",
+          "description": "实时获取实例总上传/下载计数、速度、全局限速和连接状态。计数采用 qBittorrent 的口径，不是 QUI 的每日历史流量。"
+        },
+        {
+          "signature": "torrents(instance_id)",
+          "result": "list[dict]",
+          "description": "实时获取实例下的种子列表，在 Python 中按名称、分类、标签等筛选。"
+        },
+        {
+          "signature": "torrent(instance_id, torrent_hash)",
+          "result": "dict",
+          "description": "实时获取单个种子快照；种子不存在时抛出 RuntimeError。"
+        },
+        {
+          "signature": "properties(instance_id, torrent_hash)",
+          "result": "dict",
+          "description": "获取种子扩展属性，包括平均速度、分片、连接等。字段名与种子快照不同，详见下方字段说明。"
+        },
+        {
+          "signature": "files(instance_id, torrent_hash)",
+          "result": "list[dict]",
+          "description": "获取文件列表，复用 QUI 文件缓存；不保证是即时快照。"
+        },
+        {
+          "signature": "trackers(instance_id, torrent_hash)",
+          "result": "list[str]",
+          "description": "获取去重后的 Tracker 域名列表；不返回汇报链接或 passkey。"
+        },
+        {
+          "signature": "categories(instance_id)",
+          "result": "dict[str, dict]",
+          "description": "获取分类字典，以分类名为键，每项包含 name 和 savePath；可能使用 QUI 缓存。"
+        },
+        {
+          "signature": "tags(instance_id)",
+          "result": "list[str]",
+          "description": "获取实例标签定义列表；可能使用 QUI 缓存。"
+        },
+        {
+          "signature": "upload_limit(instance_id, torrent_hash, bytes_per_second)",
+          "result": "None · limits",
+          "description": "设置种子上传限速；单位 B/s，必须是非负且为 1024 的整数倍；0 取消种子限速。"
+        },
+        {
+          "signature": "download_limit(instance_id, torrent_hash, bytes_per_second)",
+          "result": "None · limits",
+          "description": "设置种子下载限速，单位和限制与 upload_limit 相同。"
+        },
+        {
+          "signature": "add_tags(instance_id, torrent_hash, tags)",
+          "result": "None · tags",
+          "description": "给种子添加标签，tags 为字符串列表，保留其他标签。"
+        },
+        {
+          "signature": "remove_tags(instance_id, torrent_hash, tags)",
+          "result": "None · tags",
+          "description": "仅移除该种子的指定标签，不删除实例标签定义；空列表不操作。"
+        },
+        {
+          "signature": "set_tags(instance_id, torrent_hash, tags)",
+          "result": "None · tags",
+          "description": "替换该种子的全部标签；传 [] 清空。 需要 qBittorrent 5.1+ / WebAPI 2.11.4+；旧版本会报错。"
+        },
+        {
+          "signature": "create_tags(instance_id, tags)",
+          "result": "None · tags",
+          "description": "在实例中创建标签定义，tags 为字符串列表。"
+        },
+        {
+          "signature": "delete_tags(instance_id, tags)",
+          "result": "None · tags",
+          "description": "删除实例标签定义，会影响实例中所有使用这些标签的种子。"
+        },
+        {
+          "signature": "set_category(instance_id, torrent_hash, category)",
+          "result": "None · categories",
+          "description": "给种子设置已有分类；空字符串清除该种子的分类。自动管理模式可能随分类变更移动文件。"
+        },
+        {
+          "signature": "create_category(instance_id, category, save_path='')",
+          "result": "None · categories",
+          "description": "创建实例分类。save_path 是 qBittorrent 所在机器上的路径，可留空。"
+        },
+        {
+          "signature": "edit_category(instance_id, category, save_path='')",
+          "result": "None · categories",
+          "description": "修改已有分类的保存路径，不是重命名。自动管理模式可能导致文件移动。"
+        },
+        {
+          "signature": "delete_categories(instance_id, categories)",
+          "result": "None · categories",
+          "description": "删除实例中的分类定义，传非空字符串列表；不删除种子或文件。仅清除单个种子分类请用 set_category(..., '')。"
+        },
+        {
+          "signature": "pause(instance_id, torrent_hash) / resume(instance_id, torrent_hash)",
+          "result": "None · pause_resume",
+          "description": "暂停或恢复单个种子，新版本客户端会映射为停止/启动。"
+        },
+        {
+          "signature": "reannounce(instance_id, torrent_hash)",
+          "result": "None · reannounce",
+          "description": "请求重新汇报。调用成功表示请求被接受，不代表 Tracker 已完成统计入账。"
+        },
+        {
+          "signature": "recheck(instance_id, torrent_hash)",
+          "result": "None · recheck",
+          "description": "请求重新校验种子数据；校验期间可能中断传输。"
+        },
+        {
+          "signature": "delete(instance_id, torrent_hash, delete_files=False)",
+          "result": "None · delete",
+          "description": "通过 QUI 删除并执行流量补偿。delete_files=True 同时删除文件；脚本执行时不会弹出确认框。"
+        },
+        {
+          "signature": "state_get(key, default=None) / state_set(key, value)",
+          "result": "JSON / None",
+          "description": "读取/保存任务独立的持久 JSON 状态。键长 1–512 字符；读取 None 时返回 default；试运行只写入内存。"
+        },
+        {
+          "signature": "wake_at(timestamp)",
+          "result": "None",
+          "description": "以 Unix 秒申请提前下一次周期执行；仅接受未来时间，多次调用取最早值。不保证精确到秒，也不会启用禁用任务或手动任务。"
+        },
+        {
+          "signature": "notify(title, message)",
+          "result": "None · notify",
+          "description": "通过订阅“自动化操作”事件的通知渠道发送消息；试运行仅记录日志。"
+        },
+        {
+          "signature": "now() / log(message)",
+          "result": "float / None",
+          "description": "获取当前 Unix 秒 / 写入本次运行日志。每次运行最多保留 256 KiB 日志。"
+        }
+      ]
+    }
   }
 }

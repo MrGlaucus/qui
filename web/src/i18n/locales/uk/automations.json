@@ -293,5 +293,222 @@
       "tracker_error": "Помилка трекера",
       "unreachable": "Недоступний"
     }
+  },
+  "scripts": {
+    "title": "Завдання скриптів",
+    "newScript": "Новий скрипт",
+    "description": "Створюйте скрипти Python із SDK QUI незалежно від робочих процесів екземплярів.",
+    "trustedWarning": "Виконуйте лише довірений код. Скрипти мають системні права QUI. Дозволи SDK і пробний запуск не ізолюють довільний код Python.",
+    "pythonMissing": "Python недоступний. Встановіть Python 3, задайте scriptPythonPath і перезапустіть QUI.",
+    "builtin": "Вбудований",
+    "newTask": "Створити завдання",
+    "viewCode": "Переглянути код",
+    "edit": "Редагувати",
+    "copy": "Копіювати",
+    "delete": "Видалити",
+    "tasks": "Завдання",
+    "empty": "Створіть завдання зі скрипту, щоб почати.",
+    "enabled": "Увімкнено",
+    "disabled": "Вимкнено",
+    "allInstances": "Усі активні екземпляри",
+    "nextRun": "Наступний запуск: {{time}}",
+    "dryRun": "Пробний запуск",
+    "run": "Запустити",
+    "history": "Історія",
+    "scriptEditor": "Скрипт Python",
+    "sdkHint": "SDK: from qui import ctx. API та приклади наведені в документації завдань скриптів.",
+    "name": "Назва",
+    "scriptDescription": "Опис",
+    "code": "Код Python",
+    "parameters": "Параметри (об’єкт JSON)",
+    "save": "Зберегти",
+    "taskEditor": "Налаштування завдання",
+    "taskHint": "Інтервал 0 без запланованого часу означає ручний запуск. Нові завдання вимкнені.",
+    "instances": "Екземпляри",
+    "interval": "Інтервал (секунди; 0 = вручну)",
+    "timeout": "Час очікування (секунди)",
+    "runAt": "Одноразовий запуск (необов’язково)",
+    "hdskyHint": "Виберіть екземпляри HDSKY і точні імена хостів трекерів у tracker_domains. Старі торренти без базового значення пропускаються. Увімкніть до 60 хв 1 с та уникайте конфліктних правил обмеження.",
+    "permissions": "Дозволи SDK",
+    "historyHint": "Останні 100 запусків зберігаються 30 днів. Час указано в часовому поясі браузера.",
+    "cancelRun": "Скасувати запуск",
+    "noLog": "Немає журналу.",
+    "deleteWarning": "Видалення завдання безповоротно очищає його стан та історію. Скрипти, які використовуються, видалити не можна.",
+    "failed": "Операція не вдалася",
+    "permission": {
+      "limits": "Обмеження швидкості",
+      "tags": "Мітки",
+      "reannounce": "Повторний анонс",
+      "pause_resume": "Пауза / відновлення",
+      "delete": "Видалення торрентів / файлів",
+      "notify": "Сповіщення",
+      "categories": "Manage categories",
+      "recheck": "Recheck torrents"
+    },
+    "status": {
+      "running": "Виконується",
+      "success": "Успішно",
+      "failed": "Помилка",
+      "canceled": "Скасовано",
+      "timeout": "Час вичерпано"
+    },
+    "reference": {
+      "title": "Python API reference",
+      "intro": "Import with from qui import ctx. instance_id is an integer; torrent_hash is a string. Access is restricted to selected active instances. Reads are allowed; writes require the listed permission. A None result acknowledges the call; query again to inspect subsequent state.",
+      "search": "Search methods or descriptions",
+      "context": "Context and execution",
+      "contextBody": "ctx.params: task JSON parameters; ctx.task_id: task ID; ctx.dry_run: preview flag. SDK errors raise RuntimeError. Dry runs perform real reads but skip client writes and notifications; later reads do not reflect simulated writes. Direct Python file/network operations are not protected by dry run. Times are Unix seconds; counters use bytes. 2 MiB/s = 2×1024×1024 B/s. Torrent mutations affect one hash; loop for batches.",
+      "fields": "Return fields",
+      "fieldsBody": "instance / instances: id (int), name (str), country_code (str), is_active (bool), has_local_filesystem_access (bool), daily_traffic_enabled (bool). Credentials and client URLs are not exposed.\n\ntorrent / torrents: hash, name, category, tags (comma-separated string), state (qBittorrent state string), save_path, content_path; added_on, completion_on, last_activity (Unix seconds); size (selected size), total_size (entire torrent), amount_left, uploaded, downloaded (bytes); upspeed, dlspeed, up_limit, dl_limit (B/s); progress (0–1), ratio (client upload/download ratio), seeding_time, time_active (seconds), num_seeds, num_leechs (connected peers); tracker_hosts (list[str]), trackers_complete (bool). If trackers_complete is false, use trackers(). Values such as -1 retain the client's unknown/unlimited sentinel semantics.\n\ntransfer: connection_status, dht_nodes, dl_info_data, up_info_data (bytes), dl_info_speed, up_info_speed, dl_rate_limit, up_rate_limit (B/s).\n\nproperties: addition_date, completion_date, creation_date, last_seen (Unix seconds); total_size, total_uploaded, total_downloaded, total_uploaded_session, total_downloaded_session, total_wasted, piece_size (bytes); up_speed, dl_speed, up_speed_avg, dl_speed_avg, up_limit, dl_limit (B/s); share_ratio, seeding_time, time_elapsed, eta, reannounce (seconds except share_ratio); pieces_have, pieces_num, nb_connections, nb_connections_limit, peers, peers_total, seeds, seeds_total; name, hash, infohash_v1, infohash_v2, save_path, download_path, comment, created_by, is_private. Some fields depend on client version.\n\nfiles: index, name (torrent-relative path), size (bytes), progress (0–1), priority, availability, piece_range, is_seed (optional). categories: {name: {name, savePath}}. Empty collections may be None when supplied by an older client; iterate with “or []” / “or {}”.",
+      "example": "Example: instances, limits, tags and upload delta",
+      "exampleHint": "Requires limits and tags permissions. Dry-run first. Catching and suppressing errors leaves the run successful; raise at the end to mark it failed.",
+      "entries": [
+        {
+          "signature": "instances()",
+          "result": "list[dict]",
+          "description": "Selected active instances; enable All instances on the task to enumerate every active client."
+        },
+        {
+          "signature": "instance(instance_id)",
+          "result": "dict",
+          "description": "One selected instance. Metadata is captured at run start; no connection is required."
+        },
+        {
+          "signature": "transfer(instance_id)",
+          "result": "dict",
+          "description": "Fetch live client-wide transfer counters, speeds, limits and connection status. Counters follow qBittorrent semantics, not QUI daily history."
+        },
+        {
+          "signature": "torrents(instance_id)",
+          "result": "list[dict]",
+          "description": "Fetch a fresh torrent list from the client. Filter the returned list in Python."
+        },
+        {
+          "signature": "torrent(instance_id, torrent_hash)",
+          "result": "dict",
+          "description": "Fetch a fresh single-torrent snapshot. Missing torrents raise RuntimeError."
+        },
+        {
+          "signature": "properties(instance_id, torrent_hash)",
+          "result": "dict",
+          "description": "Fetch extended properties including average speeds, pieces and connections. Field names differ from torrent snapshots."
+        },
+        {
+          "signature": "files(instance_id, torrent_hash)",
+          "result": "list[dict]",
+          "description": "Get files through QUI's file cache. Not guaranteed to be a fresh snapshot."
+        },
+        {
+          "signature": "trackers(instance_id, torrent_hash)",
+          "result": "list[str]",
+          "description": "Get deduplicated tracker hostnames only; no announce URLs or passkeys."
+        },
+        {
+          "signature": "categories(instance_id)",
+          "result": "dict[str, dict]",
+          "description": "Categories keyed by name, each with name and savePath. May use QUI's cached metadata."
+        },
+        {
+          "signature": "tags(instance_id)",
+          "result": "list[str]",
+          "description": "List instance tag definitions; may use QUI's cached metadata."
+        },
+        {
+          "signature": "upload_limit(instance_id, torrent_hash, bytes_per_second)",
+          "result": "None · limits",
+          "description": "Set torrent upload limit. Nonnegative multiple of 1024 B/s; 0 removes the torrent limit."
+        },
+        {
+          "signature": "download_limit(instance_id, torrent_hash, bytes_per_second)",
+          "result": "None · limits",
+          "description": "Set torrent download limit using the same units as upload_limit."
+        },
+        {
+          "signature": "add_tags(instance_id, torrent_hash, tags)",
+          "result": "None · tags",
+          "description": "Add a list of strings, preserving existing tags."
+        },
+        {
+          "signature": "remove_tags(instance_id, torrent_hash, tags)",
+          "result": "None · tags",
+          "description": "Remove the specified tags from this torrent only. An empty list is a no-op."
+        },
+        {
+          "signature": "set_tags(instance_id, torrent_hash, tags)",
+          "result": "None · tags",
+          "description": "Replace all tags on this torrent; [] clears them. Requires qBittorrent 5.1+ / WebAPI 2.11.4+; older clients raise an error."
+        },
+        {
+          "signature": "create_tags(instance_id, tags)",
+          "result": "None · tags",
+          "description": "Create instance-wide tag definitions."
+        },
+        {
+          "signature": "delete_tags(instance_id, tags)",
+          "result": "None · tags",
+          "description": "Delete tag definitions across the instance, affecting all torrents that use them."
+        },
+        {
+          "signature": "set_category(instance_id, torrent_hash, category)",
+          "result": "None · categories",
+          "description": "Assign an existing category; an empty string clears the torrent category. Automatic management may move files."
+        },
+        {
+          "signature": "create_category(instance_id, category, save_path='')",
+          "result": "None · categories",
+          "description": "Create an instance category. save_path is a path on the qBittorrent machine."
+        },
+        {
+          "signature": "edit_category(instance_id, category, save_path='')",
+          "result": "None · categories",
+          "description": "Change the existing category's save path, not its name. Automatic management may move files."
+        },
+        {
+          "signature": "delete_categories(instance_id, categories)",
+          "result": "None · categories",
+          "description": "Delete a nonempty list of category definitions from the instance; does not delete torrents or files."
+        },
+        {
+          "signature": "pause(instance_id, torrent_hash) / resume(instance_id, torrent_hash)",
+          "result": "None · pause_resume",
+          "description": "Pause or resume one torrent (mapped to stop/start on newer clients)."
+        },
+        {
+          "signature": "reannounce(instance_id, torrent_hash)",
+          "result": "None · reannounce",
+          "description": "Request tracker reannounce. Completion means the request was accepted, not that the tracker credited traffic."
+        },
+        {
+          "signature": "recheck(instance_id, torrent_hash)",
+          "result": "None · recheck",
+          "description": "Request a torrent data recheck; it may interrupt transfer while checking."
+        },
+        {
+          "signature": "delete(instance_id, torrent_hash, delete_files=False)",
+          "result": "None · delete",
+          "description": "Delete through QUI with traffic compensation. True also deletes files. There is no interactive confirmation in scripts."
+        },
+        {
+          "signature": "state_get(key, default=None) / state_set(key, value)",
+          "result": "JSON / None",
+          "description": "Task-local persistent JSON state. Keys: 1–512 characters. None reads as the supplied default. Dry runs use an in-memory overlay."
+        },
+        {
+          "signature": "wake_at(timestamp)",
+          "result": "None",
+          "description": "Request an earlier next interval run using Unix seconds. Future timestamps only; earliest request wins. No exact-time guarantee; disabled/manual-only tasks are not enabled by this call."
+        },
+        {
+          "signature": "notify(title, message)",
+          "result": "None · notify",
+          "description": "Send through notification targets subscribed to automation actions. Dry run logs only."
+        },
+        {
+          "signature": "now() / log(message)",
+          "result": "float / None",
+          "description": "Current Unix seconds / append text to the run log. Logs are capped at 256 KiB per run."
+        }
+      ]
+    }
   }
 }

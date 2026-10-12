@@ -76,6 +76,7 @@ import {
   Server,
   Settings,
   Sun,
+  Terminal,
   Zap
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -474,6 +475,15 @@ export function MobileFooterNav() {
               >
                 <Zap className="h-4 w-4" />
                 {t("nav.automations")}
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link
+                to="/script-tasks"
+                className="flex items-center gap-2"
+              >
+                <Terminal className="h-4 w-4" />
+                {t("nav.scriptTasks")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>

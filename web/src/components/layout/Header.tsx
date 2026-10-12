@@ -66,7 +66,7 @@ import { useQueries, useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useSearch } from "@tanstack/react-router"
 import { navigateWithSearch } from "@/lib/router-search"
 import { changeLanguage, languageNames, supportedLanguages } from "@/i18n"
-import { Archive, ArrowRightLeft, Check, ChevronsUpDown, Cog, Download, ExternalLink, FileEdit, FileText, FunnelPlus, FunnelX, GitBranch, Globe, HardDrive, Heart, Home, Info, ListTodo, Loader2, LogOut, Menu, Plus, Rss, Search, SearchCode, Server, Settings, X, Zap } from "lucide-react"
+import { Archive, ArrowRightLeft, Check, ChevronsUpDown, Cog, Download, ExternalLink, FileEdit, FileText, FunnelPlus, FunnelX, GitBranch, Globe, HardDrive, Heart, Home, Info, ListTodo, Loader2, LogOut, Menu, Plus, Rss, Search, SearchCode, Server, Settings, Terminal, X, Zap } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useTranslation } from "react-i18next"
@@ -905,6 +905,15 @@ export function Header({
                 >
                   <Zap className="mr-2 h-4 w-4" />
                   {t("nav.automations")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  to="/script-tasks"
+                  className="flex cursor-pointer"
+                >
+                  <Terminal className="mr-2 h-4 w-4" />
+                  {t("nav.scriptTasks")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

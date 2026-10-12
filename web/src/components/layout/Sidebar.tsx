@@ -47,6 +47,7 @@ import {
   Search,
   SearchCode,
   Settings,
+  Terminal,
   Zap
 } from "lucide-react"
 import { useCallback, useMemo } from "react"
@@ -87,6 +88,12 @@ const navigation: NavItem[] = [
     titleKey: "nav.automations",
     href: "/automations",
     icon: Zap,
+  },
+  {
+    id: "script-tasks",
+    titleKey: "nav.scriptTasks",
+    href: "/script-tasks",
+    icon: Terminal,
   },
   {
     id: "backups",

@@ -1,3 +1,4 @@
+import type { ScriptDefinition, ScriptTask, ScriptTaskOverview, ScriptTaskRun } from "@/types/script-tasks"
 /*
  * Copyright (c) 2025-2026, s0up and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -481,6 +482,14 @@ function mapRawCrossSeedInstanceResult(instance: RawCrossSeedInstanceResult): Cr
 }
 
 class ApiClient {
+  getScriptTasks() { return this.request<ScriptTaskOverview>("/script-tasks/") }
+  saveScript(script: ScriptDefinition) { return this.request<ScriptDefinition>("/script-tasks/scripts", { method: "POST", body: JSON.stringify(script) }) }
+  saveScriptTask(task: ScriptTask) { return this.request<ScriptTask>("/script-tasks/tasks", { method: "POST", body: JSON.stringify(task) }) }
+  runScriptTask(id: string, dryRun: boolean) { return this.request<ScriptTaskRun>(`/script-tasks/tasks/${id}/run`, { method: "POST", body: JSON.stringify({ dry_run: dryRun }) }) }
+  cancelScriptTask(id: string) { return this.request(`/script-tasks/tasks/${id}/cancel`, { method: "POST" }) }
+  getScriptTaskRuns(id: string) { return this.request<ScriptTaskRun[]>(`/script-tasks/tasks/${id}/runs`) }
+  deleteScriptItem(kind: "scripts" | "tasks", id: string) { return this.request(`/script-tasks/${kind}/${id}`, { method: "DELETE" }) }
+
   private async request<T>(
     endpoint: string,
     options?: RequestInit
