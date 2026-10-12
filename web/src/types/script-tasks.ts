@@ -13,6 +13,7 @@ export interface ScriptTask {
   enabled: boolean
   instance_ids: number[]
   all_instances: boolean
+  tracker_domains: string[]
   parameters: Record<string, unknown>
   interval_seconds: number
   timeout_seconds: number

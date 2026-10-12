@@ -1,3 +1,4 @@
+import { ScriptTrackerSelect } from "./ScriptTrackerSelect"
 import { ScriptApiReference } from "./ScriptApiReference"
 import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -38,7 +39,7 @@ export function ScriptTasks() {
   }
   const editScript = (value: ScriptDefinition) => { setError(""); setScript(value); setParameters(JSON.stringify(value.parameters, null, 2)) }
   const editTask = (value: ScriptTask) => { setError(""); setTask(value); setParameters(JSON.stringify(value.parameters, null, 2)) }
-  const createTask = (value: ScriptDefinition) => editTask({ id: "", name: value.name, script_id: value.id, enabled: false, instance_ids: [], all_instances: false, parameters: value.parameters, interval_seconds: 10, timeout_seconds: 60, run_at: 0, permissions: value.id === "hdsky" ? ["limits", "tags", "reannounce"] : [], next_run: 0 })
+  const createTask = (value: ScriptDefinition) => editTask({ id: "", name: value.name, script_id: value.id, enabled: false, instance_ids: [], all_instances: false, tracker_domains: [], parameters: value.parameters, interval_seconds: 10, timeout_seconds: 60, run_at: 0, permissions: value.id === "hdsky" ? ["limits", "tags", "reannounce"] : [], next_run: 0 })
   const errorMessage = error || (query.error instanceof Error ? query.error.message : "")
 
   return <section className="rounded-lg border p-4 sm:p-6 space-y-4 min-w-0">
@@ -83,13 +84,14 @@ export function ScriptTasks() {
         <Label className="flex items-center gap-2"><Checkbox checked={task.enabled} onCheckedChange={checked => setTask({ ...task, enabled: checked === true })} />{t("scripts.enabled")}</Label>
         {task.script_id !== "hdsky" && <Label className="flex items-center gap-2"><Checkbox checked={task.all_instances} onCheckedChange={checked => setTask({ ...task, all_instances: checked === true })} />{t("scripts.allInstances")}</Label>}
         <fieldset className="border rounded-md p-3"><legend className="text-sm px-1">{t("scripts.instances")}</legend><div className="flex flex-wrap gap-3">{instances?.map(i => <Label key={i.id} className="flex items-center gap-2"><Checkbox checked={task.instance_ids.includes(i.id)} disabled={task.all_instances} onCheckedChange={checked => setTask({ ...task, instance_ids: checked ? [...task.instance_ids, i.id] : task.instance_ids.filter(id => id !== i.id) })} />{i.name}</Label>)}</div></fieldset>
+        <ScriptTrackerSelect instanceIds={task.all_instances ? (instances ?? []).filter(i => i.isActive).map(i => i.id) : task.instance_ids} selected={task.tracker_domains ?? []} onChange={tracker_domains => setTask({ ...task, tracker_domains })} />
         <div className="grid grid-cols-2 gap-3"><Label className="grid gap-2">{t("scripts.interval")}<Input type="number" min="0" max="86400" value={task.interval_seconds} onChange={e => setTask({ ...task, interval_seconds: Number(e.target.value), run_at: 0 })} /></Label><Label className="grid gap-2">{t("scripts.timeout")}<Input type="number" min="1" max="3600" value={task.timeout_seconds} onChange={e => setTask({ ...task, timeout_seconds: Number(e.target.value) })} /></Label></div>
         <Label className="grid gap-2">{t("scripts.runAt")}<Input type="datetime-local" value={task.run_at ? new Date(task.run_at * 1000 - new Date(task.run_at * 1000).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""} onChange={e => setTask({ ...task, run_at: e.target.value ? Math.floor(new Date(e.target.value).getTime() / 1000) : 0, interval_seconds: 0 })} /></Label>
         <Label className="grid gap-2">{t("scripts.parameters")}<Textarea className="font-mono text-xs" value={parameters} onChange={e => setParameters(e.target.value)} /></Label>
         {task.script_id === "hdsky" && <p className="text-sm rounded-md border p-3">{t("scripts.hdskyHint")}</p>}
         <fieldset className="border rounded-md p-3"><legend className="text-sm px-1">{t("scripts.permissions")}</legend><div className="flex flex-wrap gap-3">{permissions.map(permission => <Label key={permission} className="flex items-center gap-2"><Checkbox checked={task.permissions.includes(permission)} onCheckedChange={checked => setTask({ ...task, permissions: checked ? [...task.permissions, permission] : task.permissions.filter(p => p !== permission) })} />{t(`scripts.permission.${permission}`)}</Label>)}</div></fieldset>
         {error && <p role="alert" className="text-destructive text-sm">{error}</p>}
-        <Button disabled={busy} onClick={() => act(async () => { await api.saveScriptTask({ ...task, parameters: JSON.parse(parameters) }); setTask(null) })}>{t("scripts.save")}</Button>
+        <Button disabled={busy || (task.script_id === "hdsky" && !task.tracker_domains?.length)} onClick={() => act(async () => { await api.saveScriptTask({ ...task, parameters: JSON.parse(parameters) }); setTask(null) })}>{t("scripts.save")}</Button>
       </div>}
     </DialogContent></Dialog>
     <Dialog open={!!history} onOpenChange={open => !open && setHistory(null)}><DialogContent className="sm:max-w-3xl max-h-[90dvh] overflow-y-auto"><DialogHeader><DialogTitle>{t("scripts.history")} · {history?.name}</DialogTitle><DialogDescription>{t("scripts.historyHint")}</DialogDescription></DialogHeader>

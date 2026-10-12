@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   api: { saveScriptTask: vi.fn(), getScriptTasks: vi.fn(), getScriptTaskRuns: vi.fn() },
 }))
 vi.mock("@tanstack/react-query", () => ({ useQueryClient: () => mocks.cache, useQuery: ({ queryKey }: { queryKey: string[] }) => ({ data: queryKey[0] === "script-tasks" ? mocks.overview : [] }) }))
+vi.mock("./ScriptTrackerSelect", () => ({ ScriptTrackerSelect: () => null }))
 vi.mock("@/hooks/useInstances", () => ({ useInstances: () => ({ instances: mocks.instances }) }))
 vi.mock("@/lib/api", () => ({ api: mocks.api }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key === "scripts.reference.entries" ? [] : key }) }))

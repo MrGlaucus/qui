@@ -88,25 +88,30 @@ SDK errors raise `RuntimeError`. Read operations are scoped to selected active i
 
 ## HDSKY built-in rule
 
-The built-in script is read-only; copy it to customize its code. Create a task, select the intended clients, and set exact tracker hostnames, for example:
+The built-in script is read-only; copy it to customize its code. Create a task, select the intended clients and choose **Target trackers** from the searchable multi-select. Options use active torrent trackers from the selected clients and QUI's site names and merged domains. Selecting a merged site includes all its domains. Saved domains remain visible when no torrents currently use them. An empty selection is not allowed for HDSKY.
 
-```json
-{"tracker_domains": ["tracker.example.test"]}
-```
+The JSON parameters may remain `{}`. Existing HDSKY tasks automatically move their legacy `parameters.tracker_domains` selection into the task's dedicated field on startup, preserving other parameters, schedule and baseline state. Existing partial domain selections are not expanded automatically.
+
+Custom scripts receive the selection through `ctx.tracker_domains`. They must apply that filter themselves; SDK instance scope and permissions still apply, but the SDK does not enforce tracker filtering.
 
 The script matches any of the torrent's tracker hostnames. It needs limits, tags, and reannounce permissions. Suggested interval: 10 seconds. Increase the timeout if a large library takes longer to inspect.
 
 | Torrent age / condition | Upload limit | Rule tag |
 | --- | --- | --- |
-| Under 50 minutes, incomplete | 2 MiB/s | 50分钟内下载中限速 |
-| Under 50 minutes, complete | 200 KiB/s | 50分钟内下载完成限速 |
-| From 50 minutes, not ratio-limited | 450 MiB/s | 50分钟后解除限速 |
-| Before 72 hours, baseline-relative ratio strictly above 3.1 | 200 KiB/s | 72小时内3倍分享率限速 |
-| At least 72 hours | 450 MiB/s | 72小时后解除限速 |
+| Under 50 minutes, incomplete | 2 MiB/s | HDSKY·50分钟内下载中·2MiB/s |
+| Under 50 minutes, complete | 200 KiB/s | HDSKY·50分钟内已完成·200KiB/s |
+| From 50 minutes, awaiting baseline | 450 MiB/s | HDSKY·等待汇报基准·450MiB/s |
+| Baseline saved, not ratio-limited | 450 MiB/s | HDSKY·基准后增量刷流·450MiB/s |
+| Before 72 hours, baseline-relative ratio strictly above 3.1 | 200 KiB/s | HDSKY·增量超3.1倍限速·200KiB/s |
+| No baseline, total ratio below 4 | 450 MiB/s | HDSKY·无基准总量刷流·450MiB/s |
+| Before 72 hours, no baseline, total ratio at least 4 | 200 KiB/s | HDSKY·总量达4倍限速·200KiB/s |
+| At least 72 hours | 450 MiB/s | HDSKY·已满72小时·450MiB/s |
 
-At age 60 minutes and 1 second, a previously managed torrent receives a reannounce request. Immediately after qBittorrent accepts it, the script reads fresh uploaded bytes and saves the baseline. This does not confirm that the tracker received or credited that upload amount. The ratio is `(uploaded - baseline) / total_size`. Once triggered, the ratio limit stays active until 72 hours. Each transition removes only the other four rule tags, preserving unrelated tags.
+Each successful run leaves exactly one current HDSKY stage tag, even when a transition does not change the speed limit. All six legacy rule tags and other known HDSKY stage tags are removed from the torrent; unrelated tags are preserved. The speed in the tag is the configured upload cap, not the measured speed. 450 MiB/s is still a cap, not unlimited upload.
 
-**Historical torrents first seen at or after 60 minutes and 1 second without a saved baseline are skipped completely**, even when older than 72 hours. Torrents first managed before that deadline retain their state across restarts. If a due run is delayed by downtime or an unreachable client, it captures a late baseline and logs the actual delay. It cannot reconstruct the counter at the missed instant.
+At age 60 minutes and 1 second, a previously managed torrent receives a reannounce request. Immediately after qBittorrent accepts it, the script reads fresh uploaded bytes and saves the baseline. This does not confirm that the tracker received or credited that upload amount. The ratio is `(uploaded - baseline) / total_size`. Once triggered, the ratio limit stays active until 72 hours. Each transition removes only the other rule tags, preserving unrelated tags.
+
+**Torrents at or after 62 minutes without a saved baseline are managed using total uploaded bytes / total torrent size.** Below 72 hours, a ratio of at least 4 triggers 200 KiB/s and the tag `HDSKY·总量达4倍限速·200KiB/s`; below 4 the limit is 450 MiB/s. Once triggered, the limit stays until 72 hours, when 450 MiB/s and the release tag apply. No baseline is invented and no late reannounce is sent for this historical mode. Existing skip-log metadata does not prevent these torrents from being managed after the update. A missing baseline may be captured from age 60 minutes and 1 second up to, but not including, 62 minutes, including newly discovered torrents in that window. At 62 minutes, any torrent still missing a baseline switches to total-counter mode, even if it was managed earlier or a previous reannounce succeeded. Slow client calls crossing the deadline do not create a late baseline. Existing baselines remain valid and continue using the delta rule. The delay is logged; the counter at a missed instant cannot be reconstructed.
 
 If an upload counter drops below its saved baseline, the script marks that torrent's state invalid and skips further changes. A re-added torrent with a new `added_on` gets separate state. A client that re-adds the same hash with the same timestamp and counters cannot be distinguished from the previous torrent.
 
@@ -115,6 +120,6 @@ A crash between a successful client reannounce and saving its completion may rep
 
 ### HDSKY run logs
 
-Each run ends with scanned, matching, managed, historical, invalid and failed counts, plus duration. Detailed entries identify the instance name, torrent name and hash. The script logs initial management, stage transitions, drift corrections, accepted reannounce requests, baseline counters and timing, and the first ratio-limit trigger with uploaded bytes, baseline, delta, torrent size and calculated ratio. A successful reannounce request does not confirm tracker accounting.
+Each run ends with scanned, matching, managed (including historical), historical total-counter mode, invalid and failed counts, plus duration. Detailed entries identify the instance name, torrent name and hash. The script logs initial management, stage transitions, drift corrections, accepted reannounce requests, baseline counters and timing, and the first ratio-limit trigger with uploaded bytes, baseline, delta, torrent size and calculated ratio. A successful reannounce request does not confirm tracker accounting.
 
 Unchanged torrents do not produce per-torrent entries. Skip reasons are recorded once per torrent identity and reason in separate log metadata; this never creates a management baseline for historical torrents. Errors are recorded on every failed attempt. Stage success is logged only after all required limit/tag calls succeed; partial actions are not rolled back. Preview messages are marked as dry run and do not claim real client changes.

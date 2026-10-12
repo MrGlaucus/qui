@@ -327,7 +327,7 @@
     "interval": "執行間隔（秒；0 為手動）",
     "timeout": "逾時（秒）",
     "runAt": "單次執行時間（選填）",
-    "hdskyHint": "選擇 HDSKY 執行個體，將 tracker_domains 設定為完整 Tracker 網域陣列。缺少基準的歷史種子會略過；需在種子滿 60 分鐘 1 秒前啟用任務。避免其他規則同時修改限速。",
+    "hdskyHint": "HDSKY：请选择实例和作用 Tracker；参数可保持 {}。60 分 1 秒至未满 62 分钟可补采基准；满 62 分钟仍无基准按总上传量／种子体积 ≥ 4 限速；有基准按增量分享率 > 3.1，满 72 小时解除。",
     "permissions": "SDK 操作權限",
     "historyHint": "顯示最近 100 次執行，保留 30 天。時間使用瀏覽器所在時區。",
     "cancelRun": "停止目前執行",
@@ -356,7 +356,7 @@
       "intro": "from qui import ctx。instance_id 为整数实例 ID，torrent_hash 为种子哈希字符串。所有操作仅限任务所选启用实例；查询默认允许，写操作须授予对应权限。返回 None 的操作只表示调用完成，后续状态请重新查询。",
       "search": "搜索接口或说明",
       "context": "上下文与执行约定",
-      "contextBody": "ctx.params：任务 JSON 参数；ctx.task_id：任务 ID；ctx.dry_run：是否试运行。SDK 错误抛出 RuntimeError。试运行不修改客户端、不发送通知，但读取仍是真实数据，后续读取不会反映模拟写入。Python 自行执行的文件/网络操作不受试运行保护。时间均为 Unix 秒，字节采用 B，2 MiB/s = 2×1024×1024 B/s。每次调用只操作一个种子，批量操作请循环。",
+      "contextBody": "ctx.params：任务 JSON 参数；ctx.task_id：任务 ID；ctx.dry_run：是否试运行。SDK 错误抛出 RuntimeError。试运行不修改客户端、不发送通知，但读取仍是真实数据，后续读取不会反映模拟写入。Python 自行执行的文件/网络操作不受试运行保护。时间均为 Unix 秒，字节采用 B，2 MiB/s = 2×1024×1024 B/s。每次调用只操作一个种子，批量操作请循环。 ctx.tracker_domains：下拉框选中的域名列表；自定义脚本需自行使用它筛选种子，SDK 不会自动限制到这些 Tracker。",
       "fields": "返回字段说明",
       "fieldsBody": "instance / instances：id（整数）、name（名称）、country_code（国家代码）、is_active（是否启用）、has_local_filesystem_access（本地文件访问能力）、daily_traffic_enabled（每日流量统计开关）。不暴露账号、密码或客户端连接地址。\n\ntorrent / torrents：hash、name、category、tags（逗号分隔字符串）、state（qBittorrent 状态字符串）、save_path、content_path；added_on、completion_on、last_activity（Unix 秒）；size（选中文件大小）、total_size（整个种子大小）、amount_left（剩余字节）、uploaded、downloaded（字节）；upspeed、dlspeed、up_limit、dl_limit（B/s）；progress（0–1）、ratio（客户端上传量/下载量）、seeding_time（做种秒数）、time_active（活动秒数）、num_seeds、num_leechs（已连接的做种/下载端数量）；tracker_hosts（域名列表）、trackers_complete（是否包含完整 Tracker 列表）。不完整时调用 trackers()。-1 等特殊值保留客户端未知/不限速语义。\n\ntransfer：connection_status（连接状态）、dht_nodes、dl_info_data / up_info_data（下载/上传字节计数）、dl_info_speed / up_info_speed（速度）、dl_rate_limit / up_rate_limit（全局限速），速度及限速单位 B/s。\n\nproperties：addition_date、completion_date、creation_date、last_seen（Unix 秒）；total_size、total_uploaded、total_downloaded、total_uploaded_session、total_downloaded_session、total_wasted、piece_size（字节）；up_speed、dl_speed、up_speed_avg、dl_speed_avg、up_limit、dl_limit（B/s）；share_ratio（上传/下载分享率）、seeding_time、time_elapsed、eta、reannounce（秒）；pieces_have、pieces_num（分片数）、nb_connections、nb_connections_limit（连接数/上限）、peers、peers_total、seeds、seeds_total；name、hash、infohash_v1、infohash_v2、save_path、download_path、comment、created_by、is_private。部分字段取决于客户端版本。\n\nfiles：index（文件索引）、name（种子内相对路径）、size（字节）、progress（0–1）、priority（优先级）、availability（可用性）、piece_range（分片范围）、is_seed（可选）。categories：{分类名: {name, savePath}}。旧客户端可能返回 None，遍历时用 or [] / or {} 处理。",
       "example": "示例：遍历实例、限速、标签与上传增量计算",
@@ -508,6 +508,10 @@
           "description": "获取当前 Unix 秒 / 写入本次运行日志。每次运行最多保留 256 KiB 日志。"
         }
       ]
-    }
+    },
+    "trackers": "作用 Tracker",
+    "trackersPlaceholder": "請選擇 Tracker",
+    "trackersHelp": "選項來自所選實例的種子 Tracker。選擇聚合站點會包含它的全部網域。HDSKY 必須選擇；自訂腳本透過 ctx.tracker_domains 讀取並自行篩選。",
+    "trackersError": "部分 Tracker 清單載入失敗，已保留原有選擇。"
   }
 }

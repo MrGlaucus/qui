@@ -333,7 +333,7 @@
     "interval": "Interval (seconds; 0 = manual)",
     "timeout": "Timeout (seconds)",
     "runAt": "One-shot time (optional)",
-    "hdskyHint": "Select HDSKY instances and set tracker_domains to an array of exact tracker hostnames. Historical torrents without a baseline are skipped. Keep this task enabled before torrents reach 60m1s. Avoid other rules changing their limits.",
+    "hdskyHint": "HDSKY: select instances and target trackers; parameters may remain {}. Capture a missing baseline from 60m1s until before 62m. At 62m without a baseline, use uploaded / total size >= 4; with a baseline, use delta ratio > 3.1. Release at 72h.",
     "permissions": "SDK permissions",
     "historyHint": "Latest 100 runs; retained for 30 days. Times are displayed in your browser’s timezone.",
     "cancelRun": "Cancel running task",
@@ -362,7 +362,7 @@
       "intro": "Import with from qui import ctx. instance_id is an integer; torrent_hash is a string. Access is restricted to selected active instances. Reads are allowed; writes require the listed permission. A None result acknowledges the call; query again to inspect subsequent state.",
       "search": "Search methods or descriptions",
       "context": "Context and execution",
-      "contextBody": "ctx.params: task JSON parameters; ctx.task_id: task ID; ctx.dry_run: preview flag. SDK errors raise RuntimeError. Dry runs perform real reads but skip client writes and notifications; later reads do not reflect simulated writes. Direct Python file/network operations are not protected by dry run. Times are Unix seconds; counters use bytes. 2 MiB/s = 2×1024×1024 B/s. Torrent mutations affect one hash; loop for batches.",
+      "contextBody": "ctx.params: task JSON parameters; ctx.task_id: task ID; ctx.dry_run: preview flag. SDK errors raise RuntimeError. Dry runs perform real reads but skip client writes and notifications; later reads do not reflect simulated writes. Direct Python file/network operations are not protected by dry run. Times are Unix seconds; counters use bytes. 2 MiB/s = 2×1024×1024 B/s. Torrent mutations affect one hash; loop for batches. ctx.tracker_domains: domains selected in the tracker dropdown. Custom scripts must apply this filter themselves; the SDK does not enforce tracker scope.",
       "fields": "Return fields",
       "fieldsBody": "instance / instances: id (int), name (str), country_code (str), is_active (bool), has_local_filesystem_access (bool), daily_traffic_enabled (bool). Credentials and client URLs are not exposed.\n\ntorrent / torrents: hash, name, category, tags (comma-separated string), state (qBittorrent state string), save_path, content_path; added_on, completion_on, last_activity (Unix seconds); size (selected size), total_size (entire torrent), amount_left, uploaded, downloaded (bytes); upspeed, dlspeed, up_limit, dl_limit (B/s); progress (0–1), ratio (client upload/download ratio), seeding_time, time_active (seconds), num_seeds, num_leechs (connected peers); tracker_hosts (list[str]), trackers_complete (bool). If trackers_complete is false, use trackers(). Values such as -1 retain the client's unknown/unlimited sentinel semantics.\n\ntransfer: connection_status, dht_nodes, dl_info_data, up_info_data (bytes), dl_info_speed, up_info_speed, dl_rate_limit, up_rate_limit (B/s).\n\nproperties: addition_date, completion_date, creation_date, last_seen (Unix seconds); total_size, total_uploaded, total_downloaded, total_uploaded_session, total_downloaded_session, total_wasted, piece_size (bytes); up_speed, dl_speed, up_speed_avg, dl_speed_avg, up_limit, dl_limit (B/s); share_ratio, seeding_time, time_elapsed, eta, reannounce (seconds except share_ratio); pieces_have, pieces_num, nb_connections, nb_connections_limit, peers, peers_total, seeds, seeds_total; name, hash, infohash_v1, infohash_v2, save_path, download_path, comment, created_by, is_private. Some fields depend on client version.\n\nfiles: index, name (torrent-relative path), size (bytes), progress (0–1), priority, availability, piece_range, is_seed (optional). categories: {name: {name, savePath}}. Empty collections may be None when supplied by an older client; iterate with “or []” / “or {}”.",
       "example": "Example: instances, limits, tags and upload delta",
@@ -514,6 +514,10 @@
           "description": "Current Unix seconds / append text to the run log. Logs are capped at 256 KiB per run."
         }
       ]
-    }
+    },
+    "trackers": "Target trackers",
+    "trackersPlaceholder": "Select trackers",
+    "trackersHelp": "Options come from torrents on the selected instances. A merged site selects all its domains. HDSKY requires a selection. Custom scripts read ctx.tracker_domains and implement their own filtering.",
+    "trackersError": "Some tracker lists could not be loaded. Existing selections are preserved."
   }
 }
