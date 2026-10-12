@@ -134,6 +134,7 @@ func (c *AppConfig) defaults() {
 	c.viper.SetDefault("metricsPort", 9074)
 	c.viper.SetDefault("metricsBasicAuthUsers", "")
 	c.viper.SetDefault("externalProgramAllowList", []string{})
+	c.viper.SetDefault("scriptPythonPath", "python3")
 
 	// Auth disabled
 	c.viper.SetDefault("authDisabled", false)
@@ -363,6 +364,7 @@ func (c *AppConfig) hydrateConfigFromViper() {
 	c.Config.MetricsPort = c.viper.GetInt("metricsPort")
 	c.Config.MetricsBasicAuthUsers = c.viper.GetString("metricsBasicAuthUsers")
 
+	c.Config.ScriptPythonPath = c.viper.GetString("scriptPythonPath")
 	c.Config.ExternalProgramAllowList = c.getNormalizedStringSlice("externalProgramAllowList")
 
 	c.Config.AuthDisabled = c.viper.GetBool("authDisabled")

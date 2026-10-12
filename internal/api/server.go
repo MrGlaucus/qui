@@ -42,6 +42,7 @@ import (
 	"github.com/autobrr/qui/internal/services/notifications"
 	"github.com/autobrr/qui/internal/services/orphanscan"
 	"github.com/autobrr/qui/internal/services/reannounce"
+	"github.com/autobrr/qui/internal/services/scripttasks"
 	"github.com/autobrr/qui/internal/services/trackericons"
 	"github.com/autobrr/qui/internal/update"
 	"github.com/autobrr/qui/internal/web"
@@ -51,11 +52,12 @@ import (
 )
 
 type Server struct {
-	server  *http.Server
-	logger  zerolog.Logger
-	config  *config.AppConfig
-	version string
-	started time.Time
+	scriptTasks *scripttasks.Service
+	server      *http.Server
+	logger      zerolog.Logger
+	config      *config.AppConfig
+	version     string
+	started     time.Time
 
 	authService                      *auth.Service
 	sessionManager                   *scs.SessionManager
@@ -106,6 +108,7 @@ type Server struct {
 }
 
 type Dependencies struct {
+	ScriptTasks                      *scripttasks.Service
 	Config                           *config.AppConfig
 	Version                          string
 	AuthService                      *auth.Service
@@ -208,6 +211,7 @@ func NewServer(deps *Dependencies) *Server {
 		instanceReannounce:               deps.InstanceReannounce,
 		clientAPIKeyStore:                deps.ClientAPIKeyStore,
 		externalProgramStore:             deps.ExternalProgramStore,
+		scriptTasks:                      deps.ScriptTasks,
 		externalProgramService:           deps.ExternalProgramService,
 		reannounceCache:                  deps.ReannounceCache,
 		clientPool:                       deps.ClientPool,
@@ -488,6 +492,9 @@ func (s *Server) Handler() (*chi.Mux, error) {
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware)
 
+			if s.scriptTasks != nil {
+				r.Route("/script-tasks", handlers.NewScriptTasksHandler(s.scriptTasks).Routes)
+			}
 			r.Get("/tracker-icons", trackerIconHandler.GetTrackerIcons)
 
 			// Auth routes

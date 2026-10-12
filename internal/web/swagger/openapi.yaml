@@ -18,6 +18,139 @@ security:
   - SessionAuth: []
 
 paths:
+  /api/script-tasks/:
+    get:
+      tags: [Script tasks]
+      summary: List scripts, tasks and Python runtime availability
+      responses:
+        '200':
+          description: Script task overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scripts: {type: array, items: {$ref: '#/components/schemas/ScriptDefinition'}}
+                  tasks: {type: array, items: {$ref: '#/components/schemas/ScriptTask'}}
+                  python_available: {type: boolean}
+  /api/script-tasks/scripts:
+    post:
+      tags: [Script tasks]
+      summary: Create or update a trusted Python script; built-ins are read-only
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ScriptDefinition'}
+      responses:
+        '200':
+          description: Saved item
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ScriptDefinition'}
+        '400': {description: Invalid input or operation not allowed}
+  /api/script-tasks/scripts/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    delete:
+      tags: [Script tasks]
+      summary: Delete item; deleting a task removes state and history
+      responses:
+        '200': {description: Deleted}
+        '400': {description: Item is in use or protected}
+  /api/script-tasks/tasks:
+    post:
+      tags: [Script tasks]
+      summary: Create or update a task; running tasks cannot be edited
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ScriptTask'}
+      responses:
+        '200':
+          description: Saved item
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ScriptTask'}
+        '400': {description: Invalid input or operation not allowed}
+  /api/script-tasks/tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    delete:
+      tags: [Script tasks]
+      summary: Delete item; deleting a task removes state and history
+      responses:
+        '200': {description: Deleted}
+        '400': {description: Item is in use or protected}
+  /api/script-tasks/tasks/{id}/run:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    post:
+      tags: [Script tasks]
+      summary: Start a task asynchronously, including disabled tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dry_run: {type: boolean, default: false}
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScriptTaskRun'
+        '400': {description: Task is unavailable, already running or Python is unavailable}
+  /api/script-tasks/tasks/{id}/cancel:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    post:
+      tags: [Script tasks]
+      summary: Cancel the active execution
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  canceled: {type: boolean}
+        '400': {description: Task is unavailable, already running or Python is unavailable}
+  /api/script-tasks/tasks/{id}/runs:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: {type: string}
+    get:
+      tags: [Script tasks]
+      summary: List the latest 100 executions
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: '#/components/schemas/ScriptTaskRun'}
+        '400': {description: Task is unavailable, already running or Python is unavailable}
   /api/instances/{instanceID}/automations/{ruleID}/sync:
     parameters:
       - name: instanceID
@@ -6393,6 +6526,44 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
+    ScriptDefinition:
+      type: object
+      required: [name, code, parameters]
+      properties:
+        id: {type: string, description: Omit or send empty to create}
+        name: {type: string}
+        description: {type: string}
+        code: {type: string, maxLength: 1048576}
+        parameters: {type: object, additionalProperties: true, description: Default task parameters}
+        builtin: {type: boolean, readOnly: true}
+    ScriptTask:
+      type: object
+      required: [name, script_id, parameters, timeout_seconds]
+      properties:
+        id: {type: string, description: Omit or send empty to create}
+        name: {type: string}
+        script_id: {type: string}
+        enabled: {type: boolean, default: false}
+        instance_ids: {type: array, items: {type: integer}}
+        all_instances: {type: boolean, default: false}
+        parameters: {type: object, additionalProperties: true}
+        interval_seconds: {type: integer, minimum: 0, maximum: 86400, description: Zero means manual unless run_at is set}
+        timeout_seconds: {type: integer, minimum: 1, maximum: 3600}
+        run_at: {type: integer, format: int64, minimum: 0, description: One-shot Unix timestamp; mutually exclusive with interval}
+        permissions:
+          type: array
+          items: {type: string, enum: [limits, tags, categories, recheck, reannounce, pause_resume, delete, notify]}
+        next_run: {type: integer, format: int64, readOnly: true}
+    ScriptTaskRun:
+      type: object
+      properties:
+        id: {type: string}
+        task_id: {type: string}
+        started_at: {type: integer, format: int64}
+        finished_at: {type: integer, format: int64}
+        status: {type: string, enum: [running, success, failed, canceled, timeout]}
+        dry_run: {type: boolean}
+        log: {type: string}
     AutomationInput:
       type: object
       required: [name, conditions]

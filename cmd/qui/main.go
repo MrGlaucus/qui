@@ -50,6 +50,7 @@ import (
 	"github.com/autobrr/qui/internal/services/notifications"
 	"github.com/autobrr/qui/internal/services/orphanscan"
 	"github.com/autobrr/qui/internal/services/reannounce"
+	"github.com/autobrr/qui/internal/services/scripttasks"
 	"github.com/autobrr/qui/internal/services/trackericons"
 	"github.com/autobrr/qui/internal/update"
 	"github.com/autobrr/qui/pkg/sqlite3store"
@@ -768,6 +769,12 @@ func (app *Application) runServer() {
 	automationService.SetTimezone(timezoneProvider)
 	notificationService.SetLanguage(clientSettingsLanguage(clientSettingsStore))
 
+	scriptTaskService := scripttasks.NewService(models.NewScriptTaskStore(db), instanceStore, syncManager, notificationService, cfg.Config.ScriptPythonPath)
+	if err := scriptTaskService.Start(); err != nil {
+		log.Fatal().Err(err).Msg("Start script tasks")
+	}
+	defer scriptTaskService.Close()
+
 	orphanScanStore := models.NewOrphanScanStore(db)
 	orphanScanService := orphanscan.NewService(orphanscan.DefaultConfig(), instanceStore, orphanScanStore, syncManager, notificationService, backendPool)
 	orphanScanService.SetActivityPublisher(activityHub)
@@ -890,6 +897,7 @@ func (app *Application) runServer() {
 		ReannounceService:                reannounceService,
 		ClientAPIKeyStore:                clientAPIKeyStore,
 		ExternalProgramStore:             externalProgramStore,
+		ScriptTasks:                      scriptTaskService,
 		ExternalProgramService:           externalProgramService,
 		ClientPool:                       clientPool,
 		SyncManager:                      syncManager,

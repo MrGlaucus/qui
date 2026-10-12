@@ -79,7 +79,7 @@ ENV HOME="/config" \
 # ca-certificates: TLS connections to qBittorrent, trackers, update checks
 # tzdata: timezone display in logs and UI
 # su-exec: privilege drop in the entrypoint when PUID/PGID are set
-RUN apk --no-cache add ca-certificates curl tzdata bash su-exec
+RUN apk --no-cache add ca-certificates curl tzdata bash su-exec python3
 
 WORKDIR /config
 
