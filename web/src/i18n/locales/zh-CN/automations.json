@@ -517,7 +517,7 @@
     },
     "trackers": "作用 Tracker",
     "trackersPlaceholder": "请选择 Tracker",
-    "trackersHelp": "选项来自所选实例的种子 Tracker。选择聚合站点会包含它的全部域名。HDSKY 必须选择；自定义脚本通过 ctx.tracker_domains 读取并自行筛选。",
+    "trackersHelp": "选项包含所选实例的当前 Tracker，以及仪表盘记录的全局历史 Tracker。选择聚合站点会包含它的全部域名。HDSKY 必须选择；自定义脚本通过 ctx.tracker_domains 读取并自行筛选。",
     "trackersError": "部分 Tracker 列表加载失败，已保留原有选择。"
   }
 }

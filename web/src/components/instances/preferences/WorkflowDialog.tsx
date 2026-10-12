@@ -1,3 +1,4 @@
+import { useHistoricalTrackers } from "@/hooks/useHistoricalTrackers"
 /*
  * Copyright (c) 2025-2026, s0up and the autobrr contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
@@ -714,6 +715,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
     }
   }, [dryRunPromptKey, rule?.id])
 
+  const historicalTrackersQuery = useHistoricalTrackers(open)
   const trackersQuery = useInstanceTrackers(instanceId, { enabled: open })
   const indexerTrackerDomainsQuery = useIndexerTrackerDomains({ enabled: open })
   const { data: trackerCustomizations } = useTrackerCustomizations()
@@ -871,6 +873,10 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
       addTracker(tracker)
     }
 
+    for (const domain of historicalTrackersQuery.data ?? []) {
+      addTracker(domain)
+    }
+
     // Add trackers configured in qui's indexers, so they remain selectable even
     // when no torrent on this instance currently uses them.
     for (const domain of indexerTrackerDomainsQuery.data ?? []) {
@@ -897,7 +903,7 @@ export function WorkflowDialog({ open, onOpenChange, instanceId, rule, onSuccess
       value: option.value,
       icon: option.icon,
     }))
-  }, [trackersQuery.data, indexerTrackerDomainsQuery.data, trackerCustomizationMaps, trackerIcons, rule, t])
+  }, [trackersQuery.data, historicalTrackersQuery.data, indexerTrackerDomainsQuery.data, trackerCustomizationMaps, trackerIcons, rule, t])
 
   // Map individual domains to merged option values
   const mapDomainsToOptionValues = useMemo(() => {

@@ -512,7 +512,7 @@
     },
     "trackers": "Target trackers",
     "trackersPlaceholder": "Select trackers",
-    "trackersHelp": "Options come from torrents on the selected instances. A merged site selects all its domains. HDSKY requires a selection. Custom scripts read ctx.tracker_domains and implement their own filtering.",
+    "trackersHelp": "선택한 인스턴스의 현재 Tracker와 대시보드에 기록된 전체 Tracker 기록을 포함합니다. A merged site selects all its domains. HDSKY requires a selection. Custom scripts read ctx.tracker_domains and implement their own filtering.",
     "trackersError": "Some tracker lists could not be loaded. Existing selections are preserved."
   }
 }

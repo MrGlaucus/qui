@@ -1,3 +1,4 @@
+import { useHistoricalTrackers } from "@/hooks/useHistoricalTrackers"
 import { useQuery } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import { MultiSelect, type Option } from "@/components/ui/multi-select"
@@ -11,6 +12,7 @@ export function ScriptTrackerSelect({ instanceIds, selected, onChange }: {
   onChange: (domains: string[]) => void
 }) {
   const { t } = useTranslation("automations")
+  const history = useHistoricalTrackers(instanceIds.length > 0)
   const customizations = useTrackerCustomizations()
   const trackers = useQuery({
     queryKey: ["script-task-trackers", instanceIds],
@@ -26,7 +28,7 @@ export function ScriptTrackerSelect({ instanceIds, selected, onChange }: {
   })
   const { domainToCustomization } = buildTrackerCustomizationMaps(customizations.data)
   const options = new Map<string, Option>()
-  for (const domain of [...(trackers.data?.domains ?? []), ...selected]) {
+  for (const domain of [...(trackers.data?.domains ?? []), ...(history.data ?? []), ...selected]) {
     const custom = domainToCustomization.get(domain.toLowerCase())
     const value = custom?.domains.join(",") ?? domain
     options.set(value, { value, label: custom?.displayName ?? domain })
@@ -41,6 +43,6 @@ export function ScriptTrackerSelect({ instanceIds, selected, onChange }: {
     <MultiSelect title={t("scripts.trackers")} options={[...options.values()].sort((a, b) => a.label.localeCompare(b.label))} selected={values}
       onChange={next => onChange([...new Set(next.flatMap(value => value.split(",")))])}
       placeholder={t("scripts.trackersPlaceholder")} disabled={instanceIds.length === 0} />
-    {(trackers.data?.failed || trackers.isError || customizations.isError) && <p role="alert" className="text-sm text-destructive">{t("scripts.trackersError")}</p>}
+    {(trackers.data?.failed || trackers.isError || history.isError || customizations.isError) && <p role="alert" className="text-sm text-destructive">{t("scripts.trackersError")}</p>}
   </div>
 }

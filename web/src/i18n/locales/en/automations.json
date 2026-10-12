@@ -517,7 +517,7 @@
     },
     "trackers": "Target trackers",
     "trackersPlaceholder": "Select trackers",
-    "trackersHelp": "Options come from torrents on the selected instances. A merged site selects all its domains. HDSKY requires a selection. Custom scripts read ctx.tracker_domains and implement their own filtering.",
+    "trackersHelp": "Options include current trackers from the selected instances and global tracker history from the dashboard. A merged site selects all its domains. HDSKY requires a selection. Custom scripts read ctx.tracker_domains and implement their own filtering.",
     "trackersError": "Some tracker lists could not be loaded. Existing selections are preserved."
   }
 }

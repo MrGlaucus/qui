@@ -511,7 +511,7 @@
     },
     "trackers": "作用 Tracker",
     "trackersPlaceholder": "請選擇 Tracker",
-    "trackersHelp": "選項來自所選實例的種子 Tracker。選擇聚合站點會包含它的全部網域。HDSKY 必須選擇；自訂腳本透過 ctx.tracker_domains 讀取並自行篩選。",
+    "trackersHelp": "選項包含所選實例的目前 Tracker，以及儀表板記錄的全域歷史 Tracker。選擇聚合站點會包含它的全部網域。HDSKY 必須選擇；自訂腳本透過 ctx.tracker_domains 讀取並自行篩選。",
     "trackersError": "部分 Tracker 清單載入失敗，已保留原有選擇。"
   }
 }

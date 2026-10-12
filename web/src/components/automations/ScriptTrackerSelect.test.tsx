@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { ScriptTrackerSelect } from "./ScriptTrackerSelect"
 
+vi.mock("@/hooks/useHistoricalTrackers", () => ({ useHistoricalTrackers: () => ({ data: ["history.example.test"] }) }))
 vi.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: { domains: ["a.example.test"], failed: false } }) }))
 vi.mock("@/hooks/useTrackerCustomizations", async importOriginal => {
@@ -20,6 +21,12 @@ describe("Script tracker selection", () => {
     render(<ScriptTrackerSelect instanceIds={[1]} selected={["a.example.test", "old.example.test"]} onChange={vi.fn()} />)
     expect(JSON.parse(screen.getByRole("status").textContent ?? "[]")).toEqual(["a.example.test", "old.example.test"])
     expect(screen.getByText("old.example.test")).not.toBeNull()
+  })
+  it("offers historical trackers with no current torrents or saved selection", () => {
+    const onChange = vi.fn()
+    render(<ScriptTrackerSelect instanceIds={[1]} selected={[]} onChange={onChange} />)
+    fireEvent.click(screen.getByText("history.example.test"))
+    expect(onChange).toHaveBeenCalledWith(["history.example.test"])
   })
   it("expands a selected merged site into individual domains", () => {
     const onChange = vi.fn()

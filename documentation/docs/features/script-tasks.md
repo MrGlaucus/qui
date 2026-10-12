@@ -88,7 +88,7 @@ SDK errors raise `RuntimeError`. Read operations are scoped to selected active i
 
 ## HDSKY built-in rule
 
-The built-in script is read-only; copy it to customize its code. Create a task, select the intended clients and choose **Target trackers** from the searchable multi-select. Options use active torrent trackers from the selected clients and QUI's site names and merged domains. Selecting a merged site includes all its domains. Saved domains remain visible when no torrents currently use them. An empty selection is not allowed for HDSKY.
+The built-in script is read-only; copy it to customize its code. Create a task, select the intended clients and choose **Target trackers** from the searchable multi-select. Options combine active torrent trackers from the selected clients with global persisted tracker history from the dashboard, using QUI's site names and merged domains. Workflow tracker selection also includes this history. History is limited to domains previously recorded by QUI. Selecting a merged site includes all its domains. Saved domains remain visible when no torrents currently use them. An empty selection is not allowed for HDSKY.
 
 The JSON parameters may remain `{}`. Existing HDSKY tasks automatically move their legacy `parameters.tracker_domains` selection into the task's dedicated field on startup, preserving other parameters, schedule and baseline state. Existing partial domain selections are not expanded automatically.
 
