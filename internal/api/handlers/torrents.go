@@ -27,6 +27,7 @@ import (
 
 	"github.com/autobrr/qui/internal/models"
 	"github.com/autobrr/qui/internal/qbittorrent"
+	"github.com/autobrr/qui/internal/services/automations"
 	"github.com/autobrr/qui/internal/services/jackett"
 	"github.com/autobrr/qui/pkg/redact"
 	"github.com/autobrr/qui/pkg/torrentname"
@@ -1145,6 +1146,8 @@ func torrentURLAddFailureError(resp *qbt.TorrentAddResponse) error {
 
 // BulkActionRequest represents a bulk action request
 type BulkActionRequest struct {
+	PreserveCrossSeeds       bool                       `json:"preserveCrossSeeds,omitempty"`
+	PreviewOnly              bool                       `json:"previewOnly,omitempty"`
 	Hashes                   []string                   `json:"hashes"`
 	Targets                  []BulkActionTarget         `json:"targets,omitempty"` // Optional explicit instance/hash targets (used by unified view)
 	Action                   string                     `json:"action"`
@@ -1573,6 +1576,48 @@ func (h *TorrentsHandler) BulkAction(w http.ResponseWriter, r *http.Request) {
 	}
 	slices.Sort(targetInstanceIDs)
 
+	if req.PreserveCrossSeeds {
+		plans := make(map[int]preservingDeletePlan, len(targetInstanceIDs))
+		summary := preservingDeleteSummary{}
+		// Resolve every instance before making any changes.
+		for _, targetInstanceID := range targetInstanceIDs {
+			plan, err := h.planPreservingDeletion(r.Context(), targetInstanceID, targetsByInstance[targetInstanceID])
+			if err != nil {
+				log.Error().Err(err).Int("instanceID", targetInstanceID).Msg("Failed to plan preserving deletion")
+				RespondError(w, http.StatusInternalServerError, "Failed to check shared files; no torrents deleted")
+				return
+			}
+			plans[targetInstanceID] = plan
+			summary.KeepFiles += len(plan.keepFiles)
+			summary.DeleteFiles += len(plan.deleteFiles)
+		}
+		if req.PreviewOnly {
+			RespondJSON(w, http.StatusOK, summary)
+			return
+		}
+		for _, targetInstanceID := range targetInstanceIDs {
+			plan := plans[targetInstanceID]
+			// Remove protected tasks first; a failed removal never advances to deleting files.
+			for _, batch := range []struct {
+				hashes []string
+				action string
+			}{
+				{plan.keepFiles, "delete"}, {plan.deleteFiles, "deleteWithFiles"},
+			} {
+				if len(batch.hashes) == 0 {
+					continue
+				}
+				if err := h.syncManager.BulkAction(r.Context(), targetInstanceID, batch.hashes, batch.action); err != nil {
+					log.Error().Err(err).Int("instanceID", targetInstanceID).Msg("Preserving deletion failed")
+					RespondError(w, http.StatusInternalServerError, "Failed to delete torrents; some tasks may already have been removed")
+					return
+				}
+			}
+		}
+		RespondJSON(w, http.StatusOK, summary)
+		return
+	}
+
 	for _, targetInstanceID := range targetInstanceIDs {
 		hashes := targetsByInstance[targetInstanceID]
 		if len(hashes) == 0 {
@@ -1823,6 +1868,12 @@ func flattenTargetHashes(targetsByInstance map[int][]string) []string {
 }
 
 func validateBulkActionRequest(req BulkActionRequest) error {
+	if (req.PreserveCrossSeeds || req.PreviewOnly) && req.Action != "delete" {
+		return errors.New("preserveCrossSeeds and previewOnly require delete action")
+	}
+	if req.PreviewOnly && !req.PreserveCrossSeeds {
+		return errors.New("previewOnly requires preserveCrossSeeds")
+	}
 	switch req.Action {
 	case "addTags", "removeTags":
 		if strings.TrimSpace(req.Tags) == "" {
@@ -3700,4 +3751,26 @@ func (h *TorrentsHandler) GetContentPathMediaInfo(w http.ResponseWriter, r *http
 		SummaryTxt:    summaryTxt,
 		MediaInfoJSON: json.RawMessage(rawJSON),
 	})
+}
+
+// Counts describe selected torrent tasks, not distinct files or bytes.
+type preservingDeleteSummary struct {
+	KeepFiles   int `json:"keepFiles"`
+	DeleteFiles int `json:"deleteFiles"`
+}
+type preservingDeletePlan struct{ keepFiles, deleteFiles []string }
+
+func (h *TorrentsHandler) planPreservingDeletion(ctx context.Context, instanceID int, hashes []string) (preservingDeletePlan, error) {
+	client, err := h.syncManager.GetClient(ctx, instanceID)
+	if err != nil {
+		return preservingDeletePlan{}, err
+	}
+	torrents, err := client.GetTorrentsCtx(ctx, qbt.TorrentFilterOptions{})
+	if err != nil {
+		return preservingDeletePlan{}, err
+	}
+	keep, remove, err := automations.PlanPreservingCrossSeeds(torrents, hashes, func(hashes []string) (map[string]qbt.TorrentFiles, error) {
+		return h.syncManager.GetTorrentFilesBatch(ctx, instanceID, hashes)
+	})
+	return preservingDeletePlan{keepFiles: keep, deleteFiles: remove}, err
 }

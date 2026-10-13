@@ -1972,6 +1972,12 @@ paths:
                     - addTrackers
                     - removeTrackers
                     - toggleSequentialDownload
+                preserveCrossSeeds:
+                  type: boolean
+                  description: For delete only. Preserve files needed by unselected torrents, delete files otherwise. Takes precedence over deleteFiles; checks the complete selection per instance.
+                previewOnly:
+                  type: boolean
+                  description: Requires delete and preserveCrossSeeds. Return keepFiles and deleteFiles task counts without deleting anything; execution recomputes the plan.
                 deleteFiles:
                   type: boolean
                   description: Only for delete action
@@ -2027,7 +2033,18 @@ paths:
                   description: Newline-separated tracker URLs for addTrackers/removeTrackers actions.
       responses:
         '200':
-          description: Action performed successfully
+          description: Action performed successfully. Preserving deletion and its preview return task counts; other actions return their existing success response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keepFiles:
+                    type: integer
+                    description: Selected torrent tasks whose files are preserved.
+                  deleteFiles:
+                    type: integer
+                    description: Selected torrent tasks whose files are deleted.
 
   /api/instances/{instanceID}/torrents/field:
     post:

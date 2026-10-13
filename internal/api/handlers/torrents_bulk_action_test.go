@@ -27,6 +27,11 @@ func TestValidateBulkActionRequest(t *testing.T) {
 		req       BulkActionRequest
 		shouldErr bool
 	}{
+		{name: "preserving delete", req: BulkActionRequest{Action: "delete", PreserveCrossSeeds: true}},
+		{name: "preview preserving delete", req: BulkActionRequest{Action: "delete", PreserveCrossSeeds: true, PreviewOnly: true}},
+		{name: "preview must preserve", req: BulkActionRequest{Action: "delete", PreviewOnly: true}, shouldErr: true},
+		{name: "preview cannot pause", req: BulkActionRequest{Action: "pause", PreviewOnly: true, PreserveCrossSeeds: true}, shouldErr: true},
+		{name: "preserve cannot recheck", req: BulkActionRequest{Action: "recheck", PreserveCrossSeeds: true}, shouldErr: true},
 		{
 			name: "pause has no extra required params",
 			req: BulkActionRequest{
