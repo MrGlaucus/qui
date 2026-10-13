@@ -99,6 +99,25 @@
     }
   },
   "deleteDialog": {
+    "modeLabel": "Způsob odstranění",
+    "modes": {
+      "keep": {
+        "label": "Odstranit pouze torrenty",
+        "description": "Ponechat všechny soubory bez ohledu na ostatní torrenty."
+      },
+      "files": {
+        "label": "Odstranit torrenty a soubory",
+        "description": "Smazat soubory i tehdy, když je používají nevybrané torrenty."
+      },
+      "preserve": {
+        "label": "Odstranit (zachovat cross-seedy)",
+        "description": "Ponechat soubory potřebné nevybraným torrentům. Pokud jsou vybrány všechny, soubory smazat."
+      }
+    },
+    "planChecking": "Kontrola celého výběru…",
+    "planError": "Kontrola selhala. Zavřete a znovu otevřete dialog. Nic nebylo odstraněno.",
+    "planSummary": "Ponechat soubory pro {{keepFiles}} torrentů; smazat pro {{deleteFiles}} torrentů.",
+    "planRecheck": "Při nejasném sdílení se soubory ponechají. Server je před odstraněním znovu ověří.",
     "selectedTorrents": "Vybrané torrenty",
     "instanceFallback": "Instance {{id}}",
     "partialPreview": "Zobrazeno {{shown}} načtených torrentů z {{total}} vybraných. Odstraněno bude všech {{total}} vybraných torrentů.",

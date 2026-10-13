@@ -99,6 +99,25 @@
     }
   },
   "deleteDialog": {
+    "modeLabel": "삭제 방식",
+    "modes": {
+      "keep": {
+        "label": "토렌트만 삭제",
+        "description": "다른 토렌트의 사용 여부와 관계없이 모든 파일을 유지합니다."
+      },
+      "files": {
+        "label": "토렌트와 파일 삭제",
+        "description": "선택하지 않은 토렌트가 사용 중이어도 파일을 삭제합니다."
+      },
+      "preserve": {
+        "label": "삭제 (크로스 시드 보존)",
+        "description": "선택하지 않은 토렌트가 사용하는 파일은 유지합니다. 관련 토렌트를 모두 선택하면 파일도 삭제합니다."
+      }
+    },
+    "planChecking": "전체 선택 항목 확인 중…",
+    "planError": "확인에 실패했습니다. 창을 닫고 다시 열어 주세요. 삭제된 항목은 없습니다.",
+    "planSummary": "{{keepFiles}}개 토렌트의 파일 유지; {{deleteFiles}}개 토렌트의 파일 삭제.",
+    "planRecheck": "공유 여부가 불확실하면 파일을 유지합니다. 삭제 전 서버에서 다시 확인합니다.",
     "selectedTorrents": "선택한 토렌트",
     "instanceFallback": "인스턴스 {{id}}",
     "partialPreview": "선택한 {{total}}개 중 불러온 {{shown}}개를 표시합니다. 선택한 {{total}}개 토렌트가 모두 삭제됩니다.",

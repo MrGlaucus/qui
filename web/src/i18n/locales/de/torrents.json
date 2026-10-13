@@ -99,6 +99,25 @@
     }
   },
   "deleteDialog": {
+    "modeLabel": "Löschmodus",
+    "modes": {
+      "keep": {
+        "label": "Nur Torrents entfernen",
+        "description": "Alle Dateien behalten, unabhängig von anderen Torrents."
+      },
+      "files": {
+        "label": "Torrents und Dateien entfernen",
+        "description": "Dateien löschen, auch wenn nicht ausgewählte Torrents sie verwenden."
+      },
+      "preserve": {
+        "label": "Löschen (Cross-Seeds erhalten)",
+        "description": "Dateien für nicht ausgewählte Torrents behalten. Sind alle Nutzer ausgewählt, Dateien löschen."
+      }
+    },
+    "planChecking": "Gesamte Auswahl wird geprüft…",
+    "planError": "Prüfung fehlgeschlagen. Dialog schließen und erneut öffnen. Es wurde nichts gelöscht.",
+    "planSummary": "Dateien für {{keepFiles}} Torrents behalten; für {{deleteFiles}} Torrents löschen.",
+    "planRecheck": "Bei unklarer Dateifreigabe bleiben Dateien erhalten. Der Server prüft vor dem Löschen erneut.",
     "selectedTorrents": "Ausgewählte Torrents",
     "instanceFallback": "Instanz {{id}}",
     "partialPreview": "{{shown}} geladene von {{total}} ausgewählten Torrents werden angezeigt. Alle {{total}} ausgewählten Torrents werden gelöscht.",

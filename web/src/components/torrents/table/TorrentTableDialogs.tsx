@@ -86,6 +86,8 @@ export interface TorrentTableDialogsProps {
   isTransferPending: boolean
 
   // Delete-dialog options
+  preserveCrossSeeds?: boolean
+  setPreserveCrossSeeds?: (value: boolean) => void
   deleteFiles: boolean
   setDeleteFiles: Dispatch<SetStateAction<boolean>>
   isDeleteFilesLocked: boolean
@@ -184,6 +186,8 @@ export function TorrentTableDialogs({
   setShowTransferDialog,
   handleTransfer,
   isTransferPending,
+  preserveCrossSeeds,
+  setPreserveCrossSeeds,
   deleteFiles,
   setDeleteFiles,
   isDeleteFilesLocked,
@@ -279,6 +283,18 @@ export function TorrentTableDialogs({
         count={isAllSelected ? effectiveSelectionCount : contextHashes.length}
         totalSize={deleteDialogTotalSize}
         formattedSize={deleteDialogFormattedSize}
+        preserveCrossSeeds={preserveCrossSeeds}
+        onPreserveCrossSeedsChange={setPreserveCrossSeeds}
+        selectionRequest={{
+          hashes: isAllSelected ? [] : contextHashes,
+          targets: isAllSelected ? undefined : contextClientMeta.actionTargets,
+          instanceIds: isCrossInstanceEndpoint ? instanceIds : undefined,
+          selectAll: isAllSelected,
+          filters: isAllSelected ? normalizedSelectionFilters : undefined,
+          search: isAllSelected ? effectiveSearch : undefined,
+          excludeHashes: isAllSelected ? selectAllExcludeHashes : undefined,
+          excludeTargets: isAllSelected ? selectAllExcludedTargets : undefined,
+        }}
         deleteFiles={deleteFiles}
         onDeleteFilesChange={setDeleteFiles}
         isDeleteFilesLocked={isDeleteFilesLocked}

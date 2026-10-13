@@ -1127,6 +1127,7 @@ class ApiClient {
       targets?: Array<{ instanceId: number; hash: string }>
       action: "pause" | "resume" | "delete" | "recheck" | "reannounce" | "increasePriority" | "decreasePriority" | "topPriority" | "bottomPriority" | "setCategory" | "addTags" | "removeTags" | "setTags" | "setComment" | "toggleAutoTMM" | "forceStart" | "setShareLimit" | "setUploadLimit" | "setDownloadLimit" | "setLocation" | "editTrackers" | "addTrackers" | "removeTrackers" | "toggleSequentialDownload"
       deleteFiles?: boolean
+      preserveCrossSeeds?: boolean
       category?: string
       tags?: string  // Comma-separated tags string
       comment?: string  // For setComment action
@@ -1153,6 +1154,13 @@ class ApiClient {
     return this.request(`/instances/${instanceId}/torrents/bulk-action`, {
       method: "POST",
       body: JSON.stringify(data),
+    })
+  }
+
+  async previewTorrentDeletion(instanceId: number, data: Parameters<ApiClient["bulkAction"]>[1]): Promise<{ keepFiles: number; deleteFiles: number }> {
+    return this.request(`/instances/${instanceId}/torrents/bulk-action`, {
+      method: "POST",
+      body: JSON.stringify({ ...data, action: "delete", preserveCrossSeeds: true, previewOnly: true }),
     })
   }
 

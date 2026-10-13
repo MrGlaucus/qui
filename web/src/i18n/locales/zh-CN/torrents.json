@@ -100,6 +100,25 @@
     }
   },
   "deleteDialog": {
+    "modeLabel": "删除方式",
+    "modes": {
+      "keep": {
+        "label": "仅删除种子",
+        "description": "全部保留文件，无论是否有其他种子使用。"
+      },
+      "files": {
+        "label": "删除种子和文件",
+        "description": "同时删除文件，即使仍有未选中的种子使用。"
+      },
+      "preserve": {
+        "label": "删除（保留辅种）",
+        "description": "有未选中的种子共享文件则保留；共享文件的种子全部选中则删除文件。"
+      }
+    },
+    "planChecking": "正在检查完整删除范围…",
+    "planError": "检查失败，请关闭弹窗后重新打开重试。尚未执行删除。",
+    "planSummary": "{{keepFiles}} 个种子保留文件；{{deleteFiles}} 个种子删除文件。",
+    "planRecheck": "无法确认共享关系时保留文件。执行删除前，服务端会再次检查。",
     "selectedTorrents": "选中的种子",
     "instanceFallback": "实例 {{id}}",
     "partialPreview": "当前仅展示已加载的 {{shown}} 个种子，共选中 {{total}} 个。确认后将删除全部 {{total}} 个选中的种子。",

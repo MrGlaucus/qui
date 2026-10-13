@@ -1232,6 +1232,8 @@ export function TorrentCardsMobile({
     closeDeleteDialog,
     deleteFiles,
     setDeleteFiles,
+    preserveCrossSeeds,
+    setPreserveCrossSeeds,
     isDeleteFilesLocked,
     toggleDeleteFilesLock,
     blockCrossSeeds,
@@ -2701,6 +2703,18 @@ export function TorrentCardsMobile({
         count={torrentToDelete ? 1 : effectiveSelectionCount}
         totalSize={selectedTotalSize}
         formattedSize={selectedFormattedSize}
+        preserveCrossSeeds={preserveCrossSeeds}
+        onPreserveCrossSeedsChange={setPreserveCrossSeeds}
+        selectionRequest={{
+          hashes: torrentToDelete ? [torrentToDelete.hash] : isAllSelected ? [] : selectedRequestHashes,
+          targets: torrentToDelete ? buildTorrentActionTargets([torrentToDelete], instanceId) : isAllSelected ? undefined : selectedActionTargets,
+          instanceIds,
+          selectAll: !torrentToDelete && isAllSelected,
+          filters: !torrentToDelete && isAllSelected ? effectiveFilters : undefined,
+          search: !torrentToDelete && isAllSelected ? effectiveSearch : undefined,
+          excludeHashes: !torrentToDelete && isAllSelected ? excludeHashesForRequest : undefined,
+          excludeTargets: !torrentToDelete && isAllSelected ? buildTorrentActionTargets(excludedTorrents, instanceId) : undefined,
+        }}
         deleteFiles={deleteFiles}
         onDeleteFilesChange={setDeleteFiles}
         isDeleteFilesLocked={isDeleteFilesLocked}

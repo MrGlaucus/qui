@@ -61,6 +61,7 @@ interface TorrentActionData {
   instanceIds?: number[]
   targets?: Array<{ instanceId: number; hash: string }>
   deleteFiles?: boolean
+  preserveCrossSeeds?: boolean
   tags?: string
   comment?: string
   category?: string
@@ -186,6 +187,7 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
     toggleLock: toggleDeleteFilesLock,
   } = usePersistedDeleteFiles(false)
   const { blockCrossSeeds, setBlockCrossSeeds } = usePersistedCrossSeedBlocklist(instanceId, false)
+  const [preserveCrossSeeds, setPreserveCrossSeeds] = useState(false)
   const [deleteCrossSeeds, setDeleteCrossSeeds] = useState(false)
   const [showTagsDialog, setShowTagsDialog] = useState(false)
   const [showCommentDialog, setShowCommentDialog] = useState(false)
@@ -229,6 +231,7 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
         targets: payload.targets,
         action: payload.action,
         deleteFiles: payload.deleteFiles,
+        preserveCrossSeeds: payload.preserveCrossSeeds,
         tags: payload.tags,
         comment: payload.comment,
         category: payload.category,
@@ -309,7 +312,7 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
       if (typeof variables.clientCount === "number") {
         toastCount = variables.clientCount
       }
-      showSuccessToast(t, variables.action, Math.max(1, toastCount), variables.deleteFiles, variables.enable)
+      showSuccessToast(t, variables.action, Math.max(1, toastCount), variables.preserveCrossSeeds ? false : variables.deleteFiles, variables.enable)
 
       // Close dialogs after successful action
       if (variables.action === "delete") {
@@ -551,7 +554,8 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
       action: "delete",
       instanceIds,
       targets: isAllSelected ? undefined : clientMeta?.actionTargets,
-      deleteFiles,
+      deleteFiles: preserveCrossSeeds || deleteFiles,
+      preserveCrossSeeds,
       hashes: isAllSelected ? [] : hashes,
       selectAll: isAllSelected,
       filters: isAllSelected ? filters : undefined,
@@ -565,7 +569,7 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
     setDeleteCrossSeeds(false)
     setContextHashes([])
     setContextTorrents([])
-  }, [mutation, deleteFiles, instanceIds])
+  }, [mutation, deleteFiles, preserveCrossSeeds, instanceIds])
 
   const handleUpdateTags = useCallback(async (
     plan: TagUpdatePlan,
@@ -1063,6 +1067,8 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
 
   return {
     // State
+    preserveCrossSeeds,
+    setPreserveCrossSeeds,
     showDeleteDialog,
     setShowDeleteDialog,
     closeDeleteDialog,

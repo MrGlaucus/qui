@@ -99,6 +99,25 @@
     }
   },
   "deleteDialog": {
+    "modeLabel": "Mode de suppression",
+    "modes": {
+      "keep": {
+        "label": "Supprimer uniquement les torrents",
+        "description": "Conserver tous les fichiers, même sans autre torrent."
+      },
+      "files": {
+        "label": "Supprimer torrents et fichiers",
+        "description": "Supprimer les fichiers même si des torrents non sélectionnés les utilisent."
+      },
+      "preserve": {
+        "label": "Supprimer (préserver les cross-seeds)",
+        "description": "Conserver les fichiers utilisés par des torrents non sélectionnés. Les supprimer si tous sont sélectionnés."
+      }
+    },
+    "planChecking": "Vérification de la sélection complète…",
+    "planError": "Échec de la vérification. Fermez puis rouvrez cette fenêtre. Rien n’a été supprimé.",
+    "planSummary": "Fichiers conservés pour {{keepFiles}} torrents ; supprimés pour {{deleteFiles}} torrents.",
+    "planRecheck": "En cas de doute, les fichiers sont conservés. Le serveur vérifie à nouveau avant la suppression.",
     "selectedTorrents": "Torrents sélectionnés",
     "instanceFallback": "Instance {{id}}",
     "partialPreview": "{{shown}} torrents chargés affichés sur {{total}} sélectionnés. La suppression concerne les {{total}} torrents sélectionnés.",

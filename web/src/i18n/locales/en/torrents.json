@@ -100,6 +100,25 @@
     }
   },
   "deleteDialog": {
+    "modeLabel": "Deletion mode",
+    "modes": {
+      "keep": {
+        "label": "Remove torrents only",
+        "description": "Keep every file, whether or not another torrent uses it."
+      },
+      "files": {
+        "label": "Remove torrents and files",
+        "description": "Delete files even if unselected torrents use them."
+      },
+      "preserve": {
+        "label": "Delete (preserve cross-seeds)",
+        "description": "Keep files needed by unselected torrents. Delete files when all torrents using them are selected."
+      }
+    },
+    "planChecking": "Checking the complete selection…",
+    "planError": "Check failed. Close and reopen this dialog to retry. Nothing has been deleted.",
+    "planSummary": "Keep files for {{keepFiles}} torrent tasks; delete files for {{deleteFiles}} torrent tasks.",
+    "planRecheck": "Uncertain file sharing keeps files. The server checks again before deletion.",
     "selectedTorrents": "Selected torrents",
     "instanceFallback": "Instance {{id}}",
     "partialPreview": "Showing {{shown}} loaded torrents out of {{total}} selected. Deletion applies to all {{total}} selected torrents.",

@@ -14,11 +14,14 @@ import {
   AlertDialogTitle
 } from "@/components/ui/alert-dialog"
 import { CrossSeedWarning } from "./CrossSeedWarning"
-import { DeleteFilesPreference } from "./DeleteFilesPreference"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { api } from "@/lib/api"
+import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import type { CrossSeedWarningResult } from "@/hooks/useCrossSeedWarning"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useTranslation } from "react-i18next"
-import { Folder, Tags } from "lucide-react"
+import { Folder, Tags, Lock, Unlock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useInstances } from "@/hooks/useInstances"
 import { useDateTimeFormatters } from "@/hooks/useDateTimeFormatters"
@@ -35,6 +38,9 @@ interface DeleteTorrentDialogProps {
   instanceId?: number
   totalSize: number
   formattedSize: string
+  preserveCrossSeeds?: boolean
+  onPreserveCrossSeedsChange?: (checked: boolean) => void
+  selectionRequest?: Omit<Parameters<typeof api.bulkAction>[1], "action">
   deleteFiles: boolean
   onDeleteFilesChange: (checked: boolean) => void
   isDeleteFilesLocked: boolean
@@ -56,6 +62,9 @@ export function DeleteTorrentDialog({
   instanceId,
   totalSize,
   formattedSize,
+  preserveCrossSeeds = false,
+  onPreserveCrossSeedsChange,
+  selectionRequest,
   deleteFiles,
   onDeleteFilesChange,
   isDeleteFilesLocked,
@@ -71,8 +80,25 @@ export function DeleteTorrentDialog({
   const { t } = useTranslation("torrents")
   const { instances } = useInstances()
   const { formatAddedOn } = useDateTimeFormatters()
+  const [preview, setPreview] = useState<{ key: string; data?: { keepFiles: number; deleteFiles: number }; error?: boolean }>()
+  const selectionKey = JSON.stringify({ instanceId, ...selectionRequest })
+  const hasSelection = selectionRequest !== undefined
+  useEffect(() => {
+    if (!open || !preserveCrossSeeds || !hasSelection || instanceId === undefined) return
+    setPreview(undefined)
+    let cancelled = false
+    const { instanceId: owner, ...request } = JSON.parse(selectionKey)
+    void api.previewTorrentDeletion(owner, { ...request, action: "delete" }).then(data => {
+      if (!cancelled) setPreview({ key: selectionKey, data })
+    }).catch(() => {
+      if (!cancelled) setPreview({ key: selectionKey, error: true })
+    })
+    return () => { cancelled = true }
+  }, [open, preserveCrossSeeds, selectionKey, instanceId, hasSelection])
+  const currentPreview = preview?.key === selectionKey ? preview : undefined
+  const mode = preserveCrossSeeds ? "preserve" : deleteFiles ? "files" : "keep"
   // Include cross-seeds in the displayed count when selected
-  const crossSeedCount = deleteCrossSeeds ? (crossSeedWarning?.affectedTorrents.length ?? 0) : 0
+  const crossSeedCount = !preserveCrossSeeds && deleteCrossSeeds ? (crossSeedWarning?.affectedTorrents.length ?? 0) : 0
   const displayCount = count + crossSeedCount
 
   return (
@@ -154,14 +180,32 @@ export function DeleteTorrentDialog({
             </p>
           )}
         </section>
-        <DeleteFilesPreference
-          id="deleteFiles"
-          checked={deleteFiles}
-          onCheckedChange={onDeleteFilesChange}
-          isLocked={isDeleteFilesLocked}
-          onToggleLock={onToggleDeleteFilesLock}
-        />
-        {crossSeedWarning && (
+        <fieldset className="min-w-0 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium">{t("deleteDialog.modeLabel")}</span>
+            {!preserveCrossSeeds && <Button type="button" variant="ghost" size="icon" className="size-7" onClick={onToggleDeleteFilesLock}
+              aria-label={t(isDeleteFilesLocked ? "deleteFilesPreference.lockAriaLabel.stop" : "deleteFilesPreference.lockAriaLabel.remember")} aria-pressed={isDeleteFilesLocked}>
+              {isDeleteFilesLocked ? <Lock className="size-3.5" /> : <Unlock className="size-3.5" />}
+            </Button>}
+          </div>
+          <RadioGroup aria-label={t("deleteDialog.modeLabel")} value={mode} onValueChange={value => {
+            onPreserveCrossSeedsChange?.(value === "preserve")
+            if (value !== "preserve") onDeleteFilesChange(value === "files")
+            onDeleteCrossSeedsChange(false)
+          }} className="gap-2">
+            {["keep", "files", "preserve"].map(value => <label key={value} htmlFor={`delete-mode-${value}`} className="flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-left has-[[data-state=checked]]:border-primary/40">
+              <RadioGroupItem id={`delete-mode-${value}`} value={value} className="mt-0.5 shrink-0" />
+              <span className="min-w-0"><span className="block text-sm font-medium">{t(`deleteDialog.modes.${value}.label`)}</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{t(`deleteDialog.modes.${value}.description`)}</span></span>
+            </label>)}
+          </RadioGroup>
+        </fieldset>
+        {preserveCrossSeeds && <div role="status" className="rounded-md border bg-muted/30 px-3 py-2 text-xs leading-relaxed">
+          {currentPreview?.error ? t("deleteDialog.planError") : currentPreview?.data
+            ? <>{t("deleteDialog.planSummary", currentPreview.data)}<span className="mt-1 block text-muted-foreground">{t("deleteDialog.planRecheck")}</span></>
+            : t("deleteDialog.planChecking")}
+        </div>}
+        {!preserveCrossSeeds && crossSeedWarning && (
           <CrossSeedWarning
             affectedTorrents={crossSeedWarning.affectedTorrents}
             searchState={crossSeedWarning.searchState}
@@ -192,6 +236,7 @@ export function DeleteTorrentDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>{t("deleteDialog.cancel")}</AlertDialogCancel>
           <AlertDialogAction
+            disabled={preserveCrossSeeds && !currentPreview?.data}
             onClick={onConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >

@@ -99,6 +99,25 @@
     }
   },
   "deleteDialog": {
+    "modeLabel": "Modo de exclusão",
+    "modes": {
+      "keep": {
+        "label": "Remover apenas torrents",
+        "description": "Manter todos os arquivos, mesmo sem outros torrents."
+      },
+      "files": {
+        "label": "Remover torrents e arquivos",
+        "description": "Excluir arquivos mesmo que torrents não selecionados os utilizem."
+      },
+      "preserve": {
+        "label": "Excluir (preservar cross-seeds)",
+        "description": "Manter arquivos usados por torrents não selecionados. Excluir quando todos estiverem selecionados."
+      }
+    },
+    "planChecking": "Verificando toda a seleção…",
+    "planError": "Falha na verificação. Feche e reabra a janela. Nada foi excluído.",
+    "planSummary": "Manter arquivos de {{keepFiles}} torrents; excluir arquivos de {{deleteFiles}} torrents.",
+    "planRecheck": "Se houver dúvida sobre o compartilhamento, manter os arquivos. O servidor verifica novamente antes de excluir.",
     "selectedTorrents": "Torrents selecionados",
     "instanceFallback": "Instância {{id}}",
     "partialPreview": "Exibindo {{shown}} torrents carregados de {{total}} selecionados. Todos os {{total}} torrents selecionados serão excluídos.",

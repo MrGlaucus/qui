@@ -159,6 +159,8 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
   const {
     showDeleteDialog,
     closeDeleteDialog,
+    preserveCrossSeeds,
+    setPreserveCrossSeeds,
     deleteFiles,
     setDeleteFiles,
     isDeleteFilesLocked,
@@ -781,6 +783,18 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
         count={totalSelectionCount || selectedHashes.length}
         totalSize={deleteDialogTotalSize}
         formattedSize={deleteDialogFormattedSize}
+        preserveCrossSeeds={preserveCrossSeeds}
+        onPreserveCrossSeedsChange={setPreserveCrossSeeds}
+        selectionRequest={{
+          hashes: isAllSelected ? [] : selectedHashes,
+          targets: isAllSelected ? undefined : clientMeta.actionTargets,
+          instanceIds,
+          selectAll: isAllSelected,
+          filters: isAllSelected ? { ...filters, categories: filters?.expandedCategories ?? filters?.categories, excludeCategories: filters?.expandedExcludeCategories ?? filters?.excludeCategories } : undefined,
+          search: isAllSelected ? search : undefined,
+          excludeHashes: isAllSelected ? excludeHashes : undefined,
+          excludeTargets: isAllSelected ? excludeTargets : undefined,
+        }}
         deleteFiles={deleteFiles}
         onDeleteFilesChange={setDeleteFiles}
         isDeleteFilesLocked={isDeleteFilesLocked}

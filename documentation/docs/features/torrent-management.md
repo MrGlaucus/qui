@@ -125,3 +125,9 @@ A finished scan opens a dialog with two tabs: **Quick Summary** and **Forum**. T
 qui keeps the report, so a second visit to the same Disc opens it at once. Two torrents on one instance that point at the same Disc share one report. **Rescan** replaces the stored report with a new scan. A scan that was running when qui restarted shows as failed; use **Rescan** to run it again.
 
 Because qui reads the Disc from disk, BDInfo requires the instance option **Local Filesystem Access**. See [Instance Settings](./instance-settings.md#local-filesystem-access).
+
+## Delete while preserving cross-seeds
+
+The manual deletion dialog offers three modes on desktop and mobile: remove torrents only, remove torrents and files, or **Delete (preserve cross-seeds)**. The last mode checks the complete selection per instance, including filtered Select all selections. Files needed by unselected torrents sharing the content path are kept; when every torrent using the files is selected, tasks and files are removed. Unrelated torrents in the same directory are distinguished by file overlap, using the workflow deletion policy. Unknown paths or incomplete file verification keep files.
+
+A preview shows how many selected tasks will keep files and how many will delete files. Counts describe torrent tasks, not distinct files or bytes. Execution checks again using a fresh client torrent list. The check is per qBittorrent instance; it does not establish shared storage between different instances. In this mode the dialog does not expand the selection to unselected cross-seeds. Completed deletions cannot be rolled back if a later client request fails.

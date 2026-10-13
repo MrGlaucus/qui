@@ -97,6 +97,25 @@
     }
   },
   "deleteDialog": {
+    "modeLabel": "刪除方式",
+    "modes": {
+      "keep": {
+        "label": "僅刪除種子",
+        "description": "全部保留檔案，無論是否有其他種子使用。"
+      },
+      "files": {
+        "label": "刪除種子和檔案",
+        "description": "同時刪除檔案，即使仍有未選取的種子使用。"
+      },
+      "preserve": {
+        "label": "刪除（保留輔種）",
+        "description": "有未選取的種子共用檔案則保留；共用檔案的種子全部選取則刪除檔案。"
+      }
+    },
+    "planChecking": "正在檢查完整刪除範圍…",
+    "planError": "檢查失敗，請關閉視窗後重新開啟重試。尚未執行刪除。",
+    "planSummary": "{{keepFiles}} 個種子保留檔案；{{deleteFiles}} 個種子刪除檔案。",
+    "planRecheck": "無法確認共用關係時保留檔案。執行刪除前，伺服器會再次檢查。",
     "selectedTorrents": "選取的種子",
     "instanceFallback": "實例 {{id}}",
     "partialPreview": "目前僅顯示已載入的 {{shown}} 個種子，共選取 {{total}} 個。確認後將刪除全部 {{total}} 個選取的種子。",

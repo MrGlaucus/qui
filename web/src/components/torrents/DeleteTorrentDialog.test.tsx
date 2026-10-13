@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { cleanup, fireEvent, render, within } from "@testing-library/react"
+import { cleanup, fireEvent, render, within, waitFor } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { CrossInstanceTorrent, Torrent } from "@/types"
+import { api } from "@/lib/api"
 import { DeleteTorrentDialog } from "./DeleteTorrentDialog"
 
 vi.mock("react-i18next", () => ({
@@ -20,7 +21,8 @@ vi.mock("@/hooks/useDateTimeFormatters", () => ({
   useDateTimeFormatters: () => ({ formatAddedOn: (timestamp: number) => `formatted-date:${timestamp}` }),
 }))
 
-afterEach(cleanup)
+vi.mock("@/lib/api", () => ({ api: { previewTorrentDeletion: vi.fn() } }))
+afterEach(() => { cleanup(); vi.clearAllMocks() })
 
 function mount(torrents: Torrent[], overrides: Partial<ComponentProps<typeof DeleteTorrentDialog>> = {}) {
   const noop = () => {}
@@ -40,6 +42,32 @@ const torrent = {
 } as Torrent
 
 describe("DeleteTorrentDialog selection preview", () => {
+  it("offers the same three deletion modes and clears cross-seed expansion", () => {
+    const change = vi.fn(), files = vi.fn(), peers = vi.fn()
+    const view = mount([torrent], { onPreserveCrossSeedsChange: change, onDeleteFilesChange: files, onDeleteCrossSeedsChange: peers })
+    expect(view.getAllByRole("radio")).toHaveLength(3)
+    fireEvent.click(view.getByLabelText(/deleteDialog.modes.preserve.label/))
+    expect(change).toHaveBeenCalledWith(true)
+    expect(files).not.toHaveBeenCalled()
+    expect(peers).toHaveBeenCalledWith(false)
+  })
+  it("waits for the full selection preview before allowing preserving deletion", async () => {
+    let resolve: (value: { keepFiles: number; deleteFiles: number }) => void = () => {}
+    vi.mocked(api.previewTorrentDeletion).mockReturnValue(new Promise(done => { resolve = done }))
+    const view = mount([torrent], { preserveCrossSeeds: true, selectionRequest: { hashes: [], selectAll: true, filters: { categories: ["Movies"] } } })
+    const button = view.getByRole("button", { name: "deleteDialog.delete" }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    expect(api.previewTorrentDeletion).toHaveBeenCalledWith(1, expect.objectContaining({ selectAll: true, hashes: [], action: "delete" }))
+    resolve({ keepFiles: 0, deleteFiles: 23 })
+    await waitFor(() => expect(button.disabled).toBe(false))
+    expect(view.getByRole("status").textContent).toContain("\"deleteFiles\":23")
+  })
+  it("blocks deletion after a failed shared-file check", async () => {
+    vi.mocked(api.previewTorrentDeletion).mockRejectedValue(new Error("offline"))
+    const view = mount([torrent], { preserveCrossSeeds: true, selectionRequest: { hashes: [torrent.hash] } })
+    await waitFor(() => expect(view.getByRole("status").textContent).toContain("deleteDialog.planError"))
+    expect((view.getByRole("button", { name: "deleteDialog.delete" }) as HTMLButtonElement).disabled).toBe(true)
+  })
   it("shows category, trimmed tags and the owning instance for single-instance selection", () => {
     const view = mount([torrent])
     const row = within(view.getByRole("listitem"))

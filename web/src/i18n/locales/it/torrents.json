@@ -99,6 +99,25 @@
     }
   },
   "deleteDialog": {
+    "modeLabel": "Modalità di eliminazione",
+    "modes": {
+      "keep": {
+        "label": "Rimuovi solo torrent",
+        "description": "Conserva tutti i file, anche se nessun altro torrent li usa."
+      },
+      "files": {
+        "label": "Rimuovi torrent e file",
+        "description": "Elimina i file anche se torrent non selezionati li usano."
+      },
+      "preserve": {
+        "label": "Elimina (preserva cross-seed)",
+        "description": "Conserva i file usati da torrent non selezionati. Eliminali se tutti sono selezionati."
+      }
+    },
+    "planChecking": "Verifica della selezione completa…",
+    "planError": "Verifica non riuscita. Chiudi e riapri la finestra. Nessun elemento eliminato.",
+    "planSummary": "Conserva file per {{keepFiles}} torrent; elimina file per {{deleteFiles}} torrent.",
+    "planRecheck": "Se la condivisione è incerta, conserva i file. Il server verifica di nuovo prima di eliminare.",
     "selectedTorrents": "Torrent selezionati",
     "instanceFallback": "Istanza {{id}}",
     "partialPreview": "Visualizzati {{shown}} torrent caricati su {{total}} selezionati. Verranno eliminati tutti i {{total}} torrent selezionati.",

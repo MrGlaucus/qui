@@ -95,6 +95,19 @@ afterEach(() => {
 })
 
 describe("useTorrentActions - delete", () => {
+  it("sends preserving mode without expanding explicit instance targets", async () => {
+    const { result } = renderActions()
+    act(() => result.current.setPreserveCrossSeeds(true))
+    await act(async () => {
+      await result.current.handleDelete(["a", "b"], false, undefined, undefined, undefined, {
+        actionTargets: [{ instanceId: 1, hash: "a" }, { instanceId: 1, hash: "b" }],
+      })
+    })
+    expect(mockedApi.bulkAction).toHaveBeenCalledWith(expect.any(Number), expect.objectContaining({
+      preserveCrossSeeds: true, deleteFiles: true, hashes: ["a", "b"],
+      targets: [{ instanceId: 1, hash: "a" }, { instanceId: 1, hash: "b" }],
+    }))
+  })
   it("optimistically removes deleted hashes from the cache and decrements totals (non-select-all)", async () => {
     const { result, queryClient } = renderActions()
 

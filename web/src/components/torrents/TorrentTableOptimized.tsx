@@ -337,6 +337,8 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
   const {
     showDeleteDialog,
     closeDeleteDialog,
+    preserveCrossSeeds,
+    setPreserveCrossSeeds,
     deleteFiles,
     setDeleteFiles,
     isDeleteFilesLocked,
@@ -1931,6 +1933,8 @@ export const TorrentTableOptimized = memo(function TorrentTableOptimized({
           setShowTransferDialog={setShowTransferDialog}
           handleTransfer={handleTransfer}
           isTransferPending={isTransferPending}
+          preserveCrossSeeds={preserveCrossSeeds}
+          setPreserveCrossSeeds={setPreserveCrossSeeds}
           deleteFiles={deleteFiles}
           setDeleteFiles={setDeleteFiles}
           isDeleteFilesLocked={isDeleteFilesLocked}
