@@ -790,7 +790,11 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
           targets: isAllSelected ? undefined : clientMeta.actionTargets,
           instanceIds,
           selectAll: isAllSelected,
-          filters: isAllSelected ? { ...filters, categories: filters?.expandedCategories ?? filters?.categories, excludeCategories: filters?.expandedExcludeCategories ?? filters?.excludeCategories } : undefined,
+          filters: isAllSelected && filters ? {
+            ...filters,
+            categories: filters.expandedCategories ?? filters.categories,
+            excludeCategories: filters.expandedExcludeCategories ?? filters.excludeCategories,
+          } : undefined,
           search: isAllSelected ? search : undefined,
           excludeHashes: isAllSelected ? excludeHashes : undefined,
           excludeTargets: isAllSelected ? excludeTargets : undefined,

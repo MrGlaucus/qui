@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { CrossInstanceTorrent, Torrent } from "@/types"
 import { api } from "@/lib/api"
+import { makeFilters } from "@/test/mockFilters"
 import { DeleteTorrentDialog } from "./DeleteTorrentDialog"
 
 vi.mock("react-i18next", () => ({
@@ -54,10 +55,11 @@ describe("DeleteTorrentDialog selection preview", () => {
   it("waits for the full selection preview before allowing preserving deletion", async () => {
     let resolve: (value: { keepFiles: number; deleteFiles: number }) => void = () => {}
     vi.mocked(api.previewTorrentDeletion).mockReturnValue(new Promise(done => { resolve = done }))
-    const view = mount([torrent], { preserveCrossSeeds: true, selectionRequest: { hashes: [], selectAll: true, filters: { categories: ["Movies"] } } })
+    const filters = makeFilters({ categories: ["Movies"] })
+    const view = mount([torrent], { preserveCrossSeeds: true, selectionRequest: { hashes: [], selectAll: true, filters } })
     const button = view.getByRole("button", { name: "deleteDialog.delete" }) as HTMLButtonElement
     expect(button.disabled).toBe(true)
-    expect(api.previewTorrentDeletion).toHaveBeenCalledWith(1, expect.objectContaining({ selectAll: true, hashes: [], action: "delete" }))
+    expect(api.previewTorrentDeletion).toHaveBeenCalledWith(1, expect.objectContaining({ selectAll: true, hashes: [], action: "delete", filters }))
     resolve({ keepFiles: 0, deleteFiles: 23 })
     await waitFor(() => expect(button.disabled).toBe(false))
     expect(view.getByRole("status").textContent).toContain("\"deleteFiles\":23")
