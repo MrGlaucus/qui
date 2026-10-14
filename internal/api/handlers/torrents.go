@@ -1146,6 +1146,7 @@ func torrentURLAddFailureError(resp *qbt.TorrentAddResponse) error {
 
 // BulkActionRequest represents a bulk action request
 type BulkActionRequest struct {
+	IncludeCrossSeeds        bool                       `json:"includeCrossSeeds,omitempty"`
 	PreserveCrossSeeds       bool                       `json:"preserveCrossSeeds,omitempty"`
 	PreviewOnly              bool                       `json:"previewOnly,omitempty"`
 	Hashes                   []string                   `json:"hashes"`
@@ -1576,6 +1577,54 @@ func (h *TorrentsHandler) BulkAction(w http.ResponseWriter, r *http.Request) {
 	}
 	slices.Sort(targetInstanceIDs)
 
+	if req.IncludeCrossSeeds {
+		plans := make(map[int][]string, len(targetInstanceIDs))
+		summary := includingDeleteSummary{RelatedTorrents: []includingDeleteTorrent{}}
+		// Finish every check before issuing any destructive request.
+		for _, targetInstanceID := range targetInstanceIDs {
+			client, err := h.syncManager.GetClient(r.Context(), targetInstanceID)
+			if err != nil {
+				RespondError(w, http.StatusServiceUnavailable, "Unable to check all selected instances; no torrents deleted")
+				return
+			}
+			torrents, err := client.GetTorrentsCtx(r.Context(), qbt.TorrentFilterOptions{})
+			if err != nil {
+				RespondError(w, http.StatusServiceUnavailable, "Unable to read torrents; no torrents deleted")
+				return
+			}
+			targets, selected, err := automations.PlanIncludingCrossSeeds(torrents, targetsByInstance[targetInstanceID], func(hashes []string) (map[string]qbt.TorrentFiles, error) {
+				return h.syncManager.GetTorrentFilesBatch(qbittorrent.WithForceFilesRefresh(r.Context()), targetInstanceID, hashes)
+			})
+			if err != nil {
+				log.Error().Err(err).Int("instanceID", targetInstanceID).Msg("Failed to plan deletion including cross-seeds")
+				RespondError(w, http.StatusConflict, "Unable to verify all shared files; no torrents deleted")
+				return
+			}
+			summary.Selected += selected
+			summary.Total += len(targets)
+			for i, target := range targets {
+				plans[targetInstanceID] = append(plans[targetInstanceID], target.Hash)
+				if i >= selected {
+					summary.RelatedTorrents = append(summary.RelatedTorrents, includingDeleteTorrent{InstanceID: targetInstanceID, Hash: target.Hash, Name: target.Name})
+				}
+			}
+		}
+		summary.Related = len(summary.RelatedTorrents)
+		if req.PreviewOnly {
+			RespondJSON(w, http.StatusOK, summary)
+			return
+		}
+		for _, targetInstanceID := range targetInstanceIDs {
+			if err := h.syncManager.BulkAction(r.Context(), targetInstanceID, plans[targetInstanceID], "deleteWithFiles"); err != nil {
+				log.Error().Err(err).Int("instanceID", targetInstanceID).Msg("Deletion including cross-seeds failed")
+				RespondError(w, http.StatusInternalServerError, "Failed to delete torrents; some instances may already have been processed")
+				return
+			}
+		}
+		RespondJSON(w, http.StatusOK, summary)
+		return
+	}
+
 	if req.PreserveCrossSeeds {
 		plans := make(map[int]preservingDeletePlan, len(targetInstanceIDs))
 		summary := preservingDeleteSummary{}
@@ -1868,11 +1917,14 @@ func flattenTargetHashes(targetsByInstance map[int][]string) []string {
 }
 
 func validateBulkActionRequest(req BulkActionRequest) error {
-	if (req.PreserveCrossSeeds || req.PreviewOnly) && req.Action != "delete" {
-		return errors.New("preserveCrossSeeds and previewOnly require delete action")
+	if (req.PreserveCrossSeeds || req.IncludeCrossSeeds || req.PreviewOnly) && req.Action != "delete" {
+		return errors.New("cross-seed deletion modes and previewOnly require delete action")
 	}
-	if req.PreviewOnly && !req.PreserveCrossSeeds {
-		return errors.New("previewOnly requires preserveCrossSeeds")
+	if req.PreserveCrossSeeds && req.IncludeCrossSeeds {
+		return errors.New("preserveCrossSeeds and includeCrossSeeds are mutually exclusive")
+	}
+	if req.PreviewOnly && !req.PreserveCrossSeeds && !req.IncludeCrossSeeds {
+		return errors.New("previewOnly requires a cross-seed deletion mode")
 	}
 	switch req.Action {
 	case "addTags", "removeTags":
@@ -3759,6 +3811,19 @@ type preservingDeleteSummary struct {
 	DeleteFiles int `json:"deleteFiles"`
 }
 type preservingDeletePlan struct{ keepFiles, deleteFiles []string }
+
+type includingDeleteTorrent struct {
+	InstanceID int    `json:"instanceId"`
+	Hash       string `json:"hash"`
+	Name       string `json:"name"`
+}
+
+type includingDeleteSummary struct {
+	Selected        int                      `json:"selected"`
+	Related         int                      `json:"related"`
+	Total           int                      `json:"total"`
+	RelatedTorrents []includingDeleteTorrent `json:"relatedTorrents"`
+}
 
 func (h *TorrentsHandler) planPreservingDeletion(ctx context.Context, instanceID int, hashes []string) (preservingDeletePlan, error) {
 	client, err := h.syncManager.GetClient(ctx, instanceID)

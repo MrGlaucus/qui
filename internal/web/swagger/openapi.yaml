@@ -1975,9 +1975,12 @@ paths:
                 preserveCrossSeeds:
                   type: boolean
                   description: For delete only. Preserve files needed by unselected torrents, delete files otherwise. Takes precedence over deleteFiles; checks the complete selection per instance.
+                includeCrossSeeds:
+                  type: boolean
+                  description: For delete only; mutually exclusive with preserveCrossSeeds. Expand the complete selection to all torrents sharing actual file paths within each selected instance, including transitive overlaps, and delete all their files. Overrides deleteFiles. Other instances and independent linked copies are not expanded. File verification failure aborts before deletion.
                 previewOnly:
                   type: boolean
-                  description: Requires delete and preserveCrossSeeds. Return keepFiles and deleteFiles task counts without deleting anything; execution recomputes the plan.
+                  description: Requires delete and either preserveCrossSeeds or includeCrossSeeds. Return the deletion plan without deleting anything; execution recomputes it. Include mode returns selected, related, total and relatedTorrents; preserve mode returns keepFiles and deleteFiles.
                 deleteFiles:
                   type: boolean
                   description: Only for delete action
@@ -2033,7 +2036,7 @@ paths:
                   description: Newline-separated tracker URLs for addTrackers/removeTrackers actions.
       responses:
         '200':
-          description: Action performed successfully. Preserving deletion and its preview return task counts; other actions return their existing success response.
+          description: Action performed successfully. Cross-seed deletion modes and previews return plan counts; include mode also lists additional related torrents. Other actions return their existing success response.
           content:
             application/json:
               schema:
@@ -2042,6 +2045,27 @@ paths:
                   keepFiles:
                     type: integer
                     description: Selected torrent tasks whose files are preserved.
+                  selected:
+                    type: integer
+                    description: Number of distinct originally selected torrents, in include mode.
+                  related:
+                    type: integer
+                    description: Number of additional related torrents, in include mode.
+                  total:
+                    type: integer
+                    description: Total torrents to delete, in include mode.
+                  relatedTorrents:
+                    type: array
+                    items:
+                      type: object
+                      required: [instanceId, hash, name]
+                      properties:
+                        instanceId:
+                          type: integer
+                        hash:
+                          type: string
+                        name:
+                          type: string
                   deleteFiles:
                     type: integer
                     description: Selected torrent tasks whose files are deleted.
