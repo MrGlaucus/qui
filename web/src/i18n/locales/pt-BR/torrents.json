@@ -101,6 +101,10 @@
   "deleteDialog": {
     "modeLabel": "Modo de exclusão",
     "modes": {
+      "include": {
+        "label": "Excluir arquivos e todos os torrents relacionados",
+        "description": "Exclui a seleção, todos os torrents que compartilham caminhos de arquivos na mesma instância e todos os seus arquivos. Outras instâncias e cópias independentes não são incluídas."
+      },
       "keep": {
         "label": "Remover apenas torrents",
         "description": "Manter todos os arquivos, mesmo sem outros torrents."
@@ -114,6 +118,9 @@
         "description": "Manter arquivos usados por torrents não selecionados. Excluir quando todos estiverem selecionados."
       }
     },
+    "includePlanSummary": "Selecionados: {{selected}} · Relacionados adicionais: {{related}} · Total a excluir: {{total}}",
+    "includePlanRecheck": "Todos os torrents listados e seus arquivos serão excluídos. O servidor verifica novamente os caminhos compartilhados antes da exclusão.",
+    "relatedTorrents": "Torrents adicionais a excluir",
     "planChecking": "Verificando toda a seleção…",
     "planError": "Falha na verificação. Feche e reabra a janela. Nada foi excluído.",
     "planSummary": "Manter arquivos de {{keepFiles}} torrents; excluir arquivos de {{deleteFiles}} torrents.",
@@ -1262,6 +1269,7 @@
     "editTrackerUrl": "Editar URL do Tracker"
   },
   "peersTable": {
+    "query": "Consultar",
     "address": "IP:Porta",
     "client": "Cliente",
     "flags": "Bandeiras (Flags)",

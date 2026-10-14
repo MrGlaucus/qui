@@ -43,14 +43,37 @@ const torrent = {
 } as Torrent
 
 describe("DeleteTorrentDialog selection preview", () => {
-  it("offers the same three deletion modes and clears cross-seed expansion", () => {
+  it("offers four deletion modes and clears legacy cross-seed expansion", () => {
     const change = vi.fn(), files = vi.fn(), peers = vi.fn()
     const view = mount([torrent], { onPreserveCrossSeedsChange: change, onDeleteFilesChange: files, onDeleteCrossSeedsChange: peers })
-    expect(view.getAllByRole("radio")).toHaveLength(3)
+    expect(view.getAllByRole("radio")).toHaveLength(4)
     fireEvent.click(view.getByLabelText(/deleteDialog.modes.preserve.label/))
     expect(change).toHaveBeenCalledWith(true)
     expect(files).not.toHaveBeenCalled()
     expect(peers).toHaveBeenCalledWith(false)
+  })
+  it("selects include mode without changing the remembered file deletion preference", () => {
+    const include = vi.fn(), preserve = vi.fn(), files = vi.fn(), legacy = vi.fn()
+    const view = mount([torrent], { onIncludeCrossSeedsChange: include, onPreserveCrossSeedsChange: preserve, onDeleteFilesChange: files, onDeleteCrossSeedsChange: legacy })
+    fireEvent.click(view.getByLabelText(/deleteDialog.modes.include.label/))
+    expect(include).toHaveBeenCalledWith(true)
+    expect(preserve).toHaveBeenCalledWith(false)
+    expect(legacy).toHaveBeenCalledWith(false)
+    expect(files).not.toHaveBeenCalled()
+  })
+  it("previews the full filter selection and lists extra related torrents", async () => {
+    vi.mocked(api.previewTorrentDeletion).mockResolvedValue({ selected: 23, related: 1, total: 24, relatedTorrents: [{ instanceId: 2, hash: "extra", name: "Synthetic Related Torrent" }] })
+    const view = mount([torrent], { includeCrossSeeds: true, selectionRequest: { hashes: [], selectAll: true, filters: makeFilters() } })
+    await waitFor(() => expect(view.getByText("Synthetic Related Torrent")).not.toBeNull())
+    expect(api.previewTorrentDeletion).toHaveBeenCalledWith(1, expect.objectContaining({ includeCrossSeeds: true, selectAll: true, hashes: [] }))
+    expect(view.getByRole("status").textContent).toContain("\"total\":24")
+    expect((view.getByRole("button", { name: "deleteDialog.delete" }) as HTMLButtonElement).disabled).toBe(false)
+  })
+  it("blocks include mode when verification fails", async () => {
+    vi.mocked(api.previewTorrentDeletion).mockRejectedValue(new Error("unreadable"))
+    const view = mount([torrent], { includeCrossSeeds: true, selectionRequest: { hashes: [torrent.hash] } })
+    await waitFor(() => expect(view.getByRole("status").textContent).toContain("deleteDialog.planError"))
+    expect((view.getByRole("button", { name: "deleteDialog.delete" }) as HTMLButtonElement).disabled).toBe(true)
   })
   it("waits for the full selection preview before allowing preserving deletion", async () => {
     let resolve: (value: { keepFiles: number; deleteFiles: number }) => void = () => {}

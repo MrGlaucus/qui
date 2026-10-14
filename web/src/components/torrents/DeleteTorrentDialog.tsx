@@ -40,6 +40,8 @@ interface DeleteTorrentDialogProps {
   formattedSize: string
   preserveCrossSeeds?: boolean
   onPreserveCrossSeedsChange?: (checked: boolean) => void
+  includeCrossSeeds?: boolean
+  onIncludeCrossSeedsChange?: (checked: boolean) => void
   selectionRequest?: Omit<Parameters<typeof api.bulkAction>[1], "action">
   deleteFiles: boolean
   onDeleteFilesChange: (checked: boolean) => void
@@ -64,6 +66,8 @@ export function DeleteTorrentDialog({
   formattedSize,
   preserveCrossSeeds = false,
   onPreserveCrossSeedsChange,
+  includeCrossSeeds = false,
+  onIncludeCrossSeedsChange,
   selectionRequest,
   deleteFiles,
   onDeleteFilesChange,
@@ -80,11 +84,12 @@ export function DeleteTorrentDialog({
   const { t } = useTranslation("torrents")
   const { instances } = useInstances()
   const { formatAddedOn } = useDateTimeFormatters()
-  const [preview, setPreview] = useState<{ key: string; data?: { keepFiles: number; deleteFiles: number }; error?: boolean }>()
-  const selectionKey = JSON.stringify({ instanceId, ...selectionRequest })
+  const [preview, setPreview] = useState<{ key: string; data?: Awaited<ReturnType<typeof api.previewTorrentDeletion>>; error?: boolean }>()
+  const selectionKey = JSON.stringify({ instanceId, ...selectionRequest, includeCrossSeeds })
   const hasSelection = selectionRequest !== undefined
+  const needsPreview = preserveCrossSeeds || includeCrossSeeds
   useEffect(() => {
-    if (!open || !preserveCrossSeeds || !hasSelection || instanceId === undefined) return
+    if (!open || !needsPreview || !hasSelection || instanceId === undefined) return
     setPreview(undefined)
     let cancelled = false
     const { instanceId: owner, ...request } = JSON.parse(selectionKey)
@@ -94,12 +99,12 @@ export function DeleteTorrentDialog({
       if (!cancelled) setPreview({ key: selectionKey, error: true })
     })
     return () => { cancelled = true }
-  }, [open, preserveCrossSeeds, selectionKey, instanceId, hasSelection])
+  }, [open, needsPreview, selectionKey, instanceId, hasSelection])
   const currentPreview = preview?.key === selectionKey ? preview : undefined
-  const mode = preserveCrossSeeds ? "preserve" : deleteFiles ? "files" : "keep"
+  const mode = includeCrossSeeds ? "include" : preserveCrossSeeds ? "preserve" : deleteFiles ? "files" : "keep"
   // Include cross-seeds in the displayed count when selected
-  const crossSeedCount = !preserveCrossSeeds && deleteCrossSeeds ? (crossSeedWarning?.affectedTorrents.length ?? 0) : 0
-  const displayCount = count + crossSeedCount
+  const crossSeedCount = !needsPreview && deleteCrossSeeds ? (crossSeedWarning?.affectedTorrents.length ?? 0) : 0
+  const displayCount = includeCrossSeeds ? currentPreview?.data?.total ?? count : count + crossSeedCount
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -110,6 +115,7 @@ export function DeleteTorrentDialog({
             {t("deleteDialog.description")}
             {totalSize > 0 && (
               <span className="block mt-2 text-xs text-muted-foreground">
+                {includeCrossSeeds && <>{t("deleteDialog.selectedTorrents")} · </>}
                 {t("deleteDialog.totalSize", { size: formattedSize })}
               </span>
             )}
@@ -183,29 +189,49 @@ export function DeleteTorrentDialog({
         <fieldset className="min-w-0 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-medium">{t("deleteDialog.modeLabel")}</span>
-            {!preserveCrossSeeds && <Button type="button" variant="ghost" size="icon" className="size-7" onClick={onToggleDeleteFilesLock}
+            {!needsPreview && <Button type="button" variant="ghost" size="icon" className="size-7" onClick={onToggleDeleteFilesLock}
               aria-label={t(isDeleteFilesLocked ? "deleteFilesPreference.lockAriaLabel.stop" : "deleteFilesPreference.lockAriaLabel.remember")} aria-pressed={isDeleteFilesLocked}>
               {isDeleteFilesLocked ? <Lock className="size-3.5" /> : <Unlock className="size-3.5" />}
             </Button>}
           </div>
           <RadioGroup aria-label={t("deleteDialog.modeLabel")} value={mode} onValueChange={value => {
             onPreserveCrossSeedsChange?.(value === "preserve")
-            if (value !== "preserve") onDeleteFilesChange(value === "files")
+            onIncludeCrossSeedsChange?.(value === "include")
+            if (value === "include") onBlockCrossSeedsChange(false)
+            if (value !== "preserve" && value !== "include") onDeleteFilesChange(value === "files")
             onDeleteCrossSeedsChange(false)
           }} className="gap-2">
-            {["keep", "files", "preserve"].map(value => <label key={value} htmlFor={`delete-mode-${value}`} className="flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-left has-[[data-state=checked]]:border-primary/40">
+            {["keep", "files", "preserve", "include"].map(value => <label key={value} htmlFor={`delete-mode-${value}`} className="flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-left has-[[data-state=checked]]:border-primary/40">
               <RadioGroupItem id={`delete-mode-${value}`} value={value} className="mt-0.5 shrink-0" />
               <span className="min-w-0"><span className="block text-sm font-medium">{t(`deleteDialog.modes.${value}.label`)}</span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">{t(`deleteDialog.modes.${value}.description`)}</span></span>
             </label>)}
           </RadioGroup>
         </fieldset>
-        {preserveCrossSeeds && <div role="status" className="rounded-md border bg-muted/30 px-3 py-2 text-xs leading-relaxed">
+        {needsPreview && <div role="status" className="rounded-md border bg-muted/30 px-3 py-2 text-xs leading-relaxed">
           {currentPreview?.error ? t("deleteDialog.planError") : currentPreview?.data
-            ? <>{t("deleteDialog.planSummary", currentPreview.data)}<span className="mt-1 block text-muted-foreground">{t("deleteDialog.planRecheck")}</span></>
+            ? <>{t(includeCrossSeeds ? "deleteDialog.includePlanSummary" : "deleteDialog.planSummary", currentPreview.data)}<span className="mt-1 block text-muted-foreground">{t(includeCrossSeeds ? "deleteDialog.includePlanRecheck" : "deleteDialog.planRecheck")}</span></>
             : t("deleteDialog.planChecking")}
         </div>}
-        {!preserveCrossSeeds && crossSeedWarning && (
+        {includeCrossSeeds && !!currentPreview?.data?.relatedTorrents?.length && (
+          <section className="min-w-0 rounded-md border border-destructive/30">
+            <h3 className="border-b px-3 py-2 text-xs font-medium">{t("deleteDialog.relatedTorrents")}</h3>
+            <ul className="max-h-40 overflow-y-auto divide-y">
+              {currentPreview.data.relatedTorrents.map(torrent => {
+                const instance = instances?.find(item => item.id === torrent.instanceId)
+                const flag = flagClass(instance?.countryCode)
+                return <li key={`${torrent.instanceId}:${torrent.hash}`} className="space-y-1 px-3 py-2 text-xs">
+                  <p className="[overflow-wrap:anywhere]">{torrent.name}</p>
+                  <Badge variant="outline" className="gap-1 border-primary/35 bg-transparent text-[11px] text-primary shadow-none">
+                    {flag && <span className={`${flag} shrink-0 rounded-sm`} />}
+                    {instance?.name || t("deleteDialog.instanceFallback", { id: torrent.instanceId })}
+                  </Badge>
+                </li>
+              })}
+            </ul>
+          </section>
+        )}
+        {!needsPreview && crossSeedWarning && (
           <CrossSeedWarning
             affectedTorrents={crossSeedWarning.affectedTorrents}
             searchState={crossSeedWarning.searchState}
@@ -218,7 +244,7 @@ export function DeleteTorrentDialog({
             checkedCount={crossSeedWarning.checkedCount}
           />
         )}
-        {showBlockCrossSeeds && (
+        {!includeCrossSeeds && showBlockCrossSeeds && (
           <div className="mt-3 flex items-center gap-2">
             <Checkbox
               id="blockCrossSeeds"
@@ -236,7 +262,7 @@ export function DeleteTorrentDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>{t("deleteDialog.cancel")}</AlertDialogCancel>
           <AlertDialogAction
-            disabled={preserveCrossSeeds && !currentPreview?.data}
+            disabled={needsPreview && !currentPreview?.data}
             onClick={onConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >

@@ -160,6 +160,8 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
     showDeleteDialog,
     closeDeleteDialog,
     preserveCrossSeeds,
+    includeCrossSeeds,
+    setIncludeCrossSeeds,
     setPreserveCrossSeeds,
     deleteFiles,
     setDeleteFiles,
@@ -784,6 +786,8 @@ export const TorrentManagementBar = memo(function TorrentManagementBar({
         totalSize={deleteDialogTotalSize}
         formattedSize={deleteDialogFormattedSize}
         preserveCrossSeeds={preserveCrossSeeds}
+        includeCrossSeeds={includeCrossSeeds}
+        onIncludeCrossSeedsChange={setIncludeCrossSeeds}
         onPreserveCrossSeedsChange={setPreserveCrossSeeds}
         selectionRequest={{
           hashes: isAllSelected ? [] : selectedHashes,

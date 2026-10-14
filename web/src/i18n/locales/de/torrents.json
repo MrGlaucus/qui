@@ -101,6 +101,10 @@
   "deleteDialog": {
     "modeLabel": "Löschmodus",
     "modes": {
+      "include": {
+        "label": "Dateien und alle verknüpften Torrents löschen",
+        "description": "Löscht die Auswahl, alle Torrents mit gemeinsamen Dateipfaden in derselben Instanz und deren sämtliche Dateien. Andere Instanzen und unabhängige Kopien sind ausgeschlossen."
+      },
       "keep": {
         "label": "Nur Torrents entfernen",
         "description": "Alle Dateien behalten, unabhängig von anderen Torrents."
@@ -114,6 +118,9 @@
         "description": "Dateien für nicht ausgewählte Torrents behalten. Sind alle Nutzer ausgewählt, Dateien löschen."
       }
     },
+    "includePlanSummary": "Ausgewählt: {{selected}} · Zusätzlich: {{related}} · Zu löschen: {{total}}",
+    "includePlanRecheck": "Alle aufgeführten Torrents und ihre Dateien werden gelöscht. Der Server prüft gemeinsame Pfade vor dem Löschen erneut.",
+    "relatedTorrents": "Zusätzlich zu löschende Torrents",
     "planChecking": "Gesamte Auswahl wird geprüft…",
     "planError": "Prüfung fehlgeschlagen. Dialog schließen und erneut öffnen. Es wurde nichts gelöscht.",
     "planSummary": "Dateien für {{keepFiles}} Torrents behalten; für {{deleteFiles}} Torrents löschen.",
@@ -1262,6 +1269,7 @@
     "editTrackerUrl": "Tracker-URL bearbeiten"
   },
   "peersTable": {
+    "query": "Abfragen",
     "address": "IP:Port",
     "client": "Client",
     "flags": "Flags",

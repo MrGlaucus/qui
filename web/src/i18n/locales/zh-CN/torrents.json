@@ -102,6 +102,10 @@
   "deleteDialog": {
     "modeLabel": "删除方式",
     "modes": {
+      "include": {
+        "label": "删除文件及全部关联种子",
+        "description": "删除选中种子、同一实例内共享文件路径的全部关联种子，以及这些种子的所有文件。不包括其他实例或独立副本。"
+      },
       "keep": {
         "label": "仅删除种子",
         "description": "全部保留文件，无论是否有其他种子使用。"
@@ -115,6 +119,9 @@
         "description": "有未选中的种子共享文件则保留；共享文件的种子全部选中则删除文件。"
       }
     },
+    "includePlanSummary": "已选 {{selected}} 个 · 额外关联 {{related}} 个 · 共删除 {{total}} 个",
+    "includePlanRecheck": "将删除全部上述种子及其文件。执行前，服务端会重新检查共享关系。",
+    "relatedTorrents": "额外删除的关联种子",
     "planChecking": "正在检查完整删除范围…",
     "planError": "检查失败，请关闭弹窗后重新打开重试。尚未执行删除。",
     "planSummary": "{{keepFiles}} 个种子保留文件；{{deleteFiles}} 个种子删除文件。",
@@ -1237,6 +1244,7 @@
     "editTrackerUrl": "编辑 Tracker URL"
   },
   "peersTable": {
+    "query": "查询",
     "address": "IP:端口",
     "client": "客户端",
     "flags": "标志",

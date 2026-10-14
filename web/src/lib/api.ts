@@ -1128,6 +1128,7 @@ class ApiClient {
       action: "pause" | "resume" | "delete" | "recheck" | "reannounce" | "increasePriority" | "decreasePriority" | "topPriority" | "bottomPriority" | "setCategory" | "addTags" | "removeTags" | "setTags" | "setComment" | "toggleAutoTMM" | "forceStart" | "setShareLimit" | "setUploadLimit" | "setDownloadLimit" | "setLocation" | "editTrackers" | "addTrackers" | "removeTrackers" | "toggleSequentialDownload"
       deleteFiles?: boolean
       preserveCrossSeeds?: boolean
+      includeCrossSeeds?: boolean
       category?: string
       tags?: string  // Comma-separated tags string
       comment?: string  // For setComment action
@@ -1150,17 +1151,20 @@ class ApiClient {
       trackerNewURL?: string  // For editTrackers action
       trackerURLs?: string  // For addTrackers/removeTrackers actions (newline-separated)
     }
-  ): Promise<void> {
+  ): Promise<{ total?: number }> {
     return this.request(`/instances/${instanceId}/torrents/bulk-action`, {
       method: "POST",
       body: JSON.stringify(data),
     })
   }
 
-  async previewTorrentDeletion(instanceId: number, data: Parameters<ApiClient["bulkAction"]>[1]): Promise<{ keepFiles: number; deleteFiles: number }> {
+  async previewTorrentDeletion(instanceId: number, data: Parameters<ApiClient["bulkAction"]>[1]): Promise<{
+    keepFiles?: number; deleteFiles?: number; selected?: number; related?: number; total?: number
+    relatedTorrents?: Array<{ instanceId: number; hash: string; name: string }>
+  }> {
     return this.request(`/instances/${instanceId}/torrents/bulk-action`, {
       method: "POST",
-      body: JSON.stringify({ ...data, action: "delete", preserveCrossSeeds: true, previewOnly: true }),
+      body: JSON.stringify({ ...data, action: "delete", preserveCrossSeeds: !data.includeCrossSeeds, previewOnly: true }),
     })
   }
 

@@ -1233,6 +1233,8 @@ export function TorrentCardsMobile({
     deleteFiles,
     setDeleteFiles,
     preserveCrossSeeds,
+    includeCrossSeeds,
+    setIncludeCrossSeeds,
     setPreserveCrossSeeds,
     isDeleteFilesLocked,
     toggleDeleteFilesLock,
@@ -2704,6 +2706,8 @@ export function TorrentCardsMobile({
         totalSize={selectedTotalSize}
         formattedSize={selectedFormattedSize}
         preserveCrossSeeds={preserveCrossSeeds}
+        includeCrossSeeds={includeCrossSeeds}
+        onIncludeCrossSeedsChange={setIncludeCrossSeeds}
         onPreserveCrossSeedsChange={setPreserveCrossSeeds}
         selectionRequest={{
           hashes: torrentToDelete ? [torrentToDelete.hash] : isAllSelected ? [] : selectedRequestHashes,

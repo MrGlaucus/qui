@@ -101,6 +101,10 @@
   "deleteDialog": {
     "modeLabel": "삭제 방식",
     "modes": {
+      "include": {
+        "label": "파일 및 모든 관련 토렌트 삭제",
+        "description": "선택한 토렌트, 같은 인스턴스에서 파일 경로를 공유하는 모든 토렌트와 해당 토렌트의 모든 파일을 삭제합니다. 다른 인스턴스와 독립 사본은 포함하지 않습니다."
+      },
       "keep": {
         "label": "토렌트만 삭제",
         "description": "다른 토렌트의 사용 여부와 관계없이 모든 파일을 유지합니다."
@@ -114,6 +118,9 @@
         "description": "선택하지 않은 토렌트가 사용하는 파일은 유지합니다. 관련 토렌트를 모두 선택하면 파일도 삭제합니다."
       }
     },
+    "includePlanSummary": "선택: {{selected}} · 추가 관련: {{related}} · 삭제 합계: {{total}}",
+    "includePlanRecheck": "표시된 모든 토렌트와 파일이 삭제됩니다. 삭제 전에 서버에서 공유 경로를 다시 확인합니다.",
+    "relatedTorrents": "추가로 삭제할 토렌트",
     "planChecking": "전체 선택 항목 확인 중…",
     "planError": "확인에 실패했습니다. 창을 닫고 다시 열어 주세요. 삭제된 항목은 없습니다.",
     "planSummary": "{{keepFiles}}개 토렌트의 파일 유지; {{deleteFiles}}개 토렌트의 파일 삭제.",
@@ -1203,6 +1210,7 @@
     "editTrackerUrl": "트래커 URL 편집"
   },
   "peersTable": {
+    "query": "조회",
     "address": "IP:포트",
     "client": "클라이언트",
     "flags": "플래그",

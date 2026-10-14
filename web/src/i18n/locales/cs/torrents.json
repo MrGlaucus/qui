@@ -101,6 +101,10 @@
   "deleteDialog": {
     "modeLabel": "Způsob odstranění",
     "modes": {
+      "include": {
+        "label": "Smazat soubory a všechny související torrenty",
+        "description": "Smaže výběr, torrenty sdílející cesty k souborům ve stejné instanci a všechny jejich soubory. Jiné instance a nezávislé kopie nejsou zahrnuty."
+      },
       "keep": {
         "label": "Odstranit pouze torrenty",
         "description": "Ponechat všechny soubory bez ohledu na ostatní torrenty."
@@ -114,6 +118,9 @@
         "description": "Ponechat soubory potřebné nevybraným torrentům. Pokud jsou vybrány všechny, soubory smazat."
       }
     },
+    "includePlanSummary": "Vybráno: {{selected}} · Další související: {{related}} · Celkem smazat: {{total}}",
+    "includePlanRecheck": "Všechny uvedené torrenty a jejich soubory budou smazány. Server před smazáním znovu ověří sdílené cesty.",
+    "relatedTorrents": "Další torrenty ke smazání",
     "planChecking": "Kontrola celého výběru…",
     "planError": "Kontrola selhala. Zavřete a znovu otevřete dialog. Nic nebylo odstraněno.",
     "planSummary": "Ponechat soubory pro {{keepFiles}} torrentů; smazat pro {{deleteFiles}} torrentů.",
@@ -1262,6 +1269,7 @@
     "editTrackerUrl": "Upravit URL trackeru"
   },
   "peersTable": {
+    "query": "Zjistit",
     "address": "IP:Port",
     "client": "Klient",
     "flags": "Vlajky",

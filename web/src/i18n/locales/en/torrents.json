@@ -102,6 +102,10 @@
   "deleteDialog": {
     "modeLabel": "Deletion mode",
     "modes": {
+      "include": {
+        "label": "Delete files and all related torrents",
+        "description": "Delete selected torrents, all torrents sharing their file paths in the same instance, and all files belonging to these torrents. Other instances and independent copies are not included."
+      },
       "keep": {
         "label": "Remove torrents only",
         "description": "Keep every file, whether or not another torrent uses it."
@@ -115,6 +119,9 @@
         "description": "Keep files needed by unselected torrents. Delete files when all torrents using them are selected."
       }
     },
+    "includePlanSummary": "Selected: {{selected}} · Additional related: {{related}} · Total to delete: {{total}}",
+    "includePlanRecheck": "All listed torrents and their files will be deleted. The server checks shared paths again before deletion.",
+    "relatedTorrents": "Additional torrents to delete",
     "planChecking": "Checking the complete selection…",
     "planError": "Check failed. Close and reopen this dialog to retry. Nothing has been deleted.",
     "planSummary": "Keep files for {{keepFiles}} torrent tasks; delete files for {{deleteFiles}} torrent tasks.",
@@ -1296,6 +1303,7 @@
     "editTrackerUrl": "Edit Tracker URL"
   },
   "peersTable": {
+    "query": "Query",
     "address": "IP:Port",
     "client": "Client",
     "flags": "Flags",

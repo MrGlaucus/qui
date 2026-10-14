@@ -67,6 +67,12 @@ A view stores the sidebar filter selection only. It does not include search text
 
 The arrow keys replace the selection with the focused row, the same as a plain click. When the details panel is open, it follows the arrow keys. If you type in an input field or open a dialog, hotkeys are inactive.
 
+## Peer sorting and ISP lookups
+
+On mobile, the **Peers** tab has a sort selector above the cards. Choose upload or download speed, uploaded or downloaded bytes, progress, address, client, or ISP, then toggle ascending or descending order. Upload speed defaults to descending. The selection stays active while the list refreshes; unresolved values stay last. Sorting by ISP uses lookup results already available and does not start new lookups.
+
+In a torrent's **Peers** tab, use the **Query** text button in the desktop ISP column or **Query ISP** beside a mobile peer's country to look up just that IP. The control shows progress and offers **Retry** if the lookup fails. Results are reused for the same IP across the interface. The top **Query ISP** button still queries all peers without a result. Individual lookups and ISP results are hidden in incognito mode.
+
 ## Torrent creator
 
 The **Create torrent** button opens the creator dialog. On desktop it is in the header. On phones it is the **Create** button in the bottom bar. It creates a new `.torrent` file from a file or folder on the qBittorrent server. The button appears only when the instance supports torrent creation, which requires qBittorrent 5.0 or newer (WebUI API 2.11.2).
@@ -128,6 +134,10 @@ Because qui reads the Disc from disk, BDInfo requires the instance option **Loca
 
 ## Delete while preserving cross-seeds
 
-The manual deletion dialog offers three modes on desktop and mobile: remove torrents only, remove torrents and files, or **Delete (preserve cross-seeds)**. The last mode checks the complete selection per instance, including filtered Select all selections. Files needed by unselected torrents sharing the content path are kept; when every torrent using the files is selected, tasks and files are removed. Unrelated torrents in the same directory are distinguished by file overlap, using the workflow deletion policy. Unknown paths or incomplete file verification keep files.
+The manual deletion dialog offers four modes on desktop and mobile: remove torrents only, remove torrents and files, **Delete (preserve cross-seeds)**, or **Delete files and all related torrents**. Preserve mode checks the complete selection per instance, including filtered Select all selections. Files needed by unselected torrents sharing the content path are kept; when every torrent using the files is selected, tasks and files are removed. Unrelated torrents in the same directory are distinguished by file overlap, using the workflow deletion policy. Unknown paths or incomplete file verification keep files.
 
 A preview shows how many selected tasks will keep files and how many will delete files. Counts describe torrent tasks, not distinct files or bytes. Execution checks again using a fresh client torrent list. The check is per qBittorrent instance; it does not establish shared storage between different instances. In this mode the dialog does not expand the selection to unselected cross-seeds. Completed deletions cannot be rolled back if a later client request fails.
+
+**Delete files and all related torrents** expands the complete selection on the server, including filtered Select all selections. It follows actual shared file paths within each selected instance, including partial and transitive overlaps. For example, selecting a single-file torrent also includes a pack using that file, then any other torrents using files in that pack. All files belonging to the expanded selection are deleted. A shared directory or matching name alone is not enough to include a torrent. Other instances and copies at independent paths, including hardlinks, are outside this mode's scope.
+
+The preview shows selected, additional related, and total torrent counts, plus the names and owning instances of additional torrents. Confirmation stays disabled if checking fails. Before execution, the server rereads torrent and file lists and checks every selected instance before sending any deletion. The related set may change if the library changes after preview. Failures during deletion can leave a partially completed operation; completed deletions cannot be rolled back.

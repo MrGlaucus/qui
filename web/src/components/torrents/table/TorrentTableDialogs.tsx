@@ -87,6 +87,8 @@ export interface TorrentTableDialogsProps {
 
   // Delete-dialog options
   preserveCrossSeeds?: boolean
+  includeCrossSeeds?: boolean
+  setIncludeCrossSeeds?: (value: boolean) => void
   setPreserveCrossSeeds?: (value: boolean) => void
   deleteFiles: boolean
   setDeleteFiles: Dispatch<SetStateAction<boolean>>
@@ -187,6 +189,8 @@ export function TorrentTableDialogs({
   handleTransfer,
   isTransferPending,
   preserveCrossSeeds,
+  includeCrossSeeds,
+  setIncludeCrossSeeds,
   setPreserveCrossSeeds,
   deleteFiles,
   setDeleteFiles,
@@ -284,6 +288,8 @@ export function TorrentTableDialogs({
         totalSize={deleteDialogTotalSize}
         formattedSize={deleteDialogFormattedSize}
         preserveCrossSeeds={preserveCrossSeeds}
+        includeCrossSeeds={includeCrossSeeds}
+        onIncludeCrossSeedsChange={setIncludeCrossSeeds}
         onPreserveCrossSeedsChange={setPreserveCrossSeeds}
         selectionRequest={{
           hashes: isAllSelected ? [] : contextHashes,

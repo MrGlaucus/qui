@@ -101,6 +101,10 @@
   "deleteDialog": {
     "modeLabel": "Mode de suppression",
     "modes": {
+      "include": {
+        "label": "Supprimer les fichiers et tous les torrents liés",
+        "description": "Supprime la sélection, les torrents partageant leurs chemins de fichiers dans la même instance et tous leurs fichiers. Les autres instances et les copies indépendantes sont exclues."
+      },
       "keep": {
         "label": "Supprimer uniquement les torrents",
         "description": "Conserver tous les fichiers, même sans autre torrent."
@@ -114,6 +118,9 @@
         "description": "Conserver les fichiers utilisés par des torrents non sélectionnés. Les supprimer si tous sont sélectionnés."
       }
     },
+    "includePlanSummary": "Sélectionnés : {{selected}} · Liés supplémentaires : {{related}} · À supprimer : {{total}}",
+    "includePlanRecheck": "Tous les torrents affichés et leurs fichiers seront supprimés. Le serveur vérifie à nouveau les chemins partagés avant la suppression.",
+    "relatedTorrents": "Torrents supplémentaires à supprimer",
     "planChecking": "Vérification de la sélection complète…",
     "planError": "Échec de la vérification. Fermez puis rouvrez cette fenêtre. Rien n’a été supprimé.",
     "planSummary": "Fichiers conservés pour {{keepFiles}} torrents ; supprimés pour {{deleteFiles}} torrents.",
@@ -1262,6 +1269,7 @@
     "editTrackerUrl": "Modifier l'URL du Tracker"
   },
   "peersTable": {
+    "query": "Rechercher",
     "address": "IP:Port",
     "client": "Client",
     "flags": "Drapeaux",

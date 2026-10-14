@@ -99,6 +99,10 @@
   "deleteDialog": {
     "modeLabel": "刪除方式",
     "modes": {
+      "include": {
+        "label": "刪除檔案及全部關聯種子",
+        "description": "刪除選取種子、同一實例內共享檔案路徑的全部關聯種子，以及這些種子的所有檔案。不包括其他實例或獨立副本。"
+      },
       "keep": {
         "label": "僅刪除種子",
         "description": "全部保留檔案，無論是否有其他種子使用。"
@@ -112,6 +116,9 @@
         "description": "有未選取的種子共用檔案則保留；共用檔案的種子全部選取則刪除檔案。"
       }
     },
+    "includePlanSummary": "已選 {{selected}} 個 · 額外關聯 {{related}} 個 · 共刪除 {{total}} 個",
+    "includePlanRecheck": "將刪除全部上述種子及其檔案。執行前，伺服器會重新檢查共享關係。",
+    "relatedTorrents": "額外刪除的關聯種子",
     "planChecking": "正在檢查完整刪除範圍…",
     "planError": "檢查失敗，請關閉視窗後重新開啟重試。尚未執行刪除。",
     "planSummary": "{{keepFiles}} 個種子保留檔案；{{deleteFiles}} 個種子刪除檔案。",
@@ -1202,6 +1209,7 @@
     "editTrackerUrl": "編輯 Tracker URL"
   },
   "peersTable": {
+    "query": "查詢",
     "address": "IP/位址",
     "client": "用戶端",
     "flags": "標誌",

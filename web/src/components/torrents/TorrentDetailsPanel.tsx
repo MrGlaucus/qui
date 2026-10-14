@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -29,6 +30,7 @@ import { getCountryName } from "@/lib/countryNames"
 import { DEFAULT_FILE_SORT } from "@/lib/file-tree"
 import { getLinuxCategory, getLinuxComment, getLinuxCreatedBy, getLinuxFileName, getLinuxHash, getLinuxIsoName, getLinuxSavePath, getLinuxTags, getLinuxTracker, useIncognitoMode } from "@/lib/incognito"
 import { renderTextWithLinks } from "@/lib/linkUtils"
+import { sortPeers, type PeerSort, type PeerSortField } from "@/lib/peer-sort"
 import { formatSpeedWithUnit, useSpeedUnits } from "@/lib/speedUnits"
 import { canBanPeer, getPeerDisplayAddress } from "@/lib/torrent-peer-address"
 import { getPeerFlagDetails } from "@/lib/torrent-peer-flags"
@@ -39,11 +41,12 @@ import { cn, copyTextToClipboard, formatBytes, formatDuration } from "@/lib/util
 import type { SortedPeer, SortedPeersResponse, Torrent, TorrentFile, TorrentFilters, TorrentStreamPayload, TorrentTracker } from "@/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import "flag-icons/css/flag-icons.min.css"
-import { Ban, BarChart3, Copy, Loader2, Network, Trash2, UserPlus, X } from "lucide-react"
+import { ArrowDown, ArrowUp, Ban, BarChart3, Copy, Loader2, Network, Trash2, UserPlus, X } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { CrossSeedTable, GeneralTabHorizontal, PeersTable, TorrentFileTable, TrackerContextMenu, TrackersTable, WebSeedsTable } from "./details"
+import { PeerIsp } from "./details/PeerIsp"
 import { EditTrackerDialog, RenameTorrentFileDialog, RenameTorrentFolderDialog } from "./TorrentDialogs"
 import { TaskReportDialog } from "./TaskReportDialog"
 import { TorrentDiscReportDialog } from "./TorrentDiscReportDialog"
@@ -64,6 +67,16 @@ const TAB_VALUES = ["general", "trackers", "peers", "webseeds", "content", "cros
 type TabValue = typeof TAB_VALUES[number]
 const DEFAULT_TAB: TabValue = "general"
 const TAB_STORAGE_KEY = "torrent-details-last-tab"
+const PEER_SORT_FIELDS: { field: PeerSortField; label: string }[] = [
+  { field: "up_speed", label: "peersTable.upSpeed" },
+  { field: "dl_speed", label: "peersTable.downSpeed" },
+  { field: "uploaded", label: "peersTable.uploaded" },
+  { field: "downloaded", label: "peersTable.downloaded" },
+  { field: "progress", label: "peersTable.progress" },
+  { field: "key", label: "peersTable.address" },
+  { field: "client", label: "peersTable.client" },
+  { field: "isp", label: "reportDialog.isp" },
+]
 
 function isTabValue(value: string): value is TabValue {
   return TAB_VALUES.includes(value as TabValue)
@@ -507,13 +520,12 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
 
   const { ispData, setIspData } = useIspData()
 
-  // Mobile peers view: default sort by upload speed (descending)
+  const [peerSort, setPeerSort] = useState<PeerSort>({ field: "up_speed", direction: "desc" })
   const mobileSortedPeers = useMemo(() => {
-    if (!peersData?.peers) return []
-    const list = peersData.sorted_peers ||
-      Object.entries(peersData.peers).map(([key, peer]) => ({ key, ...peer }))
-    return [...list].sort((a, b) => (b.up_speed || 0) - (a.up_speed || 0))
-  }, [peersData])
+    const list = peersData?.sorted_peers ??
+      Object.entries(peersData?.peers ?? {}).map(([key, peer]) => ({ key, ...peer }))
+    return sortPeers(list, peerSort, ispData)
+  }, [peersData, peerSort, ispData])
 
   const handleLookupIsp = useCallback(async () => {
     if (!peersData?.sorted_peers) return
@@ -1463,7 +1475,7 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                     </div>
                   ) : peersData && peersData.peers && typeof peersData.peers === "object" && Object.keys(peersData.peers).length > 0 ? (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                         <div>
                           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("detailsPanel.sections.connectedPeers")}</h3>
                           <p className="text-xs text-muted-foreground mt-1">{t("detailsPanel.counts.connectedPeers", { count: Object.keys(peersData.peers).length })}</p>
@@ -1487,6 +1499,35 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                             {t("detailsPanel.addPeers.title")}
                           </Button>
                         </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0 text-xs text-muted-foreground">{t("sort.label")}</span>
+                        <Select
+                          value={peerSort.field}
+                          onValueChange={(field: PeerSortField) => setPeerSort({
+                            field,
+                            direction: ["key", "client", "isp"].includes(field) ? "asc" : "desc",
+                          })}
+                        >
+                          <SelectTrigger className="min-w-0 flex-1" aria-label={t("tableView.changeSortField")}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PEER_SORT_FIELDS.map(({ field, label }) => (
+                              <SelectItem key={field} value={field}>{t(label)}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 shrink-0 gap-1.5"
+                          onClick={() => setPeerSort(previous => ({ ...previous, direction: previous.direction === "desc" ? "asc" : "desc" }))}
+                          aria-label={t("tableView.sortDirection", { direction: t(`sort.${peerSort.direction === "desc" ? "ascending" : "descending"}`) })}
+                        >
+                          {peerSort.direction === "desc" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
+                          {t(`sort.${peerSort.direction === "desc" ? "descending" : "ascending"}`)}
+                        </Button>
                       </div>
                       <div className="space-y-4 mt-4">
                         {mobileSortedPeers.map((peerWithKey) => {
@@ -1531,9 +1572,13 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                                             [{getCountryName(peer.country_code ?? "", peer.country, t)}]
                                           </span>
                                         </span>
-                                        {peer.ip && ispData[peer.ip] && ispData[peer.ip] !== "loading" && (
-                                          <span className="text-xs text-muted-foreground text-right truncate max-w-[50%]">{ispData[peer.ip]}</span>
-                                        )}
+                                        <PeerIsp
+                                          ip={peer.ip}
+                                          value={peer.ip ? ispData[peer.ip] : undefined}
+                                          incognitoMode={incognitoMode}
+                                          onLookup={handleRetryIsp}
+                                          className="max-w-[50%] text-right text-muted-foreground"
+                                        />
                                       </div>
                                       <p className="text-xs text-muted-foreground">{peer.client || t("detailsPanel.values.unknownClient")}</p>
                                     </div>
@@ -2313,7 +2358,7 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
         file={mediaInfoFile}
       />
 
-{displayTorrent && (
+      {displayTorrent && (
         <TaskReportDialog
           open={showReportDialog}
           onOpenChange={setShowReportDialog}

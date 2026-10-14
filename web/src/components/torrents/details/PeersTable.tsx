@@ -26,6 +26,7 @@ import { Ban, Copy, Loader2 } from "lucide-react"
 import { memo, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+import { PeerIsp } from "./PeerIsp"
 
 interface PeersTableProps {
   peers: SortedPeer[] | undefined
@@ -114,20 +115,16 @@ export const PeersTable = memo(function PeersTable({
       header: "ISP",
       cell: (info) => {
         const ip = info.row.original.ip
-        if (!ip) return <span className="text-muted-foreground">-</span>
-        if (incognitoMode) return <span className="text-muted-foreground">-</span>
-        const status = ispData[ip]
-        if (status === "loading") return <span className="text-muted-foreground">...</span>
-        if (status === null) return (
-          <span
-            className="text-red-500 cursor-pointer hover:underline"
-            onClick={(e) => { e.stopPropagation(); onRetryIsp?.(ip) }}
-          >
-            {t("peersTable.retry")}
-          </span>
+        return (
+          <PeerIsp
+            textOnly
+            ip={ip}
+            value={ip ? ispData[ip] : undefined}
+            incognitoMode={incognitoMode}
+            onLookup={onRetryIsp}
+            className="block max-w-[120px]"
+          />
         )
-        if (status) return <span className="truncate block max-w-[120px]" title={status}>{status}</span>
-        return <span className="text-muted-foreground">-</span>
       },
       size: 120,
       sortUndefined: "last",

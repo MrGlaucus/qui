@@ -62,6 +62,7 @@ interface TorrentActionData {
   targets?: Array<{ instanceId: number; hash: string }>
   deleteFiles?: boolean
   preserveCrossSeeds?: boolean
+  includeCrossSeeds?: boolean
   tags?: string
   comment?: string
   category?: string
@@ -188,6 +189,7 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
   } = usePersistedDeleteFiles(false)
   const { blockCrossSeeds, setBlockCrossSeeds } = usePersistedCrossSeedBlocklist(instanceId, false)
   const [preserveCrossSeeds, setPreserveCrossSeeds] = useState(false)
+  const [includeCrossSeeds, setIncludeCrossSeeds] = useState(false)
   const [deleteCrossSeeds, setDeleteCrossSeeds] = useState(false)
   const [showTagsDialog, setShowTagsDialog] = useState(false)
   const [showCommentDialog, setShowCommentDialog] = useState(false)
@@ -232,6 +234,7 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
         action: payload.action,
         deleteFiles: payload.deleteFiles,
         preserveCrossSeeds: payload.preserveCrossSeeds,
+        includeCrossSeeds: payload.includeCrossSeeds,
         tags: payload.tags,
         comment: payload.comment,
         category: payload.category,
@@ -251,7 +254,7 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
         excludeTargets: payload.excludeTargets,
       })
     },
-    onSuccess: async (_, variables) => {
+    onSuccess: async (result, variables) => {
       // Handle delete operations with optimistic updates
       if (variables.action === "delete") {
         // Clear selection and context
@@ -312,12 +315,14 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
       if (typeof variables.clientCount === "number") {
         toastCount = variables.clientCount
       }
+      if (variables.includeCrossSeeds && result?.total !== undefined) toastCount = result.total
       showSuccessToast(t, variables.action, Math.max(1, toastCount), variables.preserveCrossSeeds ? false : variables.deleteFiles, variables.enable)
 
       // Close dialogs after successful action
       if (variables.action === "delete") {
         setShowDeleteDialog(false)
         setDeleteCrossSeeds(false)
+        setIncludeCrossSeeds(false)
       } else if (variables.action === "setComment") {
         setShowCommentDialog(false)
       } else if (variables.action === "setCategory") {
@@ -554,8 +559,9 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
       action: "delete",
       instanceIds,
       targets: isAllSelected ? undefined : clientMeta?.actionTargets,
-      deleteFiles: preserveCrossSeeds || deleteFiles,
+      deleteFiles: preserveCrossSeeds || includeCrossSeeds || deleteFiles,
       preserveCrossSeeds,
+      includeCrossSeeds,
       hashes: isAllSelected ? [] : hashes,
       selectAll: isAllSelected,
       filters: isAllSelected ? filters : undefined,
@@ -569,7 +575,7 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
     setDeleteCrossSeeds(false)
     setContextHashes([])
     setContextTorrents([])
-  }, [mutation, deleteFiles, preserveCrossSeeds, instanceIds])
+  }, [mutation, deleteFiles, preserveCrossSeeds, includeCrossSeeds, instanceIds])
 
   const handleUpdateTags = useCallback(async (
     plan: TagUpdatePlan,
@@ -1069,6 +1075,8 @@ export function useTorrentActions({ instanceId, instanceIds, onActionComplete }:
     // State
     preserveCrossSeeds,
     setPreserveCrossSeeds,
+    includeCrossSeeds,
+    setIncludeCrossSeeds,
     showDeleteDialog,
     setShowDeleteDialog,
     closeDeleteDialog,
