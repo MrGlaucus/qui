@@ -897,16 +897,17 @@ const (
 
 // RuleCondition represents a condition or group of conditions for filtering torrents.
 type RuleCondition struct {
-	Field      ConditionField    `json:"field,omitempty"`
-	Operator   ConditionOperator `json:"operator"`
-	GroupID    string            `json:"groupId,omitempty"` // Optional grouping ID for GROUP_SIZE/IS_GROUPED conditions
-	Value      string            `json:"value,omitempty"`
-	MinValue   *float64          `json:"minValue,omitempty"`
-	MaxValue   *float64          `json:"maxValue,omitempty"`
-	Regex      bool              `json:"regex,omitempty"`
-	Negate     bool              `json:"negate,omitempty"`
-	Conditions []*RuleCondition  `json:"conditions,omitempty"`
-	Compiled   *regexp.Regexp    `json:"-"` // compiled regex, not serialized
+	HoldForSeconds int               `json:"holdForSeconds,omitempty"`
+	Field          ConditionField    `json:"field,omitempty"`
+	Operator       ConditionOperator `json:"operator"`
+	GroupID        string            `json:"groupId,omitempty"` // Optional grouping ID for GROUP_SIZE/IS_GROUPED conditions
+	Value          string            `json:"value,omitempty"`
+	MinValue       *float64          `json:"minValue,omitempty"`
+	MaxValue       *float64          `json:"maxValue,omitempty"`
+	Regex          bool              `json:"regex,omitempty"`
+	Negate         bool              `json:"negate,omitempty"`
+	Conditions     []*RuleCondition  `json:"conditions,omitempty"`
+	Compiled       *regexp.Regexp    `json:"-"` // compiled regex, not serialized
 }
 
 // IsGroup returns true if this condition is an AND/OR group containing child conditions.

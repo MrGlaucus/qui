@@ -51,6 +51,9 @@ type FreeSpaceSourceState struct {
 
 // EvalContext provides additional context for condition evaluation.
 type EvalContext struct {
+	// Observation visits every branch; action evaluation only reads its results.
+	observeDuration func(*RuleCondition, qbt.Torrent, bool) bool
+	durationResults map[*RuleCondition]map[string]bool
 	// UnregisteredSet contains hashes of unregistered torrents (from SyncManager health counts)
 	UnregisteredSet map[string]struct{}
 	// TrackerDownSet contains hashes of torrents whose trackers are down (from SyncManager health counts)
@@ -333,7 +336,9 @@ func EvaluateConditionWithContext(cond *RuleCondition, torrent qbt.Torrent, ctx 
 			for _, child := range cond.Conditions {
 				if EvaluateConditionWithContext(child, torrent, ctx, depth+1) {
 					result = true
-					break
+					if ctx == nil || ctx.observeDuration == nil {
+						break
+					}
 				}
 			}
 		case OperatorAnd:
@@ -342,7 +347,9 @@ func EvaluateConditionWithContext(cond *RuleCondition, torrent qbt.Torrent, ctx 
 			for _, child := range cond.Conditions {
 				if !EvaluateConditionWithContext(child, torrent, ctx, depth+1) {
 					result = false
-					break
+					if ctx == nil || ctx.observeDuration == nil {
+						break
+					}
 				}
 			}
 		default:
@@ -357,6 +364,15 @@ func EvaluateConditionWithContext(cond *RuleCondition, torrent qbt.Torrent, ctx 
 	// Apply negation if specified
 	if cond.Negate {
 		result = !result
+	}
+	if cond.HoldForSeconds > 0 {
+		if ctx == nil {
+			return false
+		}
+		if ctx.observeDuration != nil {
+			return ctx.observeDuration(cond, torrent, result)
+		}
+		return result && ctx.durationResults[cond][torrent.Hash]
 	}
 
 	return result

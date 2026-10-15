@@ -34,6 +34,16 @@ Deleting a source keeps its followers as independent rules by default. The delet
 
 The query builder supports complex nested conditions with AND/OR groups. Drag conditions to reorder them.
 
+### Continuous conditions
+
+Set **Hold for (seconds)** on a condition or an AND/OR group to require consecutive matching observations before it becomes true. Zero (the default) disables the timer; the maximum is 30 days. For example, set upload speed below **200 KiB/s** and hold for **30 seconds**. Each torrent has its own timer, isolated by instance, rule and condition. A false observation clears that timer rather than pausing it.
+
+Timed rules are observed on every automation scan, normally every 20 seconds, even while their action interval or recent-action suppression prevents execution. With 20-second observations, a 30-second timer usually qualifies at the third matching observation, about 40 seconds after the first. This is sampled continuity: short fluctuations between observations cannot be detected. Actions still wait for the rule's execution interval; setting a duration does not shorten that interval.
+
+Negation applies before a node's timer. A group's timer starts when its child conditions, including any child timers, satisfy the AND/OR expression. For a single 30-second window over several predicates, set the duration on their group and leave child durations at zero. An OR group can remain true while different branches match in successive observations.
+
+Timer state is kept in memory. Stale or missing sync data, observation gaps longer than two scan intervals, rule edits, disabling a rule or instance, and restarts reset continuity. Removed torrents are forgotten; re-added torrents start over. Linked rules copy duration settings but never share running timers. Manual dry-runs maintain separate observation state and cannot bypass a duration; instant match previews without observation history treat timed nodes as not yet satisfied. Timers do not create additional per-torrent polling requests or store speed history.
+
 ### Available condition fields
 
 #### Identity fields

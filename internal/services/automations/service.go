@@ -751,6 +751,7 @@ type Service struct {
 	lastRuleRun     map[ruleKey]time.Time        // per-rule cadence tracking
 	inFlightExports map[string]struct{}          // "targetInstanceID:hash" -> in-progress export
 	mu              sync.RWMutex
+	durations       durationTracker
 
 	activityPublisher activity.Publisher
 }
@@ -830,6 +831,7 @@ func (s *Service) SetActivityPublisher(publisher activity.Publisher) {
 // cleanupStaleEntries removes entries from lastApplied and lastRuleRun maps
 // that are older than the cutoff to prevent unbounded memory growth.
 func (s *Service) cleanupStaleEntries() {
+	s.durations.prune(time.Now().Add(-10 * time.Minute))
 	cutoff := time.Now().Add(-10 * time.Minute)
 	ruleCutoff := time.Now().Add(-24 * time.Hour) // 1 day for rule tracking
 	s.mu.Lock()
@@ -912,6 +914,7 @@ func (s *Service) applyAll(ctx context.Context) {
 
 	for _, instance := range instances {
 		if !instance.IsActive {
+			s.durations.clearInstance(instance.ID)
 			continue
 		}
 		if err := s.applyForInstance(ctx, instance.ID, false); err != nil {
@@ -2143,6 +2146,7 @@ func (s *Service) applyForInstance(ctx context.Context, instanceID int, force bo
 		s.notifyAutomationFailure(ctx, instanceID, err)
 		return err
 	}
+	s.durations.reconcile(instanceID, rules)
 	if len(rules) == 0 {
 		return nil
 	}
@@ -2188,6 +2192,13 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 
 	// Pre-filter rules by enablement and interval eligibility
 	now := time.Now()
+	dueRules := make(map[int]bool, len(rules))
+	observed := false
+	defer func() {
+		if !observed {
+			s.durations.clearRules(instanceID, rules, dryRun)
+		}
+	}()
 	eligibleRules := make([]*models.Automation, 0, len(rules))
 	for _, rule := range rules {
 		// A disabled rule never stamps lastRuleRun, so the interval filter below can
@@ -2196,6 +2207,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 		if !rule.Enabled {
 			continue
 		}
+		due := true
 		if !force {
 			interval := DefaultRuleInterval
 			if rule.IntervalSeconds != nil {
@@ -2206,8 +2218,12 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 			lastRun := s.lastRuleRun[key]
 			s.mu.RUnlock()
 			if now.Sub(lastRun) < interval {
-				continue // skip, interval not elapsed
+				due = false
 			}
+		}
+		dueRules[rule.ID] = due
+		if !due && !ruleHasDuration(rule) {
+			continue
 		}
 		eligibleRules = append(eligibleRules, rule)
 	}
@@ -2423,6 +2439,21 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 		} else {
 			evalCtx.TrackerDisplayNameByDomain = buildTrackerDisplayNameMap(customizations)
 		}
+	}
+
+	// Observe timed conditions even when action cadence or recent-action suppression
+	// prevents execution. All expensive predicate context above is shared with execution.
+	if slices.ContainsFunc(eligibleRules, ruleHasDuration) {
+		client, err := s.syncManager.GetClient(ctx, instanceID)
+		if err != nil {
+			return nil, err
+		}
+		s.observeDurations(instanceID, eligibleRules, torrents, evalCtx, client.GetLastSyncUpdate(), time.Now(), dryRun)
+	}
+	observed = true
+	eligibleRules = slices.DeleteFunc(eligibleRules, func(rule *models.Automation) bool { return !dueRules[rule.ID] })
+	if len(eligibleRules) == 0 {
+		return nil, nil
 	}
 
 	// Ensure lastApplied map is initialized for this instance
@@ -7032,6 +7063,10 @@ func ruleUsesRuleScopedSortingContext(rule *models.Automation) bool {
 	if rule == nil {
 		return false
 	}
+	// Identical score predicates can have different observation histories.
+	if ruleHasDuration(&models.Automation{SortingConfig: rule.SortingConfig}) {
+		return true
+	}
 
 	return sortingConfigUsesField(rule.SortingConfig, FieldFreeSpace) ||
 		sortingConfigUsesField(rule.SortingConfig, FieldGroupSize) ||
@@ -7113,7 +7148,7 @@ func conditionEqual(a, b *models.RuleCondition) bool {
 	}
 	// Basic field comparison
 	if a.Field != b.Field || a.Operator != b.Operator || a.Value != b.Value ||
-		a.Regex != b.Regex || a.Negate != b.Negate {
+		a.Regex != b.Regex || a.Negate != b.Negate || a.HoldForSeconds != b.HoldForSeconds {
 		return false
 	}
 	// GroupID comparison

@@ -6620,7 +6620,7 @@ components:
           items: {type: string}
         conditions:
           type: object
-          description: Action conditions with schemaVersion 1
+          description: Action conditions with schemaVersion 1. Every leaf or AND/OR node may include holdForSeconds (integer, 0 to 2592000). Zero or omitted disables continuous observation. Positive durations require consecutive fresh matching observations; resets on a mismatch, stale data, rule changes or restart. Observed at the automation scan cadence independently of action intervals. Nested timers apply after child timers and negation. Instant previews without observation history do not satisfy timed nodes.
           additionalProperties: true
         freeSpaceSource: {type: object}
         sortingConfig: {type: object}

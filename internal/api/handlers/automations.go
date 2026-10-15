@@ -416,6 +416,11 @@ func (h *AutomationHandler) validatePayload(ctx context.Context, instanceID int,
 	}
 
 	// Validate intervalSeconds minimum
+	for _, root := range (&models.Automation{Conditions: payload.Conditions, SortingConfig: payload.SortingConfig}).ConditionTrees() {
+		if err := validateConditionDuration(root, 0); err != nil {
+			return http.StatusBadRequest, err.Error(), err
+		}
+	}
 	if payload.IntervalSeconds != nil && *payload.IntervalSeconds < 60 {
 		return http.StatusBadRequest, "intervalSeconds must be at least 60", errors.New("interval too short")
 	}
