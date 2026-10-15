@@ -292,6 +292,10 @@
     "capabilityReasons": {
       "trackerHealth": "Nécessite qBittorrent 5.1+",
       "localFilesystemAccess": "Nécessite l'accès au système de fichiers local"
+    },
+    "holdFor": {
+      "label": "Durée continue (secondes)",
+      "help": "0 désactive le délai ; maximum 30 jours. Chaque torrent est observé à chaque balayage automatique (20 secondes par défaut), indépendamment des actions. Une condition fausse, des données périmées, une modification ou un redémarrage remet le délai à zéro. Les actions respectent leur intervalle. Les aperçus ne cumulent pas de temps."
     }
   },
   "scripts": {

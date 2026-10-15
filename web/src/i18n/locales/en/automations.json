@@ -297,6 +297,10 @@
     "capabilityReasons": {
       "trackerHealth": "Requires qBittorrent 5.1+",
       "localFilesystemAccess": "Requires Local Filesystem Access"
+    },
+    "holdFor": {
+      "label": "Hold for (seconds)",
+      "help": "0 disables the timer; maximum 30 days. Each torrent is observed on the automation scan (20 seconds by default), independently of action intervals. A mismatch, stale data, rule edit or restart resets the timer. Actions still wait for the rule interval. Instant previews do not accumulate time."
     }
   },
   "scripts": {

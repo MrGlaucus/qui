@@ -291,6 +291,10 @@
     "capabilityReasons": {
       "trackerHealth": "Requer qBittorrent 5.1+",
       "localFilesystemAccess": "Requer Acesso ao Sistema de Arquivos Local"
+    },
+    "holdFor": {
+      "label": "Duração contínua (segundos)",
+      "help": "0 desativa o temporizador; máximo de 30 dias. Cada torrent é observado na verificação automática (20 segundos por padrão), independentemente das ações. Condição falsa, dados desatualizados, edição da regra ou reinício zeram o temporizador. As ações ainda respeitam o intervalo da regra. As prévias não acumulam tempo."
     }
   },
   "scripts": {

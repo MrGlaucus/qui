@@ -292,6 +292,10 @@
     "capabilityReasons": {
       "trackerHealth": "Richiede qBittorrent 5.1+",
       "localFilesystemAccess": "Richiede l'accesso al filesystem locale"
+    },
+    "holdFor": {
+      "label": "Durata continua (secondi)",
+      "help": "0 disattiva il timer; massimo 30 giorni. Ogni torrent viene osservato a ogni scansione automatica (20 secondi per impostazione predefinita), indipendentemente dalle azioni. Condizione falsa, dati obsoleti, modifiche o riavvii azzerano il timer. Le azioni rispettano comunque il proprio intervallo. Le anteprime non accumulano tempo."
     }
   },
   "scripts": {

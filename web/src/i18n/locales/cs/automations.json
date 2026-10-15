@@ -292,6 +292,10 @@
       "error": "Chyba",
       "tracker_error": "Chyba trackeru",
       "unreachable": "Nedostupné"
+    },
+    "holdFor": {
+      "label": "Trvale splněno (sekundy)",
+      "help": "0 vypne časovač; nejvýše 30 dní. Každý torrent se sleduje při kontrole automatizace (výchozí interval 20 sekund), nezávisle na akcích. Nesplněná podmínka, zastaralá data, úprava pravidla nebo restart časovač vynulují. Akce nadále čekají na interval pravidla. Náhledy čas nesčítají."
     }
   },
   "scripts": {

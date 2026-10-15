@@ -292,6 +292,10 @@
     "capabilityReasons": {
       "trackerHealth": "Erfordert qBittorrent 5.1+",
       "localFilesystemAccess": "Erfordert Zugriff auf lokales Dateisystem"
+    },
+    "holdFor": {
+      "label": "Durchgehend (Sekunden)",
+      "help": "0 deaktiviert den Timer; maximal 30 Tage. Jeder Torrent wird beim Automatisierungsscan beobachtet (standardmäßig alle 20 Sekunden), unabhängig vom Aktionsintervall. Nichterfüllung, veraltete Daten, Regeländerungen oder Neustarts setzen den Timer zurück. Aktionen warten weiterhin auf das Regelintervall. Vorschauen sammeln keine Zeit."
     }
   },
   "scripts": {

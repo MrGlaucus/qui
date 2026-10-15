@@ -297,6 +297,10 @@
     "capabilityReasons": {
       "trackerHealth": "需要 qBittorrent 5.1+",
       "localFilesystemAccess": "需要本地文件系统访问权限"
+    },
+    "holdFor": {
+      "label": "连续满足（秒）",
+      "help": "0 表示关闭，最长 30 天。按自动化扫描采样（默认每 20 秒），每个种子独立计时，不受动作执行间隔影响。条件不满足、数据过期、修改规则或重启后重新计时。动作仍需等待规则运行间隔；即时预览不累计时间。"
     }
   },
   "scripts": {

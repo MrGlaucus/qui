@@ -39,6 +39,7 @@ import {
 } from "./constants";
 import { DisabledOption } from "./DisabledOption";
 import { FieldCombobox } from "./FieldCombobox";
+import { ConditionDuration } from "./ConditionDuration";
 import type { GroupOption } from "./QueryBuilder";
 
 function getDurationInputUnits() {
@@ -877,6 +878,10 @@ export function LeafCondition({
             )}
           </div>
         )}
+      </div>
+
+      <div className="order-5 w-full sm:order-none sm:w-auto">
+        <ConditionDuration condition={condition} onChange={onChange} />
       </div>
 
       {/* Remove button */}

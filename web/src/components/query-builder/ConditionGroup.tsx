@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import type { DisabledField, DisabledStateValue } from "./constants";
 import { DropZone } from "./DropZone";
 import { LeafCondition } from "./LeafCondition";
+import { ConditionDuration } from "./ConditionDuration";
 import type { GroupOption } from "./QueryBuilder";
 
 interface ConditionGroupProps {
@@ -226,6 +227,10 @@ export function ConditionGroup({
             <X className="size-4" />
           </Button>
         )}
+      </div>
+
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <ConditionDuration condition={condition} onChange={onChange} />
       </div>
 
       {/* Children */}

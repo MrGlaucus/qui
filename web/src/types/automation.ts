@@ -133,6 +133,7 @@ export type ConditionOperator =
   | "IS_NOT"
 
 export interface RuleCondition {
+  holdForSeconds?: number
   /** UI-only stable identifier (not persisted server-side) */
   clientId?: string
   field?: ConditionField
