@@ -1500,8 +1500,8 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                           </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="shrink-0 text-xs text-muted-foreground">{t("sort.label")}</span>
+                      <div className="ml-auto flex w-fit max-w-full items-center">
+                        <span className="mr-2 shrink-0 text-xs text-muted-foreground">{t("sort.label")}</span>
                         <Select
                           value={peerSort.field}
                           onValueChange={(field: PeerSortField) => setPeerSort({
@@ -1509,7 +1509,7 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                             direction: ["key", "client", "isp"].includes(field) ? "asc" : "desc",
                           })}
                         >
-                          <SelectTrigger className="min-w-0 flex-1" aria-label={t("tableView.changeSortField")}>
+                          <SelectTrigger size="sm" className="w-auto min-w-0 max-w-44 rounded-r-none px-2.5 text-xs shadow-none" aria-label={t("tableView.changeSortField")}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1521,7 +1521,7 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-9 shrink-0 gap-1.5"
+                          className="shrink-0 gap-1 rounded-l-none border-l-0 text-xs font-normal shadow-none"
                           onClick={() => setPeerSort(previous => ({ ...previous, direction: previous.direction === "desc" ? "asc" : "desc" }))}
                           aria-label={t("tableView.sortDirection", { direction: t(`sort.${peerSort.direction === "desc" ? "ascending" : "descending"}`) })}
                         >
