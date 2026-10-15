@@ -117,6 +117,38 @@ class HDSKYTests(unittest.TestCase):
         self.assertIn(("remove_tags", 1, torrent["hash"], ["50分钟内下载完成限速"]), self.ctx.actions)
         self.assertFalse(any(a[0] == "add_tags" for a in self.ctx.actions))
 
+    def test_delta_completion_marker_is_sticky_and_backfilled(self):
+        torrent = self.torrent(4000, uploaded=3200)
+        key = f"torrent:1:{torrent['hash']}:{torrent['added_on']}"
+        self.ctx.state[key] = {"baseline": 100}
+        marker = self.script.RATIO_MET_TAG
+        action = ("add_tags", 1, torrent["hash"], [marker])
+        self.run_torrent(torrent)
+        self.assertNotIn(action, self.ctx.actions)  # Strictly greater than 3.1.
+        self.ctx.actions.clear()
+        torrent["uploaded"] = 3201
+        self.run_torrent(torrent)
+        self.assertIn(action, self.ctx.actions)
+        self.assertEqual(self.limits(), [200 * 1024])
+
+        self.ctx.actions.clear()
+        self.ctx.time = torrent["added_on"] + self.script.RELEASE_AGE
+        self.run_torrent(torrent)  # Backfill/retry even after release.
+        self.assertIn(action, self.ctx.actions)
+        self.assertEqual(self.limits(), [450 * 1024**2])
+
+        self.ctx.actions.clear()
+        torrent["tags"] += "," + marker
+        self.run_torrent(torrent)
+        self.assertNotIn(action, self.ctx.actions)
+        self.assertFalse(any(a[0] == "remove_tags" and marker in a[-1] for a in self.ctx.actions))
+
+    def test_historical_ratio_does_not_add_delta_completion_marker(self):
+        torrent = self.torrent(4000, uploaded=4000)
+        self.run_torrent(torrent)
+        self.assertEqual(self.limits(), [200 * 1024])
+        self.assertFalse(any(a[0] == "add_tags" and self.script.RATIO_MET_TAG in a[-1] for a in self.ctx.actions))
+
     def test_all_stages_replace_legacy_and_stale_labels(self):
         cases = [
             (100, 0.5, 100, {}, "downloading"),

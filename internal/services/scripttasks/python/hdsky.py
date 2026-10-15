@@ -14,6 +14,8 @@ TAGS = {
     "released": "HDSKY·已满72小时·450MiB/s",
 }
 RULE_TAGS = set(LEGACY_TAGS) | set(TAGS.values())
+# Persistent completion marker, independent of the current speed-limit stage.
+RATIO_MET_TAG = "HDSKY·分享率已满足"
 BASELINE_AGE = 3601
 BASELINE_DEADLINE = 62 * 60
 RELEASE_AGE = 72 * 3600
@@ -147,6 +149,9 @@ def process(instance_id, torrent, instance_name=""):
         operation(label, "移除旧规则标签", ctx.remove_tags, instance_id, torrent_hash, obsolete)
     if tag not in tags:
         operation(label, "添加规则标签", ctx.add_tags, instance_id, torrent_hash, [tag])
+    if "baseline" in state and state.get("ratio_limited") and RATIO_MET_TAG not in tags:
+        operation(label, "添加分享率达标标签", ctx.add_tags, instance_id, torrent_hash, [RATIO_MET_TAG])
+        log(f"增量分享率达标标记{'计划添加' if ctx.dry_run else '已添加'}：{label}；「{RATIO_MET_TAG}」；72 小时解除限速后保留")
     if state.get("logged_stage") != tag or changed or obsolete or tag not in tags:
         previous = state.get("logged_stage", "未设置")
         speed = "200 KiB/s" if limit == 200 * 1024 else f"{limit // 1024**2} MiB/s"
