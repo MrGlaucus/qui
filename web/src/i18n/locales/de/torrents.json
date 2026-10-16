@@ -1353,7 +1353,7 @@
     "matchCount_one": "{{count}} Treffer",
     "matchCount_other": "{{count}} Treffer",
     "deleteSelected": "Löschen ({{count}})",
-    "deleteThis": "Diesen löschen",
+    "deleteCurrent": "Aktuellen Torrent löschen",
     "statusLabels": {
       "trackerDown": "Tracker offline",
       "unregistered": "Nicht registriert",

@@ -106,6 +106,59 @@ export function DeleteTorrentDialog({
   const crossSeedCount = !needsPreview && deleteCrossSeeds ? (crossSeedWarning?.affectedTorrents.length ?? 0) : 0
   const displayCount = includeCrossSeeds ? currentPreview?.data?.total ?? count : count + crossSeedCount
 
+  const renderTorrent = (torrent: Pick<Torrent, "hash" | "name" | "category" | "tags" | "size" | "state" | "progress" | "added_on" | "ratio"> & Partial<Pick<CrossInstanceTorrent, "instanceId" | "instanceName">>) => {
+    const ownerId = (torrent as Partial<CrossInstanceTorrent>).instanceId ?? instanceId
+    const owner = instances?.find(instance => instance.id === ownerId)
+    const ownerName = owner?.name || (torrent as Partial<CrossInstanceTorrent>).instanceName || t("deleteDialog.instanceFallback", { id: ownerId ?? "—" })
+    const flag = flagClass(owner?.countryCode)
+    const tags = torrent.tags.split(",").map(tag => tag.trim()).filter(Boolean)
+    return (
+      <li key={`${ownerId}:${torrent.hash}`} className="space-y-2 px-3 py-3 text-left">
+        <p className="text-sm font-medium leading-snug [overflow-wrap:anywhere]">{torrent.name}</p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="outline" className="min-h-5 max-w-full gap-1 border-solid border-primary/35 bg-transparent px-1.5 py-0.5 text-[11px] font-medium text-primary shadow-none">
+            {flag && <span className={`${flag} shrink-0 rounded-sm text-[11px]`} />}
+            <span className="whitespace-normal [overflow-wrap:anywhere]">{ownerName}</span>
+          </Badge>
+          <Badge variant="outline" className="min-h-5 max-w-full gap-1 px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
+            <Folder className="size-3 shrink-0" aria-label={t("reportDialog.category")} />
+            <span className="whitespace-normal [overflow-wrap:anywhere]">{torrent.category || t("reportDialog.uncategorized")}</span>
+          </Badge>
+          {(tags.length ? tags : [t("reportDialog.noTags")]).map(tag => (
+            <Badge key={tag} variant="outline" className="min-h-5 max-w-full gap-1 px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
+              <Tags className="size-3 shrink-0" aria-label={t("reportDialog.tags")} />
+              <span className="whitespace-normal [overflow-wrap:anywhere]">{tag}</span>
+            </Badge>
+          ))}
+        </div>
+        <dl className="grid grid-cols-3 gap-x-3 gap-y-2 text-xs sm:grid-cols-[1fr_1fr_1fr_2fr_1fr]">
+          <div className="min-w-0">
+            <dt className="text-muted-foreground">{t("tableColumns.size")}</dt>
+            <dd className="mt-0.5 tabular-nums">{formatBytes(torrent.size)}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-muted-foreground">{t("tableColumns.state")}</dt>
+            <dd className="mt-0.5 [overflow-wrap:anywhere]">{getStateLabel(torrent.state, t)}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-muted-foreground">{t("tableColumns.progress")}</dt>
+            <dd className="mt-0.5 tabular-nums">{torrent.progress >= 0.99 && torrent.progress < 1
+              ? (Math.floor(torrent.progress * 1000) / 10).toFixed(1)
+              : Math.round(torrent.progress * 100)}%</dd>
+          </div>
+          <div className="col-span-2 min-w-0 sm:col-span-1">
+            <dt className="text-muted-foreground">{t("tableColumns.addedOn")}</dt>
+            <dd className="mt-0.5 tabular-nums">{formatAddedOn(torrent.added_on)}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-muted-foreground">{t("tableColumns.ratio")}</dt>
+            <dd className="mt-0.5 tabular-nums">{torrent.ratio === -1 ? "∞" : torrent.ratio.toFixed(2)}</dd>
+          </div>
+        </dl>
+      </li>
+    )
+  }
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:!max-w-2xl">
@@ -127,58 +180,7 @@ export function DeleteTorrentDialog({
             <span className="tabular-nums text-muted-foreground">{torrents.length} / {count}</span>
           </div>
           <ul className="max-h-[min(18rem,40dvh)] overflow-y-auto overscroll-contain divide-y" tabIndex={0} aria-label={t("deleteDialog.selectedTorrents")}>
-            {torrents.map(torrent => {
-              const ownerId = (torrent as Partial<CrossInstanceTorrent>).instanceId ?? instanceId
-              const owner = instances?.find(instance => instance.id === ownerId)
-              const ownerName = owner?.name || (torrent as Partial<CrossInstanceTorrent>).instanceName || t("deleteDialog.instanceFallback", { id: ownerId ?? "—" })
-              const flag = flagClass(owner?.countryCode)
-              const tags = torrent.tags.split(",").map(tag => tag.trim()).filter(Boolean)
-              return (
-                <li key={`${ownerId}:${torrent.hash}`} className="space-y-2 px-3 py-3 text-left">
-                  <p className="text-sm font-medium leading-snug [overflow-wrap:anywhere]">{torrent.name}</p>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant="outline" className="min-h-5 max-w-full gap-1 border-solid border-primary/35 bg-transparent px-1.5 py-0.5 text-[11px] font-medium text-primary shadow-none">
-                      {flag && <span className={`${flag} shrink-0 rounded-sm text-[11px]`} />}
-                      <span className="whitespace-normal [overflow-wrap:anywhere]">{ownerName}</span>
-                    </Badge>
-                    <Badge variant="outline" className="min-h-5 max-w-full gap-1 px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
-                      <Folder className="size-3 shrink-0" aria-label={t("reportDialog.category")} />
-                      <span className="whitespace-normal [overflow-wrap:anywhere]">{torrent.category || t("reportDialog.uncategorized")}</span>
-                    </Badge>
-                    {(tags.length ? tags : [t("reportDialog.noTags")]).map(tag => (
-                      <Badge key={tag} variant="outline" className="min-h-5 max-w-full gap-1 px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
-                        <Tags className="size-3 shrink-0" aria-label={t("reportDialog.tags")} />
-                        <span className="whitespace-normal [overflow-wrap:anywhere]">{tag}</span>
-                      </Badge>
-                    ))}
-                  </div>
-                  <dl className="grid grid-cols-3 gap-x-3 gap-y-2 text-xs sm:grid-cols-[1fr_1fr_1fr_2fr_1fr]">
-                    <div className="min-w-0">
-                      <dt className="text-muted-foreground">{t("tableColumns.size")}</dt>
-                      <dd className="mt-0.5 tabular-nums">{formatBytes(torrent.size)}</dd>
-                    </div>
-                    <div className="min-w-0">
-                      <dt className="text-muted-foreground">{t("tableColumns.state")}</dt>
-                      <dd className="mt-0.5 [overflow-wrap:anywhere]">{getStateLabel(torrent.state, t)}</dd>
-                    </div>
-                    <div className="min-w-0">
-                      <dt className="text-muted-foreground">{t("tableColumns.progress")}</dt>
-                      <dd className="mt-0.5 tabular-nums">{torrent.progress >= 0.99 && torrent.progress < 1
-                        ? (Math.floor(torrent.progress * 1000) / 10).toFixed(1)
-                        : Math.round(torrent.progress * 100)}%</dd>
-                    </div>
-                    <div className="col-span-2 min-w-0 sm:col-span-1">
-                      <dt className="text-muted-foreground">{t("tableColumns.addedOn")}</dt>
-                      <dd className="mt-0.5 tabular-nums">{formatAddedOn(torrent.added_on)}</dd>
-                    </div>
-                    <div className="min-w-0">
-                      <dt className="text-muted-foreground">{t("tableColumns.ratio")}</dt>
-                      <dd className="mt-0.5 tabular-nums">{torrent.ratio === -1 ? "∞" : torrent.ratio.toFixed(2)}</dd>
-                    </div>
-                  </dl>
-                </li>
-              )
-            })}
+            {torrents.map(renderTorrent)}
           </ul>
           {torrents.length < count && (
             <p className="border-t bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
@@ -216,18 +218,8 @@ export function DeleteTorrentDialog({
         {includeCrossSeeds && !!currentPreview?.data?.relatedTorrents?.length && (
           <section className="min-w-0 rounded-md border border-destructive/30">
             <h3 className="border-b px-3 py-2 text-xs font-medium">{t("deleteDialog.relatedTorrents")}</h3>
-            <ul className="max-h-40 overflow-y-auto divide-y">
-              {currentPreview.data.relatedTorrents.map(torrent => {
-                const instance = instances?.find(item => item.id === torrent.instanceId)
-                const flag = flagClass(instance?.countryCode)
-                return <li key={`${torrent.instanceId}:${torrent.hash}`} className="space-y-1 px-3 py-2 text-xs">
-                  <p className="[overflow-wrap:anywhere]">{torrent.name}</p>
-                  <Badge variant="outline" className="gap-1 border-primary/35 bg-transparent text-[11px] text-primary shadow-none">
-                    {flag && <span className={`${flag} shrink-0 rounded-sm`} />}
-                    {instance?.name || t("deleteDialog.instanceFallback", { id: torrent.instanceId })}
-                  </Badge>
-                </li>
-              })}
+            <ul className="max-h-[min(18rem,40dvh)] overflow-y-auto overscroll-contain divide-y" tabIndex={0} aria-label={t("deleteDialog.relatedTorrents")}>
+              {currentPreview.data.relatedTorrents.map(renderTorrent)}
             </ul>
           </section>
         )}

@@ -29,7 +29,7 @@ func TestBulkAction_IncludeCrossSeeds(t *testing.T) {
 			t.Cleanup(func() { _ = pool.Close() })
 			torrents := []qbt.Torrent{
 				{Hash: "aaa", Name: "Synthetic selected", Category: "selected", SavePath: "/data", ContentPath: "/data/shared", AddedOn: 1},
-				{Hash: "bbb", Name: "Synthetic related", Category: "other", SavePath: "/data", ContentPath: "/data/shared", AddedOn: 1},
+				{Hash: "bbb", Name: "Synthetic related", Category: "other", Tags: "Archive,Ready", Size: 2048, State: "uploading", Progress: 1, Ratio: 2.5, SavePath: "/data", ContentPath: "/data/shared", AddedOn: 1700000000},
 				{Hash: "ccc", Name: "Synthetic independent", Category: "other", SavePath: "/data", ContentPath: "/data/elsewhere", AddedOn: 1},
 			}
 			var mu sync.Mutex
@@ -88,6 +88,9 @@ func TestBulkAction_IncludeCrossSeeds(t *testing.T) {
 				require.Equal(t, 2, plan.Related)
 				require.Equal(t, 4, plan.Total)
 				require.NotEqual(t, plan.RelatedTorrents[0].InstanceID, plan.RelatedTorrents[1].InstanceID)
+				for _, related := range plan.RelatedTorrents {
+					require.Equal(t, includingDeleteTorrent{InstanceID: related.InstanceID, Hash: "bbb", Name: "Synthetic related", Category: "other", Tags: "Archive,Ready", Size: 2048, State: "uploading", Progress: 1, AddedOn: 1700000000, Ratio: 2.5}, related)
+				}
 			}
 			payload["previewOnly"] = false
 			recorder = httptest.NewRecorder()

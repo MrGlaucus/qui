@@ -5,6 +5,7 @@ import type { ScriptDefinition, ScriptTask, ScriptTaskOverview, ScriptTaskRun } 
  */
 
 import type {
+  Torrent,
   AddRSSFeedRequest,
   AddRSSFolderRequest,
   AddTorrentResponse,
@@ -1160,7 +1161,7 @@ class ApiClient {
 
   async previewTorrentDeletion(instanceId: number, data: Parameters<ApiClient["bulkAction"]>[1]): Promise<{
     keepFiles?: number; deleteFiles?: number; selected?: number; related?: number; total?: number
-    relatedTorrents?: Array<{ instanceId: number; hash: string; name: string }>
+    relatedTorrents?: Array<Pick<Torrent, "hash" | "name" | "category" | "tags" | "size" | "state" | "progress" | "added_on" | "ratio"> & { instanceId: number }>
   }> {
     return this.request(`/instances/${instanceId}/torrents/bulk-action`, {
       method: "POST",

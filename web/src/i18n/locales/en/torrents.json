@@ -1144,6 +1144,7 @@
       "confirm_other": "Delete {{count}} Torrents"
     },
     "deleteCurrent": {
+      "selectedTorrent": "Current torrent details",
       "description": "Are you sure you want to delete \"{{name}}\"?",
       "confirm": "Delete Torrent"
     },
@@ -1388,7 +1389,7 @@
     "matchCount_one": "{{count}} match",
     "matchCount_other": "{{count}} matches",
     "deleteSelected": "Delete ({{count}})",
-    "deleteThis": "Delete This",
+    "deleteCurrent": "Delete Current Torrent",
     "statusLabels": {
       "trackerDown": "Tracker Down",
       "unregistered": "Unregistered",

@@ -1345,7 +1345,7 @@
     "matchCount_one": "{{count}} shoda",
     "matchCount_other": "{{count}} shody",
     "deleteSelected": "Smazat ({{count}})",
-    "deleteThis": "Smazat",
+    "deleteCurrent": "Smazat aktuální torrent",
     "statusLabels": {
       "trackerDown": "Tracker offline",
       "unregistered": "Neregistrovaný",

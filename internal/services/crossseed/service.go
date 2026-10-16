@@ -1550,6 +1550,15 @@ func (s *Service) determineLocalMatchType(
 		}
 	}
 
+	// Names and release metadata alone cannot establish that differently sized
+	// torrents contain the same data. Prefer total_size over the selected size.
+	// Keep file/path evidence above independent of totals (e.g. packs and episodes).
+	sourceSize := searchSourceSize(source)
+	candidateSize := searchSourceSize(candidate.Torrent)
+	if sourceSize > 0 && candidateSize > 0 && sourceSize != candidateSize {
+		return ""
+	}
+
 	// Strategy 2: Exact name match
 	sourceName := normalizeLowerTrim(source.Name)
 	candidateName := normalizeLowerTrim(candidate.Name)

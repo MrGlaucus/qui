@@ -1463,7 +1463,7 @@
     "matchCount_one": "{{count}} збіг",
     "matchCount_other": "{{count}} збігів",
     "deleteSelected": "Видалити ({{count}})",
-    "deleteThis": "Видалити це",
+    "deleteCurrent": "Видалити поточний торрент",
     "statusLabels": {
       "trackerDown": "Трекер вимкнено",
       "unregistered": "Незареєстрований",

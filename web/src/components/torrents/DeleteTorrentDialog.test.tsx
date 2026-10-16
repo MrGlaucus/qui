@@ -62,9 +62,16 @@ describe("DeleteTorrentDialog selection preview", () => {
     expect(files).not.toHaveBeenCalled()
   })
   it("previews the full filter selection and lists extra related torrents", async () => {
-    vi.mocked(api.previewTorrentDeletion).mockResolvedValue({ selected: 23, related: 1, total: 24, relatedTorrents: [{ instanceId: 2, hash: "extra", name: "Synthetic Related Torrent" }] })
+    vi.mocked(api.previewTorrentDeletion).mockResolvedValue({ selected: 23, related: 1, total: 24, relatedTorrents: [{ ...torrent, instanceId: 2, hash: "extra", name: "Synthetic Related Torrent", category: "Related category", tags: "Related tag", ratio: -1 }] })
     const view = mount([torrent], { includeCrossSeeds: true, selectionRequest: { hashes: [], selectAll: true, filters: makeFilters() } })
     await waitFor(() => expect(view.getByText("Synthetic Related Torrent")).not.toBeNull())
+    const related = within(view.getByRole("list", { name: "deleteDialog.relatedTorrents" }))
+    for (const value of ["Seed B", "Related category", "Related tag", "2 GiB", "46%", "∞"]) {
+      expect(related.getByText(value)).not.toBeNull()
+    }
+    for (const field of ["state", "addedOn"]) {
+      expect(related.getByText(`tableColumns.${field}`)).not.toBeNull()
+    }
     expect(api.previewTorrentDeletion).toHaveBeenCalledWith(1, expect.objectContaining({ includeCrossSeeds: true, selectAll: true, hashes: [] }))
     expect(view.getByRole("status").textContent).toContain("\"total\":24")
     expect((view.getByRole("button", { name: "deleteDialog.delete" }) as HTMLButtonElement).disabled).toBe(false)

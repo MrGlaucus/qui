@@ -645,3 +645,35 @@ func TestDetermineLocalMatchType_CandidateFetchError_StoresError(t *testing.T) {
 	require.Error(t, matchCtx.candidateFilesErr, "Candidate fetch error should be stored on matchCtx.candidateFilesErr")
 	require.ErrorIs(t, matchCtx.candidateFilesErr, fetchErr)
 }
+
+func TestDetermineLocalMatchType_SizeEvidence(t *testing.T) {
+	const name = "Synthetic.River.2026.1080p.WEB-DL-GROUP"
+	for _, tt := range []struct {
+		name                                                   string
+		candidateName                                          string
+		sourceTotal, sourceSize, candidateTotal, candidateSize int64
+		samePath                                               bool
+		want                                                   string
+	}{
+		{"same name different size", name, 20240, 20240, 6960, 6960, false, ""},
+		{"release different size", "Synthetic River 2026 1080p WEB-DL-GROUP", 20240, 20240, 6960, 6960, false, ""},
+		{"same name equal size", name, 20240, 20240, 20240, 20240, false, matchTypeName},
+		{"release equal size", "Synthetic River 2026 1080p WEB-DL-GROUP", 20240, 20240, 20240, 20240, false, matchTypeRelease},
+		{"selected size differs", name, 20240, 6960, 20240, 1000, false, matchTypeName},
+		{"size fallback rejects", name, 0, 20240, 0, 6960, false, ""},
+		{"size fallback matches", name, 0, 20240, 0, 20240, false, matchTypeName},
+		{"shared path precedes totals", name, 20240, 20240, 6960, 6960, true, matchTypeContentPath},
+		{"unreported sizes preserve name matching", name, 0, 0, 0, 0, false, matchTypeName},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &Service{releaseCache: NewReleaseCache()}
+			source := &qbt.Torrent{Name: name, TotalSize: tt.sourceTotal, Size: tt.sourceSize, ContentPath: "/source/movie.mkv", SavePath: "/source"}
+			candidate := &qbittorrent.CrossInstanceTorrentView{TorrentView: &qbittorrent.TorrentView{Torrent: &qbt.Torrent{Name: tt.candidateName, TotalSize: tt.candidateTotal, Size: tt.candidateSize, ContentPath: "/candidate/movie.mkv", SavePath: "/candidate"}}}
+			if tt.samePath {
+				candidate.ContentPath = source.ContentPath
+			}
+			got := svc.determineLocalMatchType(source, svc.releaseCache.Parse(source.Name), candidate, normalizePathForComparison(source.ContentPath), nil)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}

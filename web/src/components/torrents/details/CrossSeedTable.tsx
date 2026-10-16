@@ -393,7 +393,7 @@ export const CrossSeedTable = memo(function CrossSeedTable({
             onClick={onDeleteCurrent}
           >
             <Trash2 className="h-3 w-3 mr-1" />
-            {t("crossSeedTable.deleteThis")}
+            {t("crossSeedTable.deleteCurrent")}
           </Button>
         </div>
       </div>

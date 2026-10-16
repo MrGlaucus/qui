@@ -1293,7 +1293,7 @@
     "selectedCount": "{{total}}개 중 {{selected}}개 선택됨",
     "matchCount_other": "일치 {{count}}개",
     "deleteSelected": "삭제 ({{count}})",
-    "deleteThis": "이 항목 삭제",
+    "deleteCurrent": "현재 토렌트 삭제",
     "statusLabels": {
       "trackerDown": "트래커 다운",
       "unregistered": "등록되지 않음",

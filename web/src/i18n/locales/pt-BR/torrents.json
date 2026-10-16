@@ -1353,7 +1353,7 @@
     "matchCount_one": "{{count}} correspondência",
     "matchCount_other": "{{count}} correspondências",
     "deleteSelected": "Excluir ({{count}})",
-    "deleteThis": "Excluir Este",
+    "deleteCurrent": "Excluir torrent atual",
     "statusLabels": {
       "trackerDown": "Tracker Fora",
       "unregistered": "Não Registrado",

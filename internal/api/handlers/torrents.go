@@ -1605,7 +1605,11 @@ func (h *TorrentsHandler) BulkAction(w http.ResponseWriter, r *http.Request) {
 			for i, target := range targets {
 				plans[targetInstanceID] = append(plans[targetInstanceID], target.Hash)
 				if i >= selected {
-					summary.RelatedTorrents = append(summary.RelatedTorrents, includingDeleteTorrent{InstanceID: targetInstanceID, Hash: target.Hash, Name: target.Name})
+					summary.RelatedTorrents = append(summary.RelatedTorrents, includingDeleteTorrent{
+						InstanceID: targetInstanceID, Hash: target.Hash, Name: target.Name,
+						Category: target.Category, Tags: target.Tags, Size: target.Size,
+						State: string(target.State), Progress: target.Progress, AddedOn: target.AddedOn, Ratio: target.Ratio,
+					})
 				}
 			}
 		}
@@ -3813,9 +3817,16 @@ type preservingDeleteSummary struct {
 type preservingDeletePlan struct{ keepFiles, deleteFiles []string }
 
 type includingDeleteTorrent struct {
-	InstanceID int    `json:"instanceId"`
-	Hash       string `json:"hash"`
-	Name       string `json:"name"`
+	InstanceID int     `json:"instanceId"`
+	Hash       string  `json:"hash"`
+	Name       string  `json:"name"`
+	Category   string  `json:"category"`
+	Tags       string  `json:"tags"`
+	Size       int64   `json:"size"`
+	State      string  `json:"state"`
+	Progress   float64 `json:"progress"`
+	AddedOn    int64   `json:"added_on"`
+	Ratio      float64 `json:"ratio"`
 }
 
 type includingDeleteSummary struct {

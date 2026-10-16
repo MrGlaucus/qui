@@ -2058,7 +2058,7 @@ paths:
                     type: array
                     items:
                       type: object
-                      required: [instanceId, hash, name]
+                      required: [instanceId, hash, name, category, tags, size, state, progress, added_on, ratio]
                       properties:
                         instanceId:
                           type: integer
@@ -2066,6 +2066,27 @@ paths:
                           type: string
                         name:
                           type: string
+                        category:
+                          type: string
+                        tags:
+                          type: string
+                          description: Comma-separated torrent tags.
+                        size:
+                          type: integer
+                          format: int64
+                          description: Torrent size in bytes.
+                        state:
+                          type: string
+                        progress:
+                          type: number
+                          format: double
+                        added_on:
+                          type: integer
+                          format: int64
+                          description: Added time as Unix seconds.
+                        ratio:
+                          type: number
+                          format: double
                   deleteFiles:
                     type: integer
                     description: Selected torrent tasks whose files are deleted.

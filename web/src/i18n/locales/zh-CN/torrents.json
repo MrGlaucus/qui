@@ -1091,6 +1091,7 @@
       "confirm_other": "删除 {{count}} 个种子"
     },
     "deleteCurrent": {
+      "selectedTorrent": "当前种子信息",
       "description": "确定要删除「{{name}}」吗？",
       "confirm": "删除种子"
     },
@@ -1328,7 +1329,7 @@
     "selectedCount": "已选 {{selected}}/{{total}}",
     "matchCount_other": "{{count}} 个匹配",
     "deleteSelected": "删除（{{count}}）",
-    "deleteThis": "删除此项",
+    "deleteCurrent": "删除当前种子",
     "statusLabels": {
       "trackerDown": "Tracker 离线",
       "unregistered": "未注册",

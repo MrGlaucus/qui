@@ -27,6 +27,7 @@ import { scheduleTorrentListRefetches } from "@/hooks/useTorrentActions"
 import { api } from "@/lib/api"
 import { isHardlinkManaged, useLocalCrossSeedMatches } from "@/lib/cross-seed-utils"
 import { getCountryName } from "@/lib/countryNames"
+import { flagClass } from "@/lib/countryFlags"
 import { DEFAULT_FILE_SORT } from "@/lib/file-tree"
 import { getLinuxCategory, getLinuxComment, getLinuxCreatedBy, getLinuxFileName, getLinuxHash, getLinuxIsoName, getLinuxSavePath, getLinuxTags, getLinuxTracker, useIncognitoMode } from "@/lib/incognito"
 import { renderTextWithLinks } from "@/lib/linkUtils"
@@ -41,7 +42,7 @@ import { cn, copyTextToClipboard, formatBytes, formatDuration } from "@/lib/util
 import type { SortedPeer, SortedPeersResponse, Torrent, TorrentFile, TorrentFilters, TorrentStreamPayload, TorrentTracker } from "@/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import "flag-icons/css/flag-icons.min.css"
-import { ArrowDown, ArrowUp, Ban, BarChart3, Copy, Loader2, Network, Trash2, UserPlus, X } from "lucide-react"
+import { ArrowDown, ArrowUp, Ban, BarChart3, Copy, Folder, Loader2, Network, Tags, Trash2, UserPlus, X } from "lucide-react"
 import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
@@ -102,7 +103,7 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
 
   const [showAddPeersDialog, setShowAddPeersDialog] = useState(false)
   const [showReportDialog, setShowReportDialog] = useState(false)
-  const { formatTimestamp } = useDateTimeFormatters()
+  const { formatAddedOn, formatTimestamp } = useDateTimeFormatters()
   const [showBanPeerDialog, setShowBanPeerDialog] = useState(false)
   const [peersToAdd, setPeersToAdd] = useState("")
   const [peerToBan, setPeerToBan] = useState<SortedPeer | null>(null)
@@ -2276,6 +2277,45 @@ export const TorrentDetailsPanel = memo(function TorrentDetailsPanel({ instanceI
               {t("detailsPanel.deleteCurrent.description", { name: incognitoMode ? getLinuxFileName(torrent?.hash ?? "", 0) : torrent?.name })}
             </DialogDescription>
           </DialogHeader>
+          {torrent && (
+            <section className="min-w-0 overflow-hidden rounded-lg border text-left" aria-label={t("detailsPanel.deleteCurrent.selectedTorrent")}>
+              <div className="border-b bg-muted/40 px-3 py-2 text-xs font-medium">
+                {t("detailsPanel.deleteCurrent.selectedTorrent")}
+              </div>
+              <div className="space-y-2 px-3 py-3">
+                <p className="text-sm font-medium leading-snug [overflow-wrap:anywhere]">
+                  {incognitoMode ? getLinuxFileName(torrent.hash, 0) : torrent.name}
+                </p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline" className="min-h-5 max-w-full gap-1 border-solid border-primary/35 bg-transparent px-1.5 py-0.5 text-[11px] font-medium text-primary shadow-none">
+                    {flagClass(instances?.find(instance => instance.id === instanceId)?.countryCode) && (
+                      <span className={`${flagClass(instances?.find(instance => instance.id === instanceId)?.countryCode)} shrink-0 rounded-sm text-[11px]`} />
+                    )}
+                    <span className="whitespace-normal [overflow-wrap:anywhere]">
+                      {instances?.find(instance => instance.id === instanceId)?.name ?? instanceId}
+                    </span>
+                  </Badge>
+                  <Badge variant="outline" className="min-h-5 max-w-full gap-1 px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
+                    <Folder className="size-3 shrink-0" aria-label={t("reportDialog.category")} />
+                    <span className="whitespace-normal [overflow-wrap:anywhere]">{torrent.category || t("reportDialog.uncategorized")}</span>
+                  </Badge>
+                  {(torrent.tags.split(",").map(tag => tag.trim()).filter(Boolean).length ? torrent.tags.split(",").map(tag => tag.trim()).filter(Boolean) : [t("reportDialog.noTags")]).map(tag => (
+                    <Badge key={tag} variant="outline" className="min-h-5 max-w-full gap-1 px-1.5 py-0.5 text-[11px] font-normal text-muted-foreground">
+                      <Tags className="size-3 shrink-0" aria-label={t("reportDialog.tags")} />
+                      <span className="whitespace-normal [overflow-wrap:anywhere]">{tag}</span>
+                    </Badge>
+                  ))}
+                </div>
+                <dl className="grid grid-cols-3 gap-x-3 gap-y-2 text-xs sm:grid-cols-[1fr_1fr_1fr_2fr_1fr]">
+                  <div><dt className="text-muted-foreground">{t("tableColumns.size")}</dt><dd className="mt-0.5 tabular-nums">{formatBytes(torrent.size)}</dd></div>
+                  <div><dt className="text-muted-foreground">{t("tableColumns.state")}</dt><dd className="mt-0.5">{getStateLabel(torrent.state, t)}</dd></div>
+                  <div><dt className="text-muted-foreground">{t("tableColumns.progress")}</dt><dd className="mt-0.5 tabular-nums">{Math.round(torrent.progress * 100)}%</dd></div>
+                  <div className="col-span-2 sm:col-span-1"><dt className="text-muted-foreground">{t("tableColumns.addedOn")}</dt><dd className="mt-0.5 tabular-nums">{formatAddedOn(torrent.added_on)}</dd></div>
+                  <div><dt className="text-muted-foreground">{t("tableColumns.ratio")}</dt><dd className="mt-0.5 tabular-nums">{torrent.ratio === -1 ? "∞" : torrent.ratio.toFixed(2)}</dd></div>
+                </dl>
+              </div>
+            </section>
+          )}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Checkbox

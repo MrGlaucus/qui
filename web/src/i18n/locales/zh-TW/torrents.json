@@ -1290,7 +1290,7 @@
     "selectedCount": "已選 {{selected}}/{{total}}",
     "matchCount_other": "{{count}} 個匹配",
     "deleteSelected": "刪除（{{count}}）",
-    "deleteThis": "刪除此項",
+    "deleteCurrent": "刪除目前種子",
     "statusLabels": {
       "trackerDown": "Tracker 離線",
       "unregistered": "未註冊",
