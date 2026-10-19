@@ -2567,6 +2567,12 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 	}
 	cpIndex := buildContentPathIndex(torrents)
 
+	// Torrents this run removes whatever the files decision turns out to be.
+	// A sibling that is already leaving must not count as a reason to keep
+	// files, or two cross-seeds that match the same rule protect each other and
+	// both leave their files on disk with no torrent pointing at them.
+	deletingThisRun := deletingHashesThisRun(states)
+
 	ruleByID := make(map[int]*models.Automation, len(eligibleRules))
 	for _, r := range eligibleRules {
 		ruleByID[r.ID] = r
@@ -2676,7 +2682,7 @@ func (s *Service) applyRulesForInstance(ctx context.Context, instanceID int, for
 				}
 			case DeleteModeWithFilesPreserveCrossSeeds:
 				hashesToDelete = []string{hash}
-				if shouldPreserveCrossSeedFiles(torrent, cpIndex, evalCtx.CrossSeedFilesByHash) {
+				if shouldPreserveCrossSeedFiles(torrent, cpIndex, evalCtx.CrossSeedFilesByHash, deletingThisRun) {
 					actualMode = DeleteModeKeepFiles
 					logMsg = "automations: removing torrent (preserve cross-seeds - keeping files)"
 					keepingFiles = true
@@ -5043,11 +5049,12 @@ func fileOverlapPercent(triggerFiles fileOverlapIndex, candidate qbt.Torrent, ca
 // packs whose payload folder carries the same name (a bare "Season 2" root) all report the
 // same path. Members that share no file are dropped, the trigger is still deleted. Partial
 // overlap or unreadable files abort the group, because the delete would break data another
-// torrent needs.
+// torrent needs. skipHashes drops members the caller has already accounted for; the trigger
+// is always part of the result.
 func crossSeedGroupMembers(
 	trigger qbt.Torrent,
 	group []qbt.Torrent,
-	alreadyIncludedHashes map[string]struct{},
+	skipHashes map[string]struct{},
 	fetchFiles func(hashes []string) (map[string]qbt.TorrentFiles, error),
 ) ([]string, bool) {
 	candidates := make([]qbt.Torrent, 0, len(group))
@@ -5055,7 +5062,7 @@ func crossSeedGroupMembers(
 		if other.Hash == trigger.Hash {
 			continue
 		}
-		if _, processed := alreadyIncludedHashes[other.Hash]; processed {
+		if _, skip := skipHashes[other.Hash]; skip {
 			continue
 		}
 		candidates = append(candidates, other)
@@ -5097,11 +5104,39 @@ func crossSeedGroupMembers(
 	return verified, true
 }
 
-func shouldPreserveCrossSeedFiles(torrent qbt.Torrent, cpIndex contentPathIndex, filesByHash map[string]qbt.TorrentFiles) bool {
+// deletingHashesThisRun returns the torrents a run removes whatever the files
+// decision turns out to be. Cross-seed preservation must not treat them as
+// remaining seeds: two siblings that match the same rule would otherwise keep
+// each other's files and leave them behind with no torrent pointing at them.
+//
+// Modes whose removal is still conditional are left out. Include-cross-seeds
+// removal is gated on group verification, and a grouped keep-files delete is
+// skipped when the group does not fully match, so either may survive the run.
+func deletingHashesThisRun(states map[string]*torrentDesiredState) map[string]struct{} {
+	deleting := make(map[string]struct{}, len(states))
+	for hash, state := range states {
+		if !state.shouldDelete {
+			continue
+		}
+		if state.deleteMode == DeleteModeWithFilesIncludeCrossSeeds {
+			continue
+		}
+		if state.deleteMode == DeleteModeKeepFiles && state.deleteGroupID != "" {
+			continue
+		}
+		deleting[hash] = struct{}{}
+	}
+	return deleting
+}
+
+// shouldPreserveCrossSeedFiles reports whether a torrent still needs its files
+// on disk after this run. skipHashes holds torrents the run removes anyway, so
+// they cannot be the reason to keep files.
+func shouldPreserveCrossSeedFiles(torrent qbt.Torrent, cpIndex contentPathIndex, filesByHash map[string]qbt.TorrentFiles, skipHashes map[string]struct{}) bool {
 	verifiedHashes, ok := crossSeedGroupMembers(
 		torrent,
 		findCrossSeedGroup(torrent, cpIndex),
-		nil,
+		skipHashes,
 		cachedTorrentFilesFetcher(filesByHash),
 	)
 	return !ok || len(verifiedHashes) > 1
@@ -5268,7 +5303,10 @@ func deleteFreesSpace(
 		// Keep-files mode never frees disk space
 		return false
 	case DeleteModeWithFilesPreserveCrossSeeds:
-		return !shouldPreserveCrossSeedFiles(torrent, cpIndex, filesByHash)
+		// The projection runs while the run's delete set is still being built,
+		// so no sibling can be skipped yet. This stays conservative: a delete
+		// that frees space is counted late, never early.
+		return !shouldPreserveCrossSeedFiles(torrent, cpIndex, filesByHash, nil)
 	case DeleteModeWithFiles, DeleteModeWithFilesIncludeCrossSeeds:
 		// Always frees disk space (include mode deletes the whole group)
 		return true
