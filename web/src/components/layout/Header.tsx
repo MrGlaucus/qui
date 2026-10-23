@@ -7,6 +7,7 @@ import { InstancePreferencesDialog } from "@/components/instances/preferences/In
 import { UnifiedScopeDropdownSection } from "@/components/layout/UnifiedScopeDropdownSection"
 import { SpreadsheetRibbonTabs } from "@/components/spreadsheet/SpreadsheetRibbonTabs"
 import { AddTorrentDialog } from "@/components/torrents/AddTorrentDialog"
+import { FilterStateIcon } from "@/components/torrents/FilterStateIcon"
 import { SyncColumnSettingsDialog } from "@/components/torrents/SyncColumnSettingsDialog"
 import { TorrentCreationTasks } from "@/components/torrents/TorrentCreationTasks"
 import { TorrentCreatorDialog } from "@/components/torrents/TorrentCreatorDialog"
@@ -48,7 +49,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useCrossSeedInstanceState } from "@/hooks/useCrossSeedInstanceState"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useInstances } from "@/hooks/useInstances"
-import { useLongPress } from "@/hooks/useLongPress"
+import { HOLD_DRAIN_MS, useLongPress } from "@/hooks/useLongPress"
 import { usePersistedCompactViewState } from "@/hooks/usePersistedCompactViewState"
 import { usePersistedFilterSidebarState } from "@/hooks/usePersistedFilterSidebarState"
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
@@ -287,8 +288,15 @@ export function Header({
   }, [setFilterSidebarCollapsed])
 
   // Holding the filter button clears every filter; a plain click still toggles
-  // the sidebar. See the tooltip for the hint.
-  const filterLongPress = useLongPress({ onLongPress: requestClearTorrentFilters })
+  // the sidebar. Only meaningful while something is actually filtered and the
+  // sidebar is out of the way - with the panel open the clear button is right
+  // there, so a hold there stays a plain press. See the tooltip for the hint.
+  const canHoldToClear = hasActiveFilter && filterSidebarCollapsed
+  const filterLongPress = useLongPress({
+    onLongPress: requestClearTorrentFilters,
+    disabled: !canHoldToClear,
+  })
+  const FilterToggleIcon = filterSidebarCollapsed ? FunnelPlus : FunnelX
 
   // Detect platform for appropriate key display
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
@@ -547,17 +555,21 @@ export function Header({
                     handleToggleFilters()
                   }}
                 >
-                  {filterSidebarCollapsed ? (
-                    <FunnelPlus className={`h-4 w-4 ${hasActiveFilter ? "text-red-500" : ""}`} />
-                  ) : (
-                    <FunnelX className={`h-4 w-4 ${hasActiveFilter ? "text-red-500" : ""}`} />
-                  )}
+                  <FilterStateIcon
+                    icon={FilterToggleIcon}
+                    active={hasActiveFilter}
+                    draining={filterLongPress.isHolding}
+                    drainMs={HOLD_DRAIN_MS}
+                    className="h-4 w-4"
+                  />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
                 <span className="flex flex-col gap-0.5">
                   <span>{filterSidebarCollapsed ? t("header.showFilters") : t("header.hideFilters")}</span>
-                  <span className="text-xs opacity-70">{t("header.longPressToClearFilters")}</span>
+                  {canHoldToClear && (
+                    <span className="text-xs opacity-70">{t("header.longPressToClearFilters")}</span>
+                  )}
                 </span>
               </TooltipContent>
             </Tooltip>

@@ -3,17 +3,26 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react"
 
-const DEFAULT_DELAY_MS = 500
+/** Hold time before the drain animation starts, so a plain click stays a click. */
+export const HOLD_GRACE_MS = 200
+/** Length of the drain animation. Must match the one the icon renders. */
+export const HOLD_DRAIN_MS = 450
+
 const DEFAULT_MOVE_TOLERANCE_PX = 10
-/** A long press only suppresses the click that belongs to it, never a later one. */
-const SUPPRESS_WINDOW_MS = 800
 
 interface UseLongPressOptions {
   onLongPress: () => void
-  delayMs?: number
+  /**
+   * Makes the gesture inert: no timers, no drain, no callback. Callers use
+   * this when there is nothing to clear or the panel is already open, so a
+   * press there stays a plain press.
+   */
+  disabled?: boolean
+  graceMs?: number
+  drainMs?: number
   moveTolerancePx?: number
 }
 
@@ -27,37 +36,64 @@ interface LongPressHandlers {
 }
 
 /**
- * Fires a callback when a button is held down for `delayMs`.
+ * Hold-to-confirm for the filter toggles.
  *
- * Used for the filter toggles, where a short press opens the sidebar and a
- * long press clears the filters. The press is abandoned as soon as the pointer
- * travels more than a few pixels, so scrolling a list that starts on the
- * button does not clear anything by accident.
+ * Pressing and holding first waits out `graceMs` so an ordinary click never
+ * starts the animation, then reports `isHolding` while the icon drains for
+ * `drainMs`. The callback fires only when the drain finishes, which is also
+ * when the icon has gone quiet, so the action and its toast land exactly at
+ * the moment the press has visibly completed.
  *
- * The caller must call `consumeLongPress` from its click handler: after a long
- * press the browser still emits a click, and that click must not also toggle
- * the sidebar.
+ * Releasing early, or moving far enough to be a scroll, cancels everything.
+ * Passing `disabled` turns the whole gesture off, so a button can keep a
+ * single hold meaning only in the states where it makes sense.
+ *
+ * The caller must call `consumeLongPress` from its click handler: a completed
+ * hold still emits a click, and that click must not also toggle the sidebar.
+ * The flag is one-shot and reset on the next pointerdown, so a long press
+ * without a following click cannot swallow an unrelated one later.
  */
 export function useLongPress({
   onLongPress,
-  delayMs = DEFAULT_DELAY_MS,
+  disabled = false,
+  graceMs = HOLD_GRACE_MS,
+  drainMs = HOLD_DRAIN_MS,
   moveTolerancePx = DEFAULT_MOVE_TOLERANCE_PX,
-}: UseLongPressOptions): { handlers: LongPressHandlers; consumeLongPress: () => boolean } {
-  const timerRef = useRef<number | null>(null)
+}: UseLongPressOptions): {
+  handlers: LongPressHandlers
+  isHolding: boolean
+  consumeLongPress: () => boolean
+} {
+  const [isHolding, setIsHolding] = useState(false)
+  const graceTimerRef = useRef<number | null>(null)
+  const drainTimerRef = useRef<number | null>(null)
   const originRef = useRef<{ x: number; y: number } | null>(null)
-  const firedAtRef = useRef(0)
+  const firedRef = useRef(false)
   const onLongPressRef = useRef(onLongPress)
   onLongPressRef.current = onLongPress
 
   const cancel = useCallback(() => {
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current)
-      timerRef.current = null
+    if (graceTimerRef.current !== null) {
+      window.clearTimeout(graceTimerRef.current)
+      graceTimerRef.current = null
+    }
+    if (drainTimerRef.current !== null) {
+      window.clearTimeout(drainTimerRef.current)
+      drainTimerRef.current = null
     }
     originRef.current = null
+    setIsHolding(false)
   }, [])
 
   useEffect(() => cancel, [cancel])
+
+  // A hold that starts while enabled must not survive the caller disabling it
+  // (e.g. clearing the filters mid-press makes them disappear).
+  useEffect(() => {
+    if (disabled) {
+      cancel()
+    }
+  }, [cancel, disabled])
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0) {
@@ -65,14 +101,27 @@ export function useLongPress({
     }
 
     cancel()
+    firedRef.current = false
+
+    if (disabled) {
+      return
+    }
+
     originRef.current = { x: event.clientX, y: event.clientY }
-    timerRef.current = window.setTimeout(() => {
-      timerRef.current = null
-      firedAtRef.current = Date.now()
-      navigator.vibrate?.(10)
-      onLongPressRef.current()
-    }, delayMs)
-  }, [cancel, delayMs])
+
+    graceTimerRef.current = window.setTimeout(() => {
+      graceTimerRef.current = null
+      setIsHolding(true)
+
+      drainTimerRef.current = window.setTimeout(() => {
+        drainTimerRef.current = null
+        setIsHolding(false)
+        firedRef.current = true
+        navigator.vibrate?.(10)
+        onLongPressRef.current()
+      }, drainMs)
+    }, graceMs)
+  }, [cancel, disabled, drainMs, graceMs])
 
   const onPointerMove = useCallback((event: ReactPointerEvent<HTMLElement>) => {
     const origin = originRef.current
@@ -80,27 +129,32 @@ export function useLongPress({
       return
     }
 
+    // A finger drifts more than a mouse over the same hold, so allow it more
+    // slack before treating the gesture as a scroll.
+    const tolerance = event.pointerType === "touch" ? moveTolerancePx * 1.6 : moveTolerancePx
+
     if (
-      Math.abs(event.clientX - origin.x) > moveTolerancePx ||
-      Math.abs(event.clientY - origin.y) > moveTolerancePx
+      Math.abs(event.clientX - origin.x) > tolerance ||
+      Math.abs(event.clientY - origin.y) > tolerance
     ) {
       cancel()
     }
   }, [cancel, moveTolerancePx])
 
   const consumeLongPress = useCallback(() => {
-    if (firedAtRef.current === 0) {
+    if (!firedRef.current) {
       return false
     }
 
-    const firedRecently = Date.now() - firedAtRef.current < SUPPRESS_WINDOW_MS
-    firedAtRef.current = 0
-    return firedRecently
+    firedRef.current = false
+    return true
   }, [])
 
-  // Touch long press otherwise opens the browser's own context menu.
+  // Touch long press otherwise opens the browser's own context menu mid-hold,
+  // which cancels the pointer sequence. Suppress it for as long as a press is
+  // in progress; a right click never sets an origin, so it still works.
   const onContextMenu = useCallback((event: ReactMouseEvent<HTMLElement>) => {
-    if (firedAtRef.current !== 0) {
+    if (originRef.current) {
       event.preventDefault()
     }
   }, [])
@@ -114,6 +168,7 @@ export function useLongPress({
       onPointerCancel: cancel,
       onContextMenu,
     },
+    isHolding,
     consumeLongPress,
   }
 }

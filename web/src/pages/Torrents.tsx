@@ -631,6 +631,7 @@ export function Torrents({ instanceId, instanceName, isAllInstancesView = false,
                     onAddTorrentModalChange={handleAddTorrentModalChange}
                     onFilteredDataUpdate={handleFilteredDataUpdate}
                     onFilterChange={setFilters}
+                    filtersSheetOpen={mobileFilterOpen}
                   />
                 </div>
               </ResizablePanel>
@@ -694,6 +695,7 @@ export function Torrents({ instanceId, instanceName, isAllInstancesView = false,
               onAddTorrentModalChange={handleAddTorrentModalChange}
               onFilteredDataUpdate={handleFilteredDataUpdate}
               onFilterChange={setFilters}
+              filtersSheetOpen={mobileFilterOpen}
             />
           </div>
         )}

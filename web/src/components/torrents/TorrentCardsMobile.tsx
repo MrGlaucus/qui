@@ -42,7 +42,7 @@ import { useCrossSeedBlocklistActions } from "@/hooks/useCrossSeedBlocklistActio
 import { useDebounce } from "@/hooks/useDebounce"
 import { useDelayedVisibility } from "@/hooks/useDelayedVisibility"
 import { useInstances } from "@/hooks/useInstances"
-import { useLongPress } from "@/hooks/useLongPress"
+import { HOLD_DRAIN_MS, useLongPress } from "@/hooks/useLongPress"
 import { TORRENT_ACTIONS, useTorrentActions, type TorrentAction } from "@/hooks/useTorrentActions"
 import { useTorrentExporter } from "@/hooks/useTorrentExporter"
 import { useTorrentsList } from "@/hooks/useTorrentsList"
@@ -99,6 +99,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AddTorrentDialog } from "./AddTorrentDialog"
 import { DeleteTorrentDialog } from "./DeleteTorrentDialog"
+import { FilterStateIcon } from "./FilterStateIcon"
 import {
   buildSpeedLimitInitialState,
   LocationWarningDialog,
@@ -459,6 +460,8 @@ interface TorrentCardsMobileProps {
   onCrossSeedSearch?: (torrent: Torrent) => void
   isCrossSeedSearching?: boolean
   onManualCrossSeed?: (torrent: Torrent) => void
+  /** Whether the mobile filter sheet is open; holding the toggle is inert then. */
+  filtersSheetOpen?: boolean
 }
 
 function formatEta(seconds: number): string {
@@ -1091,6 +1094,7 @@ export function TorrentCardsMobile({
   onCrossSeedSearch,
   isCrossSeedSearching,
   onManualCrossSeed,
+  filtersSheetOpen = false,
 }: TorrentCardsMobileProps) {
   const { t } = useTranslation("torrents")
   const isAllInstancesView = isAllInstancesScope(instanceId)
@@ -1105,9 +1109,6 @@ export function TorrentCardsMobile({
   const [selectedHashes, setSelectedHashes] = useState<Set<string>>(new Set())
   const [selectionMode, setSelectionMode] = useState(false)
   const { setIsSelectionMode } = useTorrentSelection()
-
-  // Holding the filter button clears every filter instead of opening the sheet.
-  const filterLongPress = useLongPress({ onLongPress: requestClearTorrentFilters })
 
   const parentRef = useRef<HTMLDivElement>(null)
   const { isFooterVisible } = useMobileScroll()
@@ -1226,6 +1227,14 @@ export function TorrentCardsMobile({
     filters.excludeTrackers.length > 0 ||
     (filters.expr?.length ?? 0) > 0
   ) : false
+
+  // Holding the filter button clears every filter instead of opening the sheet.
+  // Inert unless something is filtered and the sheet is closed, so a press in
+  // any other state stays a plain press.
+  const filterLongPress = useLongPress({
+    onLongPress: requestClearTorrentFilters,
+    disabled: !hasActiveFilter || filtersSheetOpen,
+  })
 
   // Progressive loading state with async management
   const [loadedRows, setLoadedRows] = useState(100)
@@ -2987,9 +2996,16 @@ export function TorrentCardsMobile({
                 }
                 window.dispatchEvent(new Event("qui-open-mobile-filters"))
               }}
-              className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-xs font-medium transition-colors min-w-0 flex-1 active:scale-95 ${hasActiveFilter ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
+              className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-xs font-medium transition-colors min-w-0 flex-1 select-none active:scale-95 ${hasActiveFilter ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
             >
-              <Filter className={`h-5 w-5 ${hasActiveFilter ? "text-red-500" : ""}`} />
+              <FilterStateIcon
+                icon={Filter}
+                active={hasActiveFilter}
+                draining={filterLongPress.isHolding}
+                drainMs={HOLD_DRAIN_MS}
+                className="h-5 w-5"
+                baseClassName={hasActiveFilter ? "text-muted-foreground" : undefined}
+              />
               <span className="truncate text-[10px]">{t("filterSidebar.title")}</span>
             </button>
 

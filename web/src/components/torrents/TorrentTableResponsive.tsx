@@ -32,6 +32,7 @@ interface TorrentTableResponsiveProps {
     supportsTrackerHealth?: boolean
   ) => void
   onFilterChange?: (filters: TorrentFilters) => void
+  filtersSheetOpen?: boolean
 }
 
 export function TorrentTableResponsive(props: TorrentTableResponsiveProps) {
