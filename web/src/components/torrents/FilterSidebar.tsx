@@ -590,8 +590,12 @@ const FilterSidebarComponent = ({
   const categoryEntries = useMemo(() => {
     const baseEntries = Object.entries(categories) as [string, Category][]
 
+    // Always collate, in both layouts. Object key order is the backend's byte
+    // order, which puts Latin names before CJK ones; the tree sorts by locale.
+    // Sorting only one of the two makes the list reshuffle whenever the sidebar
+    // switches between the flat list and the tree.
     if (!subcategoriesEnabled) {
-      return baseEntries
+      return [...baseEntries].sort((a, b) => a[0].localeCompare(b[0]))
     }
 
     const merged = new Map<string, Category>()
@@ -1294,10 +1298,12 @@ const FilterSidebarComponent = ({
 
   // Compute display sets: include non-empty items plus any actively filtered items (even if count is zero)
   const tagsForDisplay = useMemo(() => {
-    if (showHiddenTags) return tags
+    if (showHiddenTags) return [...tags].sort((a, b) => a.localeCompare(b))
     const activelyFilteredTags = tags.filter(tag => getTagState(tag) !== "neutral")
     const combined = new Set([...tagPartition.nonEmpty, ...activelyFilteredTags])
-    return Array.from(combined)
+    // Collated, never in arrival order: appending the selected tags to the end
+    // made a tag jump to the bottom of the list as soon as it was clicked.
+    return Array.from(combined).sort((a, b) => a.localeCompare(b))
   }, [showHiddenTags, tags, tagPartition.nonEmpty, getTagState])
 
   const categoryEntriesForDisplay = useMemo(() => {
@@ -1307,7 +1313,7 @@ const FilterSidebarComponent = ({
       ...categoryPartition.nonEmpty.map(entry => [entry[0], entry] as const),
       ...activelyFilteredEntries.map(entry => [entry[0], entry] as const),
     ])
-    return Array.from(combined.values())
+    return Array.from(combined.values()).sort((a, b) => a[0].localeCompare(b[0]))
   }, [showHiddenCategories, categoryEntries, categoryPartition.nonEmpty, getCategoryState])
 
   const categoriesForTree = useMemo(() => Object.fromEntries(categoryEntriesForDisplay), [categoryEntriesForDisplay])
