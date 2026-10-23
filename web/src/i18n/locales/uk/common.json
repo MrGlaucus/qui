@@ -35,6 +35,7 @@
     "disconnected": "Від'єднано",
     "noActiveInstances": "Немає активних екземплярів",
     "showFilters": "Показати фільтри",
+    "longPressToClearFilters": "Довге натискання очищає фільтри",
     "hideFilters": "Приховати фільтри",
     "addTorrent": "Додати торент",
     "createTorrent": "Створити торент",

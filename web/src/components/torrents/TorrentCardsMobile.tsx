@@ -42,6 +42,7 @@ import { useCrossSeedBlocklistActions } from "@/hooks/useCrossSeedBlocklistActio
 import { useDebounce } from "@/hooks/useDebounce"
 import { useDelayedVisibility } from "@/hooks/useDelayedVisibility"
 import { useInstances } from "@/hooks/useInstances"
+import { useLongPress } from "@/hooks/useLongPress"
 import { TORRENT_ACTIONS, useTorrentActions, type TorrentAction } from "@/hooks/useTorrentActions"
 import { useTorrentExporter } from "@/hooks/useTorrentExporter"
 import { useTorrentsList } from "@/hooks/useTorrentsList"
@@ -53,6 +54,7 @@ import { buildTrackerCustomizationLookup, extractTrackerHost, getTrackerCustomiz
 import { resolveTrackerHealthSupport } from "@/lib/tracker-health-support"
 import { resolveTrackerIconSrc } from "@/lib/tracker-icons"
 import { buildTorrentActionTargets } from "@/lib/torrent-action-targets"
+import { requestClearTorrentFilters } from "@/lib/torrent-filter-events"
 import { anyTorrentHasTag, getCommonCategory, getCommonSavePath, getToggleSelectionState, getTorrentHashesWithTag } from "@/lib/torrent-utils"
 import { isAllInstancesScope } from "@/lib/instances"
 import { useNavigate, useSearch } from "@tanstack/react-router"
@@ -1103,6 +1105,9 @@ export function TorrentCardsMobile({
   const [selectedHashes, setSelectedHashes] = useState<Set<string>>(new Set())
   const [selectionMode, setSelectionMode] = useState(false)
   const { setIsSelectionMode } = useTorrentSelection()
+
+  // Holding the filter button clears every filter instead of opening the sheet.
+  const filterLongPress = useLongPress({ onLongPress: requestClearTorrentFilters })
 
   const parentRef = useRef<HTMLDivElement>(null)
   const { isFooterVisible } = useMobileScroll()
@@ -2975,7 +2980,13 @@ export function TorrentCardsMobile({
             </button>
 
             <button
-              onClick={() => window.dispatchEvent(new Event("qui-open-mobile-filters"))}
+              {...filterLongPress.handlers}
+              onClick={() => {
+                if (filterLongPress.consumeLongPress()) {
+                  return
+                }
+                window.dispatchEvent(new Event("qui-open-mobile-filters"))
+              }}
               className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-xs font-medium transition-colors min-w-0 flex-1 active:scale-95 ${hasActiveFilter ? "text-red-500" : "text-muted-foreground hover:text-foreground"}`}
             >
               <Filter className={`h-5 w-5 ${hasActiveFilter ? "text-red-500" : ""}`} />

@@ -884,6 +884,7 @@
     }
   },
   "filterSidebar": {
+      "clearedToast": "Filter zurückgesetzt",
     "views": {
       "title": "Ansichten",
       "empty": "Noch keine gespeicherten Ansichten. Wähle Filter aus und speichere sie hier.",

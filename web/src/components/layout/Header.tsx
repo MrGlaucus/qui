@@ -48,6 +48,7 @@ import { useAuth } from "@/hooks/useAuth"
 import { useCrossSeedInstanceState } from "@/hooks/useCrossSeedInstanceState"
 import { useDebounce } from "@/hooks/useDebounce"
 import { useInstances } from "@/hooks/useInstances"
+import { useLongPress } from "@/hooks/useLongPress"
 import { usePersistedCompactViewState } from "@/hooks/usePersistedCompactViewState"
 import { usePersistedFilterSidebarState } from "@/hooks/usePersistedFilterSidebarState"
 import { usePersistedUnifiedInstanceFilter } from "@/hooks/usePersistedUnifiedInstanceFilter"
@@ -60,6 +61,7 @@ import {
   normalizeUnifiedInstanceIds
 } from "@/lib/instances"
 import { useSpreadsheetDisguise } from "@/lib/spreadsheet-disguise"
+import { requestClearTorrentFilters } from "@/lib/torrent-filter-events"
 import { cn } from "@/lib/utils"
 import type { InstanceCapabilities, TorrentStreamPayload } from "@/types"
 import { useQueries, useQuery } from "@tanstack/react-query"
@@ -283,6 +285,10 @@ export function Header({
     lastFilterToggleRef.current = now
     setFilterSidebarCollapsed((prev) => !prev)
   }, [setFilterSidebarCollapsed])
+
+  // Holding the filter button clears every filter; a plain click still toggles
+  // the sidebar. See the tooltip for the hint.
+  const filterLongPress = useLongPress({ onLongPress: requestClearTorrentFilters })
 
   // Detect platform for appropriate key display
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
@@ -532,7 +538,14 @@ export function Header({
                   variant="outline"
                   size="icon"
                   className="hidden md:inline-flex"
-                  onClick={handleToggleFilters}
+                  {...filterLongPress.handlers}
+                  onClick={(event) => {
+                    if (filterLongPress.consumeLongPress()) {
+                      event.preventDefault()
+                      return
+                    }
+                    handleToggleFilters()
+                  }}
                 >
                   {filterSidebarCollapsed ? (
                     <FunnelPlus className={`h-4 w-4 ${hasActiveFilter ? "text-red-500" : ""}`} />
@@ -541,7 +554,12 @@ export function Header({
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{filterSidebarCollapsed ? t("header.showFilters") : t("header.hideFilters")}</TooltipContent>
+              <TooltipContent>
+                <span className="flex flex-col gap-0.5">
+                  <span>{filterSidebarCollapsed ? t("header.showFilters") : t("header.hideFilters")}</span>
+                  <span className="text-xs opacity-70">{t("header.longPressToClearFilters")}</span>
+                </span>
+              </TooltipContent>
             </Tooltip>
             {isAllInstancesRoute && unifiedManageableInstances.length > 0 && (
               <>

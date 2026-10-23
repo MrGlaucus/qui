@@ -17,6 +17,7 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden"
 import { useTorrentSelection } from "@/contexts/TorrentSelectionContext"
 import { useInstances } from "@/hooks/useInstances"
 import { useIsMobile } from "@/hooks/useMediaQuery"
+import { usePersistedColumnFilters } from "@/hooks/usePersistedColumnFilters"
 import { usePersistedCompactViewState } from "@/hooks/usePersistedCompactViewState"
 import { usePersistedFilters } from "@/hooks/usePersistedFilters"
 import { usePersistedFilterSidebarState } from "@/hooks/usePersistedFilterSidebarState"
@@ -26,12 +27,14 @@ import { useTitleBarSpeeds } from "@/hooks/useTitleBarSpeeds"
 import { api } from "@/lib/api"
 import { isAllInstancesScope, normalizeUnifiedInstanceIds } from "@/lib/instances"
 import { useSpreadsheetDisguise } from "@/lib/spreadsheet-disguise"
+import { CLEAR_TORRENT_FILTERS_EVENT } from "@/lib/torrent-filter-events"
 import { cn } from "@/lib/utils"
 import type { Category, CrossInstanceTorrent, Torrent, TorrentCounts } from "@/types"
 import { useNavigate } from "@tanstack/react-router"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useDefaultLayout, usePanelRef } from "react-resizable-panels"
+import { toast } from "sonner"
 
 export interface TorrentsSearch {
   modal?: "add-torrent" | "create-torrent" | "tasks"
@@ -52,6 +55,7 @@ export function Torrents({ instanceId, instanceName, isAllInstancesView = false,
   const { t } = useTranslation("torrents")
   const isAllInstances = isAllInstancesView || isAllInstancesScope(instanceId)
   const [filters, setFilters] = usePersistedFilters(instanceId)
+  const [columnFilters, setColumnFilters] = usePersistedColumnFilters(instanceId)
   const [filterSidebarCollapsed] = usePersistedFilterSidebarState(false)
   const { viewMode } = usePersistedCompactViewState("desktop")
   const { clearSelection } = useTorrentSelection()
@@ -437,6 +441,51 @@ export function Torrents({ instanceId, instanceName, isAllInstancesView = false,
     window.addEventListener("qui-open-mobile-filters", handler)
     return () => window.removeEventListener("qui-open-mobile-filters", handler)
   }, [])
+
+  const hasAnyFilter =
+    filters.status.length > 0 ||
+    filters.excludeStatus.length > 0 ||
+    filters.categories.length > 0 ||
+    filters.excludeCategories.length > 0 ||
+    filters.tags.length > 0 ||
+    filters.excludeTags.length > 0 ||
+    filters.trackers.length > 0 ||
+    filters.excludeTrackers.length > 0 ||
+    (filters.instances?.length ?? 0) > 0 ||
+    (filters.excludeInstances?.length ?? 0) > 0 ||
+    Boolean(filters.expr)
+
+  // Long-pressing a filter toggle clears sidebar and column filters in one
+  // action, so the list is reachable again without opening the sidebar first.
+  const clearAllFilters = useCallback(() => {
+    if (!hasAnyFilter && columnFilters.length === 0) {
+      return
+    }
+
+    setFilters((previous) => ({
+      ...previous,
+      status: [],
+      excludeStatus: [],
+      categories: [],
+      excludeCategories: [],
+      expandedCategories: undefined,
+      expandedExcludeCategories: undefined,
+      tags: [],
+      excludeTags: [],
+      trackers: [],
+      excludeTrackers: [],
+      instances: [],
+      excludeInstances: [],
+      expr: "",
+    }))
+    setColumnFilters([])
+    toast.success(t("filterSidebar.clearedToast"))
+  }, [columnFilters.length, hasAnyFilter, setColumnFilters, setFilters, t])
+
+  useEffect(() => {
+    window.addEventListener(CLEAR_TORRENT_FILTERS_EVENT, clearAllFilters)
+    return () => window.removeEventListener(CLEAR_TORRENT_FILTERS_EVENT, clearAllFilters)
+  }, [clearAllFilters])
 
   useEffect(() => {
     if (!selectedTorrent || isMobile) {

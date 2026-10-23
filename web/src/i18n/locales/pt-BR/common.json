@@ -35,6 +35,7 @@
     "disconnected": "Desconectado",
     "noActiveInstances": "Nenhuma instância ativa",
     "showFilters": "Mostrar filtros",
+    "longPressToClearFilters": "Pressione e segure para limpar os filtros",
     "hideFilters": "Ocultar filtros",
     "addTorrent": "Adicionar torrent",
     "createTorrent": "Criar torrent",

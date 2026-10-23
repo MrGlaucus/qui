@@ -35,6 +35,7 @@
     "disconnected": "Odpojeno",
     "noActiveInstances": "Žádné aktivní instance",
     "showFilters": "Zobrazit filtry",
+    "longPressToClearFilters": "Dlouhým stiskem vymažete filtry",
     "hideFilters": "Skrýt filtry",
     "addTorrent": "Přidat torrent",
     "createTorrent": "Vytvořit torrent",

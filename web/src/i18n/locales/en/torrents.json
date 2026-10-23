@@ -910,6 +910,7 @@
     }
   },
   "filterSidebar": {
+      "clearedToast": "Filters cleared",
     "views": {
       "title": "Views",
       "empty": "No saved views yet. Choose some filters, then save them here.",

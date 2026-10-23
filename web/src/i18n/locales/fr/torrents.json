@@ -884,6 +884,7 @@
     }
   },
   "filterSidebar": {
+      "clearedToast": "Filtres effacés",
     "views": {
       "title": "Vues",
       "empty": "Aucune vue enregistrée. Choisissez des filtres, puis enregistrez-les ici.",

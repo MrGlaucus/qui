@@ -35,6 +35,7 @@
     "disconnected": "Getrennt",
     "noActiveInstances": "Keine aktiven Instanzen",
     "showFilters": "Filter anzeigen",
+    "longPressToClearFilters": "Lange drücken zum Zurücksetzen der Filter",
     "hideFilters": "Filter ausblenden",
     "addTorrent": "Torrent hinzufügen",
     "createTorrent": "Torrent erstellen",

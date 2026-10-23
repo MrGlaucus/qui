@@ -862,6 +862,7 @@
     }
   },
   "filterSidebar": {
+      "clearedToast": "已清空筛选条件",
     "views": {
       "title": "视图",
       "empty": "尚未保存任何视图。先选择筛选条件，然后在此保存。",

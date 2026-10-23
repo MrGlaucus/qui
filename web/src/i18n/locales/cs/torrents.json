@@ -884,6 +884,7 @@
     }
   },
   "filterSidebar": {
+      "clearedToast": "Filtry vymazány",
     "views": {
       "title": "Pohledy",
       "empty": "Zatím žádné uložené pohledy. Vyberte filtry a pak je zde uložte.",

@@ -884,6 +884,7 @@
     }
   },
   "filterSidebar": {
+      "clearedToast": "Filtros limpos",
     "views": {
       "title": "Visualizações",
       "empty": "Nenhuma visualização salva. Escolha alguns filtros e salve-os aqui.",

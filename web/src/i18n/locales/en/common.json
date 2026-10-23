@@ -35,6 +35,7 @@
     "disconnected": "Disconnected",
     "noActiveInstances": "No active instances",
     "showFilters": "Show filters",
+    "longPressToClearFilters": "Long-press to clear filters",
     "hideFilters": "Hide filters",
     "addTorrent": "Add torrent",
     "createTorrent": "Create torrent",

@@ -35,6 +35,7 @@
     "disconnected": "已断开",
     "noActiveInstances": "没有活动的实例",
     "showFilters": "显示筛选器",
+    "longPressToClearFilters": "长按清空筛选条件",
     "hideFilters": "隐藏筛选器",
     "addTorrent": "添加种子",
     "createTorrent": "创建种子",

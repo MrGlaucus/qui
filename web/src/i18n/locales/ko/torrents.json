@@ -836,6 +836,7 @@
     }
   },
   "filterSidebar": {
+      "clearedToast": "필터를 지웠습니다",
     "views": {
       "title": "뷰",
       "empty": "저장된 뷰가 없습니다. 필터를 선택한 뒤 여기에 저장하세요.",

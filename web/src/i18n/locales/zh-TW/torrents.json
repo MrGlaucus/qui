@@ -835,6 +835,7 @@
     }
   },
   "filterSidebar": {
+      "clearedToast": "已清空篩選條件",
     "views": {
       "title": "檢視",
       "empty": "尚未儲存任何檢視。先選擇篩選條件，然後在此儲存。",

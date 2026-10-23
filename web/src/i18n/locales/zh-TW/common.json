@@ -35,6 +35,7 @@
     "disconnected": "已斷開",
     "noActiveInstances": "沒有活動的實例",
     "showFilters": "顯示篩選器",
+    "longPressToClearFilters": "長按清空篩選條件",
     "hideFilters": "隱藏篩選器",
     "addTorrent": "新增種子",
     "createTorrent": "建立種子",
