@@ -2303,8 +2303,9 @@ const FilterSidebarComponent = ({
                     />
                   </div>
 
-                  {/* Uncategorized option */}
-                  {!allowSubcategories && (getRawCount("category:") > 0 || uncategorizedState !== "neutral") && (
+                  {/* Uncategorized option - always rendered so the list below never shifts
+                      when its count drops to 0 after a filter is applied */}
+                  {!allowSubcategories && (
                     <label
                       className={cn(
                         filterRowClass,
@@ -2713,50 +2714,49 @@ const FilterSidebarComponent = ({
                     />
                   </div>
 
-                  {/* Untagged option */}
-                  {(getRawCount("tag:") > 0 || untaggedState !== "neutral") && (
-                    <label
+                  {/* Untagged option - always rendered for the same reason as
+                      the uncategorized row above */}
+                  <label
+                    className={cn(
+                      filterRowClass,
+                      "rounded cursor-pointer w-full min-w-0",
+                      filterItemClass,
+                      untaggedState === "exclude" ? "bg-destructive/10 text-destructive hover:bg-destructive/15" : "hover:bg-muted"
+                    )}
+                    onPointerDown={(event) => handleTagPointerDown(event, "")}
+                    onPointerLeave={handlePointerLeave}
+                  >
+                    <Checkbox
+                      checked={getCheckboxVisualState(untaggedState)}
+                      onCheckedChange={() => handleTagCheckboxChange("")}
+                      className="rounded border-input"
+                    />
+                    <span
                       className={cn(
-                        filterRowClass,
-                        "rounded cursor-pointer w-full min-w-0",
-                        filterItemClass,
-                        untaggedState === "exclude" ? "bg-destructive/10 text-destructive hover:bg-destructive/15" : "hover:bg-muted"
+                        "text-sm flex-1 min-w-0 italic truncate",
+                        untaggedState === "exclude" ? "text-destructive" : "text-muted-foreground"
                       )}
-                      onPointerDown={(event) => handleTagPointerDown(event, "")}
-                      onPointerLeave={handlePointerLeave}
                     >
-                      <Checkbox
-                        checked={getCheckboxVisualState(untaggedState)}
-                        onCheckedChange={() => handleTagCheckboxChange("")}
-                        className="rounded border-input"
-                      />
-                      <span
-                        className={cn(
-                          "text-sm flex-1 min-w-0 italic truncate",
-                          untaggedState === "exclude" ? "text-destructive" : "text-muted-foreground"
-                        )}
-                      >
-                        {t("filterSidebar.untagged")}
-                      </span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span
-                            className={cn(
-                              "text-xs tabular-nums shrink-0",
-                              untaggedState === "exclude" ? "text-destructive" : "text-muted-foreground"
-                            )}
-                          >
-                            {getDisplayCount("tag:")}
-                          </span>
-                        </TooltipTrigger>
-                        {getTagSize("") && (
-                          <TooltipContent side="right">
-                            {getTagSize("")}
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </label>
-                  )}
+                      {t("filterSidebar.untagged")}
+                    </span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className={cn(
+                            "text-xs tabular-nums shrink-0",
+                            untaggedState === "exclude" ? "text-destructive" : "text-muted-foreground"
+                          )}
+                        >
+                          {getDisplayCount("tag:")}
+                        </span>
+                      </TooltipTrigger>
+                      {getTagSize("") && (
+                        <TooltipContent side="right">
+                          {getTagSize("")}
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </label>
 
                   {/* Loading message for tags */}
                   {!hasReceivedTagsData && !incognitoMode && (
