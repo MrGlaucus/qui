@@ -147,6 +147,12 @@ export function useTorrentsList(
   // a render that later suspends must not publish uncommitted counts as fallback.
   const committedCountsSnapshotRef = useRef(lastCountsSnapshot)
   const lastStreamSnapshotScopeRef = useRef("")
+  // Subcategory mode belongs to the instance, not to the current view. A filtered
+  // request returns no data until it lands, so the flag reads as undefined and the
+  // sidebar drops from the category tree to the flat list and back, shifting
+  // everything below it. Remember the last known value per instance so a pending
+  // request cannot regress it.
+  const lastUseSubcategoriesRef = useRef<{ scopeKey: string; value?: boolean }>({ scopeKey: "" })
   // The last full page-0 snapshot, retained as the base that incoming SSE deltas are
   // applied against. Held in a ref (not state) so a delta can read the just-applied
   // snapshot synchronously without re-running this callback. Seeded by every full
@@ -746,7 +752,20 @@ export function useTorrentsList(
   const effectiveTotalCount =
     currentPage > 0 && typeof activeData?.total !== "number"? lastKnownTotal: activeData?.total ?? lastKnownTotal
 
-  const responseUseSubcategories = activeData?.useSubcategories ?? activeData?.serverState?.use_subcategories ?? data?.useSubcategories ?? data?.serverState?.use_subcategories ?? false
+  const reportedUseSubcategories = activeData?.useSubcategories ?? activeData?.serverState?.use_subcategories ?? data?.useSubcategories ?? data?.serverState?.use_subcategories
+  // Scoped to the instance: changing a filter must not forget what the instance
+  // said about subcategories, or the sidebar flips render paths on every request.
+  const subcategoriesScopeKey = `${instanceId}|${instanceIdsKey}`
+  if (reportedUseSubcategories !== undefined) {
+    const remembered = lastUseSubcategoriesRef.current
+    if (remembered.scopeKey !== subcategoriesScopeKey || remembered.value !== reportedUseSubcategories) {
+      lastUseSubcategoriesRef.current = { scopeKey: subcategoriesScopeKey, value: reportedUseSubcategories }
+    }
+  }
+  const rememberedUseSubcategories = lastUseSubcategoriesRef.current.scopeKey === subcategoriesScopeKey
+    ? lastUseSubcategoriesRef.current.value
+    : undefined
+  const responseUseSubcategories = reportedUseSubcategories ?? rememberedUseSubcategories ?? false
   const supportsSubcategories = isAllInstancesView ? responseUseSubcategories : (capabilities?.supportsSubcategories ?? false)
   const countsScopeKey = viewScopeKey
   const responseCounts = activeData?.counts ?? data?.counts
