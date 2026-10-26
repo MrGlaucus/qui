@@ -701,7 +701,16 @@ export function Torrents({ instanceId, instanceName, isAllInstancesView = false,
         )}
       </div>
 
-      {/* Mobile Details Sheet - only renders on mobile */}
+      {/* Mobile Details Sheet - only renders on mobile.
+          The sheet content is `fixed` to the viewport, so the body's
+          `padding-top: env(safe-area-inset-top)` never applies to it and the
+          tab bar plus the close button end up underneath the iOS status bar.
+          Pad the sheet itself instead; `env()` resolves to 0 outside a safe
+          area, so this is a no-op on every other platform.
+          Radix also focuses the first focusable element on open - a tab
+          trigger - while the slide-in animation is still translating the
+          panel, which makes iOS scroll the visual viewport to reveal it and
+          not always scroll back. Preventing the default focus removes that. */}
       {isMobile && (
         <Sheet
           open={!!selectedTorrent}
@@ -715,6 +724,8 @@ export function Torrents({ instanceId, instanceName, isAllInstancesView = false,
             side="right"
             className="w-full p-0 gap-0"
             hideClose
+            style={{ paddingTop: "env(safe-area-inset-top)" }}
+            onOpenAutoFocus={(event) => event.preventDefault()}
           >
             <SheetHeader className="sr-only">
               <VisuallyHidden>
