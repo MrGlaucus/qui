@@ -61,7 +61,6 @@ import { useNavigate, useSearch } from "@tanstack/react-router"
 import { navigateWithSearch } from "@/lib/router-search"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import {
-  ArrowUpDown,
   Blocks,
   CheckCircle2,
   ChevronDown,
@@ -2152,10 +2151,17 @@ export function TorrentCardsMobile({
             <div className="text-muted-foreground min-w-0 truncate">
               {stats?.totalDownloadSpeed != null && (
                 <>
-                  <span className="whitespace-nowrap">
+                  {/* The speed readout doubles as the unit switch: tapping it
+                      cycles bytes <-> bits. The standalone toggle that used to
+                      sit on the right of this bar was removed. */}
+                  <button
+                    type="button"
+                    onClick={() => setSpeedUnit(speedUnit === "bytes" ? "bits" : "bytes")}
+                    className="whitespace-nowrap select-none rounded-sm py-0.5 transition-colors hover:bg-muted/50 active:bg-muted/70"
+                  >
                     ↓ {formatSpeedWithUnit(stats.totalDownloadSpeed, speedUnit)}{" "}
                     ↑ {formatSpeedWithUnit(stats.totalUploadSpeed ?? 0, speedUnit)}
-                  </span>
+                  </button>
                   {" · "}
                 </>
               )}
@@ -2214,15 +2220,6 @@ export function TorrentCardsMobile({
                   <ChevronUp className="h-3.5 w-3.5" />
                 )}
               </Button>
-              <button
-                onClick={() => setSpeedUnit(speedUnit === "bytes" ? "bits" : "bytes")}
-                className="flex items-center gap-1 pl-1.5 py-0.5 rounded-sm transition-all hover:bg-muted/50"
-              >
-                <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  {speedUnit === "bytes" ? "MiB/s" : "Mbps"}
-                </span>
-              </button>
             </div>
           </div>
         )}
