@@ -180,6 +180,12 @@ const TORRENT_STATES: Array<{ value: string; labelKey: string; icon: LucideIcon 
   { value: "cross-seeds", labelKey: "filterSidebar.states.crossSeeds", icon: GitBranch },
 ]
 
+// Canonical display order for statuses. Selecting a status whose count is zero
+// makes it reappear in the list (see statusOptionsForDisplay), and without this
+// it was appended to the end instead of staying in place, so the row jumped to
+// the bottom of the section the moment it was clicked.
+const TORRENT_STATE_ORDER = new Map(TORRENT_STATES.map((state, index) => [state.value, index]))
+
 
 const FilterSidebarComponent = ({
   instanceId,
@@ -1325,7 +1331,12 @@ const FilterSidebarComponent = ({
       ...statusPartition.nonEmpty.map(state => [state.value, state] as const),
       ...activelyFilteredStates.map(state => [state.value, state] as const),
     ])
-    return Array.from(combined.values())
+    // Sorted, never in arrival order: the selected-but-empty statuses are
+    // appended after the non-empty ones above, and letting that through moved
+    // the row to the bottom of the section. Same treatment as tags/categories.
+    return Array.from(combined.values()).sort(
+      (a, b) => (TORRENT_STATE_ORDER.get(a.value) ?? Number.MAX_SAFE_INTEGER) - (TORRENT_STATE_ORDER.get(b.value) ?? Number.MAX_SAFE_INTEGER)
+    )
   }, [showHiddenStatuses, visibleTorrentStates, statusPartition.nonEmpty, getStatusState])
 
   const handleStatusIncludeToggle = useCallback((status: string) => {

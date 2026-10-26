@@ -153,6 +153,12 @@ export function useTorrentsList(
   // everything below it. Remember the last known value per instance so a pending
   // request cannot regress it.
   const lastUseSubcategoriesRef = useRef<{ scopeKey: string; value?: boolean }>({ scopeKey: "" })
+  // Tracker-health support is advertised by the response, but a stream snapshot
+  // or an in-flight filtered request can omit it. The unified sidebar gates its
+  // "unregistered" / "tracker_down" / "tracker_error" status rows on this flag,
+  // so a regression to false yanks those rows out and the next response puts
+  // them back. Remember the last known value per instance, same as above.
+  const lastTrackerHealthSupportRef = useRef<{ scopeKey: string; value?: boolean }>({ scopeKey: "" })
   // The last full page-0 snapshot, retained as the base that incoming SSE deltas are
   // applied against. Held in a ref (not state) so a delta can read the just-applied
   // snapshot synchronously without re-running this callback. Seeded by every full
@@ -767,6 +773,19 @@ export function useTorrentsList(
     : undefined
   const responseUseSubcategories = reportedUseSubcategories ?? rememberedUseSubcategories ?? false
   const supportsSubcategories = isAllInstancesView ? responseUseSubcategories : (capabilities?.supportsSubcategories ?? false)
+
+  const reportedTrackerHealthSupported = activeData?.trackerHealthSupported ?? data?.trackerHealthSupported
+  const trackerHealthScopeKey = `${instanceId}|${instanceIdsKey}`
+  if (reportedTrackerHealthSupported !== undefined) {
+    const remembered = lastTrackerHealthSupportRef.current
+    if (remembered.scopeKey !== trackerHealthScopeKey || remembered.value !== reportedTrackerHealthSupported) {
+      lastTrackerHealthSupportRef.current = { scopeKey: trackerHealthScopeKey, value: reportedTrackerHealthSupported }
+    }
+  }
+  const rememberedTrackerHealthSupported = lastTrackerHealthSupportRef.current.scopeKey === trackerHealthScopeKey
+    ? lastTrackerHealthSupportRef.current.value
+    : undefined
+  const responseTrackerHealthSupported = reportedTrackerHealthSupported ?? rememberedTrackerHealthSupported ?? false
   const countsScopeKey = viewScopeKey
   const responseCounts = activeData?.counts ?? data?.counts
 
@@ -785,7 +804,7 @@ export function useTorrentsList(
     appInfo: activeData?.appInfo ?? data?.appInfo ?? null,
     categories: activeData?.categories ?? data?.categories,
     tags: activeData?.tags ?? data?.tags,
-    trackerHealthSupported: activeData?.trackerHealthSupported ?? data?.trackerHealthSupported ?? false,
+    trackerHealthSupported: responseTrackerHealthSupported,
     supportsTorrentCreation: isAllInstancesView ? false : capabilities?.supportsTorrentCreation ?? true,
     capabilities: isAllInstancesView ? undefined : capabilities,
     serverState: activeData?.serverState ?? data?.serverState ?? null,
