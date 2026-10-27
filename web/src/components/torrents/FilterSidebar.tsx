@@ -2159,25 +2159,33 @@ const FilterSidebarComponent = ({
               </AccordionTrigger>
               <AccordionContent className={accordionContentClass}>
                 <div className="flex flex-col">
-                  {hiddenStatusCount > 0 && (
-                    <button
-                      type="button"
-                      className={cn("flex items-center gap-1.5 self-start text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded mb-1 transition-colors", filterItemClass)}
-                      onClick={() => setShowHiddenStatuses((prev) => !prev)}
-                    >
-                      {showHiddenStatuses ? (
-                        <>
-                          <ListChevronsDownUp className="h-3.5 w-3.5" />
-                          <span>{t("filterSidebar.hideEmpty")}</span>
-                        </>
-                      ) : (
-                        <>
-                          <ListChevronsUpDown className="h-3.5 w-3.5" />
-                          <span>{t("filterSidebar.showEmpty")}</span>
-                        </>
-                      )}
-                    </button>
-                  )}
+                  {/* Always rendered so the status list below never shifts once the
+                      counts arrive and some statuses turn out to be empty. Categories
+                      and tags get the same stability for free: their toggle sits inline
+                      next to the permanent "create" button. Statuses are a fixed enum
+                      with no such anchor row, so reserve the space instead of hiding
+                      the element outright. */}
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex items-center gap-1.5 self-start text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded mb-1 transition-colors",
+                      filterItemClass,
+                      hiddenStatusCount === 0 && "invisible"
+                    )}
+                    onClick={() => setShowHiddenStatuses((prev) => !prev)}
+                  >
+                    {showHiddenStatuses ? (
+                      <>
+                        <ListChevronsDownUp className="h-3.5 w-3.5" />
+                        <span>{t("filterSidebar.hideEmpty")}</span>
+                      </>
+                    ) : (
+                      <>
+                        <ListChevronsUpDown className="h-3.5 w-3.5" />
+                        <span>{t("filterSidebar.showEmpty")}</span>
+                      </>
+                    )}
+                  </button>
 
                   {statusOptionsForDisplay.length === 0 && hiddenStatusCount > 0 && !showHiddenStatuses && (
                     <div className="text-xs text-muted-foreground px-2 py-3 text-center italic">
