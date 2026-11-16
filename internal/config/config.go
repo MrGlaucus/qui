@@ -134,7 +134,9 @@ func (c *AppConfig) defaults() {
 	c.viper.SetDefault("metricsPort", 9074)
 	c.viper.SetDefault("metricsBasicAuthUsers", "")
 	c.viper.SetDefault("externalProgramAllowList", []string{})
+	c.viper.SetDefault("disabledFeatures", []string{})
 	c.viper.SetDefault("scriptPythonPath", "python3")
+	c.viper.SetDefault("externalProgramMaxRunning", 8)
 
 	// Auth disabled
 	c.viper.SetDefault("authDisabled", false)
@@ -230,6 +232,9 @@ func (c *AppConfig) loadFromEnv() {
 	c.viper.BindEnv("databaseConnMaxLifetime", envPrefix+"DATABASE_CONN_MAX_LIFETIME")
 	c.viper.BindEnv("qbittorrentTimeout", envPrefix+"QBITTORRENT_TIMEOUT")
 	c.viper.BindEnv("checkForUpdates", envPrefix+"CHECK_FOR_UPDATES")
+	c.viper.BindEnv("disabledFeatures", envPrefix+"DISABLED_FEATURES")
+	c.viper.BindEnv("externalProgramMaxRunning", envPrefix+"EXTERNAL_PROGRAM_MAX_RUNNING")
+	c.viper.BindEnv("disableSelfUpdate", envPrefix+"DISABLE_SELF_UPDATE")
 	c.viper.BindEnv("trackerIconsFetchEnabled", envPrefix+"TRACKER_ICONS_FETCH_ENABLED")
 	c.viper.BindEnv("customThemesDir", envPrefix+"CUSTOM_THEMES_DIR")
 	c.viper.BindEnv("crossSeedRecoverErroredTorrents", envPrefix+"CROSS_SEED_RECOVER_ERRORED_TORRENTS")
@@ -366,6 +371,8 @@ func (c *AppConfig) hydrateConfigFromViper() {
 
 	c.Config.ScriptPythonPath = c.viper.GetString("scriptPythonPath")
 	c.Config.ExternalProgramAllowList = c.getNormalizedStringSlice("externalProgramAllowList")
+	c.Config.ExternalProgramMaxRunning = c.viper.GetInt("externalProgramMaxRunning")
+	c.Config.DisabledFeatures = c.getNormalizedStringSlice("disabledFeatures")
 
 	c.Config.AuthDisabled = c.viper.GetBool("authDisabled")
 	c.Config.IAcknowledgeThisIsABadIdea = c.viper.GetBool("I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA")
@@ -603,6 +610,19 @@ sessionSecret = "{{ .sessionSecret }}"
 #       "/usr/local/bin/my-script",
 #       "/home/user/bin",
 #]
+
+# Maximum number of external programs that run at the same time (requires restart)
+# Other programs wait for a free slot. A value of 0 or less uses the default.
+# Default: 8
+#externalProgramMaxRunning = 8
+
+# Disabled background features (requires restart)
+# Skip startup of idle background services to reduce memory and CPU usage.
+# Instances, automations, external programs, and the web UI are always started.
+# Valid values: crossseed, scripttasks, orphanscan, discscan, dirscan,
+#   reannounce, backup, updates, trafficReports
+# Example: disable everything except instances and automations:
+#disabledFeatures = ["crossseed", "scripttasks", "orphanscan", "discscan", "dirscan", "reannounce", "backup", "updates", "trafficReports"]
 
 # OpenID Connect (OIDC) Configuration
 # Enable OIDC authentication

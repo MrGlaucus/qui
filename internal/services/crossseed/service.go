@@ -37,7 +37,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/autobrr/autobrr/pkg/ttlcache"
+	"github.com/autobrr/go-cache/ttlcache"
 	mediainfo "github.com/autobrr/go-mediainfo"
 	qbt "github.com/autobrr/go-qbittorrent"
 	"github.com/autobrr/go-torrent/metainfo"
@@ -598,20 +598,19 @@ func NewService(
 	metadataCredsRevisionLoader func(ctx context.Context) (time.Time, error),
 	metadataCredentialLoader func(ctx context.Context) (apiKey, pin string, err error),
 ) *Service {
-	searchCache := ttlcache.New(ttlcache.Options[string, cachedTorrentSearchResults]{}.
-		SetDefaultTTL(searchResultCacheTTL))
+	searchCache := ttlcache.New[string, cachedTorrentSearchResults](
+		ttlcache.SetDefaultTTL(searchResultCacheTTL))
 
-	asyncFilteringCache := ttlcache.New(ttlcache.Options[string, *AsyncIndexerFilteringState]{}.
-		SetDefaultTTL(searchResultCacheTTL). // Use same TTL as search results
-		// The cache holds live state pointers; the TTL-refresh write-back on Get
-		// could restore a replaced entry (autobrr#2637), so disable it.
-		DisableUpdateTime(true))
-	indexerDomainCache := ttlcache.New(ttlcache.Options[string, string]{}.
-		SetDefaultTTL(indexerDomainCacheTTL))
-	contentFilesCache := ttlcache.New(ttlcache.Options[string, qbt.TorrentFiles]{}.
-		SetDefaultTTL(5 * time.Minute))
-	dedupCache := ttlcache.New(ttlcache.Options[string, *dedupCacheEntry]{}.
-		SetDefaultTTL(5 * time.Minute))
+	asyncFilteringCache := ttlcache.New[string, *AsyncIndexerFilteringState](
+		ttlcache.SetDefaultTTL(searchResultCacheTTL),
+		// The UI polls this state, so a refreshing Get would never let it expire.
+		ttlcache.DisableUpdateTime(true))
+	indexerDomainCache := ttlcache.New[string, string](
+		ttlcache.SetDefaultTTL(indexerDomainCacheTTL))
+	contentFilesCache := ttlcache.New[string, qbt.TorrentFiles](
+		ttlcache.SetDefaultTTL(5 * time.Minute))
+	dedupCache := ttlcache.New[string, *dedupCacheEntry](
+		ttlcache.SetDefaultTTL(5 * time.Minute))
 
 	recheckCtx, recheckCancel := context.WithCancel(context.Background()) //nolint:gosec // G118: service-lifetime context, cancelled on shutdown
 	var arrLookup arrLookupService
@@ -14515,7 +14514,9 @@ func (s *Service) runPostInjectionHooks(ctx context.Context, instanceID int, tor
 
 // executeExternalProgram runs the configured external program for a successfully injected torrent.
 //
-// WARNING: No rate limiting is applied. Rapid injections can spawn many concurrent processes.
+// WARNING: externalprograms limits how many programs run at the same time, but a launcher run
+// (a terminal emulator, or any run on Windows) releases its slot after the start, so rapid
+// injections can still start many concurrent processes.
 func (s *Service) executeExternalProgram(ctx context.Context, instanceID int, torrentHash string) {
 	if s.externalProgramService == nil {
 		return

@@ -612,9 +612,11 @@ func (app *Application) runServer() {
 	authService := auth.NewService(db)
 	licenseService := license.NewLicenseService(licenseRepo, polarClient, dodoClient, cfg.GetConfigDir())
 
+	licenseCtx, licenseCancel := context.WithCancel(context.Background())
+	defer licenseCancel()
 	go func() {
 		checker := license.NewLicenseChecker(licenseService)
-		checker.StartPeriodicChecks(context.Background())
+		checker.StartPeriodicChecks(licenseCtx)
 	}()
 
 	// Initialize qBittorrent client pool
@@ -710,9 +712,11 @@ func (app *Application) runServer() {
 			return qbtSyncManager.Sync(ctx)
 		})
 		notificationService.Start(notificationCtx)
-		notificationService.StartDailyTrafficReport(notificationCtx, dailyTrafficStore)
-		notificationService.StartHourlyTrafficReport(notificationCtx, dailyTrafficStore)
-		notificationService.StartBaselineReport(notificationCtx, dailyTrafficStore)
+		if !cfg.Config.IsFeatureDisabled(domain.FeatureTrafficReports) {
+			notificationService.StartDailyTrafficReport(notificationCtx, dailyTrafficStore)
+			notificationService.StartHourlyTrafficReport(notificationCtx, dailyTrafficStore)
+			notificationService.StartBaselineReport(notificationCtx, dailyTrafficStore)
+		}
 	}
 
 	// activityHub fans qui-owned server events (reannounce, scans, cross-seed,
@@ -770,10 +774,12 @@ func (app *Application) runServer() {
 	notificationService.SetLanguage(clientSettingsLanguage(clientSettingsStore))
 
 	scriptTaskService := scripttasks.NewService(models.NewScriptTaskStore(db), instanceStore, syncManager, notificationService, cfg.Config.ScriptPythonPath)
-	if err := scriptTaskService.Start(); err != nil {
-		log.Fatal().Err(err).Msg("Start script tasks")
+	if !cfg.Config.IsFeatureDisabled(domain.FeatureScriptTasks) {
+		if err := scriptTaskService.Start(); err != nil {
+			log.Fatal().Err(err).Msg("Start script tasks")
+		}
+		defer scriptTaskService.Close()
 	}
-	defer scriptTaskService.Close()
 
 	orphanScanStore := models.NewOrphanScanStore(db)
 	orphanScanService := orphanscan.NewService(orphanscan.DefaultConfig(), instanceStore, orphanScanStore, syncManager, notificationService, backendPool)
@@ -804,41 +810,53 @@ func (app *Application) runServer() {
 	partialPoolCtx, partialPoolCancel := context.WithCancel(context.Background())
 	partialPoolDone := make(chan struct{})
 
-	reannounceCtx, reannounceCancel := context.WithCancel(context.Background())
-	defer reannounceCancel()
-	reannounceService.Start(reannounceCtx)
+	if !cfg.Config.IsFeatureDisabled(domain.FeatureReannounce) {
+		reannounceCtx, reannounceCancel := context.WithCancel(context.Background())
+		defer reannounceCancel()
+		reannounceService.Start(reannounceCtx)
+	}
 
 	automationsCtx, automationsCancel := context.WithCancel(context.Background())
 	defer automationsCancel()
 	automationService.Start(automationsCtx)
 
-	orphanScanCtx, orphanScanCancel := context.WithCancel(context.Background())
-	defer orphanScanCancel()
-	orphanScanService.Start(orphanScanCtx)
+	if !cfg.Config.IsFeatureDisabled(domain.FeatureOrphanScan) {
+		orphanScanCtx, orphanScanCancel := context.WithCancel(context.Background())
+		defer orphanScanCancel()
+		orphanScanService.Start(orphanScanCtx)
+	}
 
-	discScanCtx, discScanCancel := context.WithCancel(context.Background())
-	defer discScanCancel()
-	discScanService.Start(discScanCtx)
+	if !cfg.Config.IsFeatureDisabled(domain.FeatureDiscScan) {
+		discScanCtx, discScanCancel := context.WithCancel(context.Background())
+		defer discScanCancel()
+		discScanService.Start(discScanCtx)
+	}
 
-	dirScanCtx, dirScanCancel := context.WithCancel(context.Background())
-	defer dirScanCancel()
-	if err := dirScanService.Start(dirScanCtx); err != nil {
-		log.Error().Err(err).Msg("failed to start dirscan service")
+	if !cfg.Config.IsFeatureDisabled(domain.FeatureDirScan) {
+		dirScanCtx, dirScanCancel := context.WithCancel(context.Background())
+		defer dirScanCancel()
+		if err := dirScanService.Start(dirScanCtx); err != nil {
+			log.Error().Err(err).Msg("failed to start dirscan service")
+		}
 	}
 
 	backupStore := models.NewBackupStore(db)
 	backupService := backups.NewService(backupStore, syncManager, jackettService, backups.Config{DataDir: cfg.GetDataDir(), BackupDir: cfg.GetBackupDir()}, notificationService)
 	backupService.SetActivityPublisher(activityHub)
-	backupService.Start(context.Background())
-	defer backupService.Stop()
+	if !cfg.Config.IsFeatureDisabled(domain.FeatureBackup) {
+		backupService.Start(context.Background())
+		defer backupService.Stop()
+	}
 
 	updateService := update.NewService(log.Logger, cfg.Config.CheckForUpdates, buildinfo.Version, buildinfo.UserAgent)
 	cfg.RegisterReloadListener(func(conf *domain.Config) {
 		updateService.SetEnabled(conf.CheckForUpdates)
 	})
-	updateCtx, cancelUpdate := context.WithCancel(context.Background())
-	defer cancelUpdate()
-	updateService.Start(updateCtx)
+	if !cfg.Config.IsFeatureDisabled(domain.FeatureUpdates) {
+		updateCtx, cancelUpdate := context.WithCancel(context.Background())
+		defer cancelUpdate()
+		updateService.Start(updateCtx)
+	}
 
 	// Initialize client connections for all active instances on startup
 	go func() {
@@ -951,13 +969,18 @@ func (app *Application) runServer() {
 		}
 	}()
 
+	crossSeedEnabled := !cfg.Config.IsFeatureDisabled(domain.FeatureCrossSeed)
 	select {
 	case <-serverReady:
-		crossSeedService.StartAutomation(automationCtx)
-		go func() {
-			defer close(partialPoolDone)
-			crossSeedService.RunPartialPoolCoordinator(partialPoolCtx)
-		}()
+		if crossSeedEnabled {
+			crossSeedService.StartAutomation(automationCtx)
+			go func() {
+				defer close(partialPoolDone)
+				crossSeedService.RunPartialPoolCoordinator(partialPoolCtx)
+			}()
+		} else {
+			close(partialPoolDone)
+		}
 	case err := <-errorChannel:
 		log.Fatal().Err(err).Msg("failed to start HTTP server")
 	}

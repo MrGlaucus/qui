@@ -55,8 +55,14 @@ type Config struct {
 	// Empty means <config-dir>/themes. A relative value is resolved against the config dir.
 	CustomThemesDir string `toml:"customThemesDir" mapstructure:"customThemesDir"`
 
-	ScriptPythonPath         string   `toml:"scriptPythonPath" mapstructure:"scriptPythonPath"`
-	ExternalProgramAllowList []string `toml:"externalProgramAllowList" mapstructure:"externalProgramAllowList"`
+	ScriptPythonPath          string   `toml:"scriptPythonPath" mapstructure:"scriptPythonPath"`
+	ExternalProgramAllowList  []string `toml:"externalProgramAllowList" mapstructure:"externalProgramAllowList"`
+	ExternalProgramMaxRunning int      `toml:"externalProgramMaxRunning" mapstructure:"externalProgramMaxRunning"`
+
+	// DisabledFeatures lists background features whose startup loops should be skipped.
+	// It is intended for installs that only use a subset of qui (for example instances
+	// and automations) and want to avoid running idle services. See the Feature* constants.
+	DisabledFeatures []string `toml:"disabledFeatures" mapstructure:"disabledFeatures"`
 
 	// CrossSeedRecoverErroredTorrents enables recovery attempts for errored/missingFiles torrents
 	// in cross-seed automation. When enabled, qui will pause, recheck, and resume errored torrents
@@ -78,6 +84,33 @@ type Config struct {
 	OIDCClientSecret        string `toml:"oidcClientSecret" mapstructure:"oidcClientSecret"`
 	OIDCRedirectURL         string `toml:"oidcRedirectUrl" mapstructure:"oidcRedirectUrl"`
 	OIDCDisableBuiltInLogin bool   `toml:"oidcDisableBuiltInLogin" mapstructure:"oidcDisableBuiltInLogin"`
+}
+
+// Background features that can be disabled via Config.DisabledFeatures.
+// Disabling skips the feature's startup loop; it does not remove the feature
+// from the API or stored data. Instances, automations, and the web UI are
+// always started.
+const (
+	FeatureCrossSeed      = "crossseed"
+	FeatureScriptTasks    = "scripttasks"
+	FeatureOrphanScan     = "orphanscan"
+	FeatureDiscScan       = "discscan"
+	FeatureDirScan        = "dirscan"
+	FeatureReannounce     = "reannounce"
+	FeatureBackup         = "backup"
+	FeatureUpdates        = "updates"
+	FeatureTrafficReports = "trafficReports"
+)
+
+// IsFeatureDisabled reports whether the named background feature was listed
+// in DisabledFeatures. Names are matched case-insensitively.
+func (c *Config) IsFeatureDisabled(name string) bool {
+	for _, feature := range c.DisabledFeatures {
+		if strings.EqualFold(strings.TrimSpace(feature), name) {
+			return true
+		}
+	}
+	return false
 }
 
 // IsAuthDisabled returns true only when both AuthDisabled and

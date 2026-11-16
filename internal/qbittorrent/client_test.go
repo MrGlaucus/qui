@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/autobrr/go-cache/ttlcache"
 	qbt "github.com/autobrr/go-qbittorrent"
 	"github.com/avast/retry-go"
 	"github.com/stretchr/testify/require"
@@ -866,4 +867,32 @@ func TestHealthCheckRetriesCapabilitiesUntilLoaded(t *testing.T) {
 	require.NoError(t, client.HealthCheck(t.Context()))
 	require.Equal(t, "2.11.4", client.GetWebAPIVersion())
 	require.True(t, client.trackerManager().SupportsIncludeTrackers(), "the health check must apply the capability to the tracker manager")
+}
+
+func TestGetOrCreatePeerSyncManagerEvictsAfterTTL(t *testing.T) {
+	c := &Client{
+		Client: qbt.NewClient(qbt.Config{Host: "http://127.0.0.1:1"}),
+		peerSyncManager: ttlcache.New[string, *qbt.PeerSyncManager](
+			ttlcache.SetDefaultTTL(80*time.Millisecond),
+			ttlcache.SetTimerResolution(10*time.Millisecond),
+		),
+	}
+	t.Cleanup(c.peerSyncManager.Close)
+
+	first := c.GetOrCreatePeerSyncManager("hash-a")
+	require.NotNil(t, first)
+	require.Same(t, first, c.GetOrCreatePeerSyncManager("hash-a"), "a cache hit returns the same manager")
+
+	// A hit refreshes the sliding TTL: keep touching it past the original deadline.
+	for range 3 {
+		time.Sleep(30 * time.Millisecond)
+		c.GetOrCreatePeerSyncManager("hash-a")
+	}
+	require.Same(t, first, c.GetOrCreatePeerSyncManager("hash-a"), "recent access keeps the manager cached")
+
+	// After the TTL elapses with no access, the entry is gone and a fresh manager is created.
+	time.Sleep(150 * time.Millisecond)
+	_, exists := c.peerSyncManager.Get("hash-a")
+	require.False(t, exists, "the inactive entry is evicted")
+	require.NotSame(t, first, c.GetOrCreatePeerSyncManager("hash-a"), "a new manager is created after eviction")
 }

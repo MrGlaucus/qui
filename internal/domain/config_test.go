@@ -162,3 +162,16 @@ func TestNormalizeCORSAllowedOrigins(t *testing.T) {
 		})
 	}
 }
+
+func TestIsFeatureDisabled(t *testing.T) {
+	cfg := &Config{DisabledFeatures: []string{"crossseed", " TrafficReports ", "BACKUP"}}
+
+	assert.True(t, cfg.IsFeatureDisabled(FeatureCrossSeed))
+	assert.True(t, cfg.IsFeatureDisabled(FeatureTrafficReports), "whitespace is trimmed")
+	assert.True(t, cfg.IsFeatureDisabled(FeatureBackup), "matching is case-insensitive")
+	assert.False(t, cfg.IsFeatureDisabled(FeatureScriptTasks))
+	assert.False(t, cfg.IsFeatureDisabled(FeatureUpdates))
+
+	empty := &Config{}
+	assert.False(t, empty.IsFeatureDisabled(FeatureCrossSeed), "empty config disables nothing")
+}

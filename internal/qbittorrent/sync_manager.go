@@ -22,7 +22,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/autobrr/autobrr/pkg/ttlcache"
+	"github.com/autobrr/go-cache/ttlcache"
 	qbt "github.com/autobrr/go-qbittorrent"
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
@@ -73,7 +73,7 @@ type TorrentCompletionHandler func(ctx context.Context, instanceID int, torrent 
 type TorrentAddedHandler func(ctx context.Context, instanceID int, torrent qbt.Torrent)
 
 // Global URL cache for domain extraction - shared across all sync managers
-var urlCache = ttlcache.New(ttlcache.Options[string, string]{}.SetDefaultTTL(5 * time.Minute))
+var urlCache = ttlcache.New[string, string](ttlcache.SetDefaultTTL(5 * time.Minute))
 
 type filesCacheContextKey struct{}
 type filesCacheMaxAgeContextKey struct{}
@@ -492,7 +492,7 @@ func NewSyncManager(clientPool *ClientPool, trackerCustomizationStore TrackerCus
 	sm := &SyncManager{
 		clientPool:                clientPool,
 		trackerCustomizationStore: trackerCustomizationStore,
-		exprCache:                 ttlcache.New(ttlcache.Options[string, *vm.Program]{}.SetDefaultTTL(5 * time.Minute)),
+		exprCache:                 ttlcache.New[string, *vm.Program](ttlcache.SetDefaultTTL(5 * time.Minute)),
 		debouncedSyncTimers:       make(map[int]*time.Timer),
 		syncDebounceDelay:         200 * time.Millisecond,
 		syncDebounceMinJitter:     10 * time.Millisecond,
@@ -502,8 +502,8 @@ func NewSyncManager(clientPool *ClientPool, trackerCustomizationStore TrackerCus
 		trackerHealthCancel:       make(map[int]context.CancelFunc),
 		trackerHealthRefresh:      60 * time.Second,
 		validatedTrackerMapping:   make(map[int]*ValidatedTrackerMapping),
-		trackerDisplayNameCache:   ttlcache.New(ttlcache.Options[string, map[string]string]{}.SetDefaultTTL(60 * time.Second)),
-		trackerCustomizationCache: ttlcache.New(ttlcache.Options[string, []*models.TrackerCustomization]{}.SetDefaultTTL(60 * time.Second)),
+		trackerDisplayNameCache:   ttlcache.New[string, map[string]string](ttlcache.SetDefaultTTL(60 * time.Second)),
+		trackerCustomizationCache: ttlcache.New[string, []*models.TrackerCustomization](ttlcache.SetDefaultTTL(60 * time.Second)),
 		peakCache:                 make(map[int]map[string]*peakEntry),
 	}
 
@@ -4743,6 +4743,8 @@ func (sm *SyncManager) ResumeWhenComplete(instanceID int, hashes []string, opts 
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
+		// lastSeen stops one snapshot, or one taken before this call, from counting as a stable poll.
+		lastSeen := syncMgr.LastSuccessfulSyncTime()
 		for len(pending) > 0 {
 			select {
 			case <-ctx.Done():
@@ -4751,9 +4753,12 @@ func (sm *SyncManager) ResumeWhenComplete(instanceID int, hashes []string, opts 
 			case <-ticker.C:
 			}
 
-			if err := syncMgr.Sync(ctx); err != nil {
-				log.Debug().Err(err).Int("instanceID", instanceID).Msg("ResumeWhenComplete: sync failed")
-				continue
+			// Pollers for the same instance share the sync; fetch maindata only when no new sync landed since the last poll.
+			if !syncMgr.LastSuccessfulSyncTime().After(lastSeen) {
+				if err := syncMgr.Sync(ctx); err != nil {
+					log.Debug().Err(err).Int("instanceID", instanceID).Msg("ResumeWhenComplete: sync failed")
+					continue
+				}
 			}
 
 			requested := make([]string, 0, len(pending))
@@ -4765,6 +4770,7 @@ func (sm *SyncManager) ResumeWhenComplete(instanceID int, hashes []string, opts 
 			if len(torrentMap) < len(requested) {
 				torrentMap = syncMgr.GetTorrentMap(qbt.TorrentFilterOptions{})
 			}
+			lastSeen = syncMgr.LastSuccessfulSyncTime()
 			if len(torrentMap) == 0 {
 				continue
 			}

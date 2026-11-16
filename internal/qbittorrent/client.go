@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/autobrr/autobrr/pkg/ttlcache"
+	"github.com/autobrr/go-cache/ttlcache"
 	qbt "github.com/autobrr/go-qbittorrent"
 	"github.com/avast/retry-go"
 	"github.com/pkg/errors"
@@ -97,7 +97,7 @@ type Client struct {
 	lastHealthCheck            time.Time
 	isHealthy                  bool
 	syncManager                *qbt.SyncManager
-	peerSyncManager            map[string]*qbt.PeerSyncManager // Map of torrent hash to PeerSyncManager
+	peerSyncManager            *ttlcache.Cache[string, *qbt.PeerSyncManager] // Peer snapshots per torrent, evicted after inactivity
 	dailyTrafficRecorder       *DailyTrafficRecorder
 	dailyTrafficEnabled        bool
 	trackerTrafficRecorder     *TrackerTrafficRecorder
@@ -203,12 +203,14 @@ func NewClientWithTimeout(instanceID int, instanceHost, username, password, apiK
 		basicPass:       basicPass,
 		lastHealthCheck: time.Now(),
 		isHealthy:       true,
-		optimisticUpdates: ttlcache.New(ttlcache.Options[string, *OptimisticTorrentUpdate]{}.
-			SetDefaultTTL(30 * time.Second)), // Updates expire after 30 seconds
+		optimisticUpdates: ttlcache.New[string, *OptimisticTorrentUpdate](
+			ttlcache.SetDefaultTTL(30 * time.Second)), // Updates expire after 30 seconds
 		trackerExclusions: make(map[string]map[string]struct{}),
-		peerSyncManager:   make(map[string]*qbt.PeerSyncManager),
-		completionState:   make(map[string]bool),
-		addedState:        make(map[string]struct{}),
+		peerSyncManager: ttlcache.New[string, *qbt.PeerSyncManager](
+			ttlcache.SetDefaultTTL(10*time.Minute),
+			ttlcache.SetTimerResolution(30*time.Second)), // Peer snapshots expire after 10 minutes of inactivity; refresh is batched at 30s
+		completionState: make(map[string]bool),
+		addedState:      make(map[string]struct{}),
 	}
 
 	if err := client.RefreshCapabilities(ctx); err != nil {
@@ -1021,23 +1023,23 @@ func isStoppedOrErrorState(state qbt.TorrentState) bool {
 		state == qbt.TorrentStateError
 }
 
-// GetOrCreatePeerSyncManager gets or creates a PeerSyncManager for a specific torrent
+// GetOrCreatePeerSyncManager gets or creates a PeerSyncManager for a specific torrent.
+// Entries expire after 10 minutes of inactivity so browsing many torrents does not
+// retain every peer snapshot for the lifetime of the client.
 func (c *Client) GetOrCreatePeerSyncManager(hash string) *qbt.PeerSyncManager {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// Check if we already have a sync manager for this torrent
-	if peerSync, exists := c.peerSyncManager[hash]; exists {
+	// Get refreshes the sliding TTL on a hit, keeping an actively viewed torrent cached.
+	if peerSync, exists := c.peerSyncManager.Get(hash); exists {
 		return peerSync
 	}
 
-	// Create a new peer sync manager for this torrent
 	peerSyncOpts := qbt.DefaultPeerSyncOptions()
 	peerSyncOpts.AutoSync = false // We'll sync manually when requested
 	peerSync := c.NewPeerSyncManager(hash, peerSyncOpts)
-	c.peerSyncManager[hash] = peerSync
+	// GetOrSet is atomic: concurrent calls keep a single entry. The loser's object
+	// holds no goroutine (AutoSync=false), so it is cheap to discard.
+	stored, _ := c.peerSyncManager.GetOrSet(hash, peerSync, ttlcache.DefaultTTL)
 
-	return peerSync
+	return stored
 }
 
 // applyOptimisticCacheUpdate applies optimistic updates for the given hashes and action
@@ -1168,13 +1170,7 @@ func (c *Client) clearTrackerExclusions(domains []string) {
 
 // getOptimisticUpdates returns all current optimistic updates
 func (c *Client) getOptimisticUpdates() map[string]*OptimisticTorrentUpdate {
-	updates := make(map[string]*OptimisticTorrentUpdate)
-	for _, key := range c.optimisticUpdates.GetKeys() {
-		if val, found := c.optimisticUpdates.Get(key); found {
-			updates[key] = val
-		}
-	}
-	return updates
+	return maps.Collect(c.optimisticUpdates.All())
 }
 
 // clearOptimisticUpdate removes an optimistic update for a specific torrent
