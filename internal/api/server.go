@@ -403,7 +403,7 @@ func (s *Server) Handler() (*chi.Mux, error) {
 	if err != nil {
 		return nil, err
 	}
-	instancesHandler := handlers.NewInstancesHandler(s.instanceStore, s.instanceReannounce, s.reannounceCache, s.clientPool, s.syncManager, s.reannounceService)
+	instancesHandler := handlers.NewInstancesHandler(s.instanceStore, s.automationStore, s.instanceReannounce, s.reannounceCache, s.clientPool, s.syncManager, s.reannounceService)
 	trafficHandler := handlers.NewTrafficHandler(s.dailyTrafficStore)
 	trackerTrafficHandler := handlers.NewTrackerTrafficHandler(s.trackerTrafficStore, s.timezone)
 	torrentsHandler := handlers.NewTorrentsHandler(s.syncManager, s.jackettService, s.instanceStore, s.crossSeedLogStore)

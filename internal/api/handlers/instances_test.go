@@ -48,7 +48,7 @@ func TestGetInstanceCapabilitiesPreservesBackoffMessage(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	handler := NewInstancesHandler(instanceStore, nil, nil, clientPool, nil, nil)
+	handler := NewInstancesHandler(instanceStore, nil, nil, nil, clientPool, nil, nil)
 	router := chi.NewRouter()
 	router.Get("/api/instances/{instanceID}/capabilities", handler.GetInstanceCapabilities)
 
@@ -102,7 +102,7 @@ func TestPopulateCloneCredentialsUsesPlaintextCredentials(t *testing.T) {
 	db := testdb.NewMigratedSQLite(t, "clone-instance-credentials")
 	store, err := models.NewInstanceStore(db, []byte("01234567890123456789012345678901"))
 	require.NoError(t, err)
-	handler := NewInstancesHandler(store, nil, nil, nil, nil, nil)
+	handler := NewInstancesHandler(store, nil, nil, nil, nil, nil, nil)
 
 	t.Run("username password and basic auth", func(t *testing.T) {
 		basicUsername := "proxy-user"

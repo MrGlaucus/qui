@@ -26,6 +26,7 @@ import (
 
 type InstancesHandler struct {
 	instanceStore   *models.InstanceStore
+	automationStore *models.AutomationStore
 	reannounceStore *models.InstanceReannounceStore
 	reannounceCache *reannounce.SettingsCache
 	clientPool      *internalqbittorrent.ClientPool
@@ -33,9 +34,10 @@ type InstancesHandler struct {
 	reannounceSvc   *reannounce.Service
 }
 
-func NewInstancesHandler(instanceStore *models.InstanceStore, reannounceStore *models.InstanceReannounceStore, reannounceCache *reannounce.SettingsCache, clientPool *internalqbittorrent.ClientPool, syncManager *internalqbittorrent.SyncManager, svc *reannounce.Service) *InstancesHandler {
+func NewInstancesHandler(instanceStore *models.InstanceStore, automationStore *models.AutomationStore, reannounceStore *models.InstanceReannounceStore, reannounceCache *reannounce.SettingsCache, clientPool *internalqbittorrent.ClientPool, syncManager *internalqbittorrent.SyncManager, svc *reannounce.Service) *InstancesHandler {
 	return &InstancesHandler{
 		instanceStore:   instanceStore,
+		automationStore: automationStore,
 		reannounceStore: reannounceStore,
 		reannounceCache: reannounceCache,
 		clientPool:      clientPool,
@@ -688,6 +690,18 @@ func (h *InstancesHandler) CreateInstance(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "Failed to save reannounce settings")
 		return
+	}
+
+	// A clone carries the source instance's automation rules as automatic followers,
+	// so later edits to the source rules propagate to the clone. This is a best-effort
+	// step: the instance was already created, so a copy failure must not fail the request.
+	if req.CloneInstanceID > 0 && h.automationStore != nil {
+		if _, err := h.automationStore.CopyToInstanceAndFollow(r.Context(), req.CloneInstanceID, instance.ID); err != nil {
+			log.Warn().Err(err).
+				Int("sourceInstanceID", req.CloneInstanceID).
+				Int("targetInstanceID", instance.ID).
+				Msg("Failed to copy automation rules to cloned instance")
+		}
 	}
 
 	// Return quickly without testing connection

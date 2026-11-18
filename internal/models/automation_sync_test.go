@@ -247,3 +247,58 @@ func TestAutomationSyncModeChanges(t *testing.T) {
 	require.Equal(t, source.Name, manual.Name)
 	require.Equal(t, &source.ID, manual.SyncSourceID)
 }
+
+func TestCopyToInstanceAndFollow(t *testing.T) {
+	for _, backend := range []struct {
+		name string
+		open func(testing.TB, string) *database.DB
+	}{
+		{"sqlite", testdb.NewMigratedSQLite}, {"postgres", testdb.NewMigratedPostgres},
+	} {
+		t.Run(backend.name, func(t *testing.T) {
+			ctx := context.Background()
+			db := backend.open(t, "automation-copy-follow")
+			instances, err := models.NewInstanceStore(db, []byte("01234567890123456789012345678901"))
+			require.NoError(t, err)
+			sourceInst, err := instances.Create(ctx, "Source", "http://localhost:8080", "user", "pass", nil, nil, false, nil)
+			require.NoError(t, err)
+			targetInst, err := instances.Create(ctx, "Clone", "http://localhost:8081", "user", "pass", nil, nil, false, nil)
+			require.NoError(t, err)
+
+			store := models.NewAutomationStore(db)
+			source, err := store.Create(ctx, &models.Automation{
+				InstanceID:     sourceInst.ID,
+				Name:           "Original",
+				TrackerPattern: "*",
+				Enabled:        true,
+				Conditions:     &models.ActionConditions{SchemaVersion: "1", Pause: &models.PauseAction{Enabled: true}},
+			})
+			require.NoError(t, err)
+
+			result, err := store.CopyToInstanceAndFollow(ctx, sourceInst.ID, targetInst.ID)
+			require.NoError(t, err)
+			require.Equal(t, 1, result.Created)
+			require.Zero(t, result.Updated)
+
+			clones, err := store.ListByInstance(ctx, targetInst.ID)
+			require.NoError(t, err)
+			require.Len(t, clones, 1)
+			require.NotNil(t, clones[0].SyncSourceID)
+			require.Equal(t, source.ID, *clones[0].SyncSourceID)
+			require.Equal(t, source.SyncKey, clones[0].SyncKey)
+
+			// A later source edit propagates to the follower.
+			source.Name = "Renamed"
+			_, err = store.Update(ctx, source)
+			require.NoError(t, err)
+			follower, err := store.Get(ctx, targetInst.ID, clones[0].ID)
+			require.NoError(t, err)
+			require.Equal(t, "Renamed", follower.Name)
+
+			// The follower is read-only, unlike an independent CopyToInstance snapshot.
+			follower.Name = "Forbidden"
+			_, err = store.Update(ctx, follower)
+			require.ErrorIs(t, err, models.ErrAutomationSyncReadOnly)
+		})
+	}
+}

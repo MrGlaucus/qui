@@ -522,7 +522,6 @@ function InstancesManager({ search, onSearchChange }: InstancesManagerProps) {
   const isDialogOpen = search.tab === "instances" && search.modal === "add-instance"
   const [editingInstanceId, setEditingInstanceId] = useState<number | null>(null)
   const [cloneData, setCloneData] = useState<InstanceFormData | undefined>(undefined)
-  const [cloneSourceId, setCloneSourceId] = useState<number | null>(null)
   const editingInstance = instances?.find(instance => instance.id === editingInstanceId)
 
   // Close edit dialog if instance was deleted
@@ -538,7 +537,6 @@ function InstancesManager({ search, onSearchChange }: InstancesManagerProps) {
   }
 
   const handleCloneInstance = (instance: Instance) => {
-    setCloneSourceId(instance.id)
     setCloneData({
       name: instance.name,
       host: instance.host,
@@ -554,6 +552,7 @@ function InstancesManager({ search, onSearchChange }: InstancesManagerProps) {
       hardlinkDirPreset: instance.hardlinkDirPreset,
       useReflinks: instance.useReflinks,
       fallbackToRegularMode: instance.fallbackToRegularMode,
+      countryCode: instance.countryCode,
       reannounceSettings: instance.reannounceSettings,
       cloneInstanceId: instance.id,
     })
@@ -562,7 +561,6 @@ function InstancesManager({ search, onSearchChange }: InstancesManagerProps) {
 
   const handleCloseDialog = () => {
     setCloneData(undefined)
-    setCloneSourceId(null)
     onSearchChange({ tab: "instances" })
   }
 
@@ -668,12 +666,7 @@ function InstancesManager({ search, onSearchChange }: InstancesManagerProps) {
           <div className="flex-1 overflow-y-auto min-h-0">
             <InstanceForm
               defaultValues={cloneData}
-              onSuccess={(newInstanceId) => {
-                if (cloneSourceId !== null && newInstanceId !== undefined) {
-                  api.copyAutomationsToInstance(cloneSourceId, newInstanceId).catch(() => {
-                    toast.error(t("instances.toasts.copyAutomationsFailed"))
-                  })
-                }
+              onSuccess={() => {
                 handleCloseDialog()
               }}
               onCancel={handleCloseDialog}

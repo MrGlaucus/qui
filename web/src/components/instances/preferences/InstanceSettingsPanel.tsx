@@ -4,9 +4,17 @@
  */
 
 import { Button } from "@/components/ui/button"
+import { CountryOption } from "@/components/instances/CountryOption"
 import { FieldHelp } from "@/components/ui/field-help"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { useInstances } from "@/hooks/useInstances"
 import { getCountryOptions } from "@/lib/countryFlags"
@@ -316,24 +324,36 @@ export function InstanceSettingsPanel({ instance, onSuccess }: InstanceSettingsP
           </form.Field>
 
           <form.Field name="countryCode">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor="country-code">{t("form.labels.country")}</Label>
-                <select
-                  id="country-code"
-                  value={field.state.value ?? ""}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                >
-                  <option value="">—</option>
-                  {getCountryOptions().map(c => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            {(field) => {
+              const selected = field.state.value ?? ""
+              return (
+                <div className="space-y-2">
+                  <Label htmlFor="country-code">{t("form.labels.country")}</Label>
+                  <Select
+                    value={selected || "none"}
+                    onValueChange={(value) => field.handleChange(value === "none" ? "" : value)}
+                  >
+                    <SelectTrigger id="country-code" className="w-full">
+                      <SelectValue>
+                        {selected ? (
+                          <CountryOption code={selected} label={getCountryOptions().find(c => c.code === selected)?.label ?? selected} />
+                        ) : (
+                          "—"
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      {getCountryOptions().map(c => (
+                        <SelectItem key={c.code} value={c.code}>
+                          <CountryOption code={c.code} label={c.label} />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )
+            }}
           </form.Field>
         </div>
 

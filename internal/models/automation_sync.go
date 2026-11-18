@@ -253,8 +253,20 @@ func copyAutomation(ctx context.Context, tx dbinterface.TxQuerier, source *Autom
 	return false, err
 }
 
-// CopyToInstance is atomic and keeps a common identity even when copying via a follower.
+// CopyToInstance copies rules as independent snapshots; the copies do not follow
+// later edits to the source rules.
 func (s *AutomationStore) CopyToInstance(ctx context.Context, instanceID, targetID int) (*AutomationCopyResult, error) {
+	return s.copyToInstance(ctx, instanceID, targetID, false)
+}
+
+// CopyToInstanceAndFollow copies rules and links each copy back to its source rule
+// as an automatic follower, so later source edits propagate to the copies.
+func (s *AutomationStore) CopyToInstanceAndFollow(ctx context.Context, instanceID, targetID int) (*AutomationCopyResult, error) {
+	return s.copyToInstance(ctx, instanceID, targetID, true)
+}
+
+// copyToInstance is atomic and keeps a common identity even when copying via a follower.
+func (s *AutomationStore) copyToInstance(ctx context.Context, instanceID, targetID int, automatic bool) (*AutomationCopyResult, error) {
 	if instanceID == targetID {
 		return nil, ErrAutomationSyncConflict
 	}
@@ -290,7 +302,7 @@ func (s *AutomationStore) CopyToInstance(ctx context.Context, instanceID, target
 		if existing != nil && existing.SyncSourceID != nil {
 			target.PreserveEnabled = existing.SyncPreserveEnabled
 		}
-		created, err := copyAutomation(ctx, tx, rule, target, false)
+		created, err := copyAutomation(ctx, tx, rule, target, automatic)
 		if err != nil {
 			return nil, fmt.Errorf("rule %d: %w", rule.ID, err)
 		}
